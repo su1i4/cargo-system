@@ -495,7 +495,7 @@ function App() {
                       forgotPasswordLink={false}
                       title={
                         <img
-                          src="/alfa-china.png" // Путь к логотипу в public
+                          src="/alfa-china.png"
                           alt="Logo"
                           style={{
                             width: 150,
