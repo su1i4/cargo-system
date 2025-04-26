@@ -1,0 +1,19 @@
+.gradient-submenu > .ant-menu-submenu-title {
+  background: linear-gradient(to bottom, #EA653A, #EB2540) !important;
+  color: white !important;
+}
+
+/* Для стрелки в подменю */
+.gradient-submenu > .ant-menu-submenu-title .ant-menu-submenu-arrow::before,
+.gradient-submenu > .ant-menu-submenu-title .ant-menu-submenu-arrow::after {
+  background: white !important;
+}
+
+.no-scroll-modal .ant-modal {
+  position: fixed;
+  top: 3%;
+  left: 5%;
+  margin: 0;
+  padding-bottom: 0;
+}
+

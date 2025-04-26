@@ -1,0 +1,17 @@
+.date-picker-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ant-picker-range {
+    border-radius: 4px;
+}
+
+.ant-picker-range .ant-picker-input {
+    padding: 4px 8px;
+}
+
+.ant-picker-range-separator {
+    padding: 0 8px;
+} 

@@ -1,0 +1,141 @@
+.ant-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+.ant-form-item-label {
+  padding-bottom: 4px;
+}
+
+.ant-select-selector {
+  border-radius: 4px !important;
+}
+
+.ant-input-affix-wrapper {
+  border-radius: 4px;
+}
+
+.ant-form-item:last-child {
+  margin-bottom: 0;
+}
+
+.ant-select-multiple .ant-select-selection-item {
+  border-radius: 2px;
+}
+
+/* Стили для чекбоксов */
+.ant-checkbox-wrapper {
+  margin-left: 0 !important;
+  padding: 4px 0;
+}
+
+.ant-checkbox-wrapper + .ant-checkbox-wrapper {
+  margin-left: 0 !important;
+}
+
+/* Стили для выпадающего меню */
+.ant-dropdown {
+  animation-duration: 0.2s;
+}
+
+.ant-dropdown-placement-bottom {
+  padding-top: 8px;
+}
+
+/* Стили для кнопок сортировки */
+.ant-btn-text {
+  padding: 4px 8px;
+  width: 100%;
+}
+
+.ant-btn-text:hover {
+  background-color: #f5f5f5;
+}
+
+/* Стили для филиалов */
+.ant-checkbox-group {
+  width: 100%;
+}
+
+.ant-checkbox-group-item {
+  display: block;
+  margin-right: 0;
+  padding: 4px 0;
+}
+
+/* Стили для поиска филиалов */
+.ant-form-item-label {
+  padding-bottom: 4px;
+}
+
+/* Стили для списка филиалов */
+.ant-checkbox-group {
+  width: 100%;
+}
+
+.ant-checkbox-group-item {
+  display: block;
+  margin-right: 0;
+  padding: 4px 0;
+}
+
+/* Стили для скролла */
+div::-webkit-scrollbar {
+  width: 6px;
+}
+
+div::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+div::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+div::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Стили для кнопки сортировки */
+.ant-btn-icon-only {
+  transition: all 0.3s;
+}
+
+.ant-btn-icon-only:hover {
+  background-color: #f5f5f5;
+}
+
+/* Анимация появления кнопки сортировки */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.ant-btn-icon-only {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Стили для меню сортировки */
+.ant-card .ant-btn-text {
+  padding: 8px;
+  width: 100%;
+  text-align: left;
+  height: auto;
+  line-height: 1.5;
+}
+
+.ant-card .ant-btn-text:hover {
+  background-color: #f5f5f5;
+}
+
+.ant-dropdown-menu-item {
+  padding: 8px 12px;
+}
