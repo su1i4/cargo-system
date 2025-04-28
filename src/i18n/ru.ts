@@ -105,6 +105,7 @@ export const i18nProvider_ru = {
       "tasks.titles.show": "Чат задачи",
       "grooz.titles.list": "Сборные грузы",
       "grooz.titles.show": "Просмотр сборных грузов",
+      "nomenclature.titles.list": "Номенклатура",
     };
     return translations[key] || key;
   },

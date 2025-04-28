@@ -36,7 +36,7 @@ import {
   CheckOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import { CustomTooltip } from "../../shared";
+import { CustomTooltip } from "../../shared/custom-tooltip";
 import dayjs from "dayjs";
 import { ResendModal } from "./modal/resend-modal";
 

@@ -8,7 +8,7 @@ import { useNavigation, useCustom } from "@refinedev/core";
 import { Button, Flex, Input, Table, Typography } from "antd";
 import { useState, useEffect } from "react";
 import { API_URL } from "../../App";
-import { CustomTooltip } from "../../shared";
+import { CustomTooltip } from "../../shared/custom-tooltip";
 import { catchDateTable, translateStatus } from "../../lib/utils";
 import { useSearchParams } from "react-router";
 

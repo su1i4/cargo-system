@@ -16,9 +16,9 @@ export const MyCreateModal: React.FC<{
     resource: "counterparty",
     action: "create",
     onMutationSuccess: () => {
-      onClose(); // Закрываем модальное окно после успешного создания
+      onClose();
       if (onSuccess) {
-        onSuccess(); // Вызываем функцию обновления данных
+        onSuccess(); 
       }
     },
   });
@@ -56,6 +56,17 @@ export const MyCreateModal: React.FC<{
     setSelectedBranchId(value);
     formProps.form?.setFieldValue("under_branch_id", undefined);
   };
+
+  const typeCounterparty = [
+    {
+      label: "Отправитель",
+      value: "sender",
+    },
+    {
+      label: "Получатель",
+      value: "receiver",
+    },
+  ];
 
   return (
     <Modal
@@ -130,6 +141,15 @@ export const MyCreateModal: React.FC<{
             rules={[{ type: "email", message: "Неверный формат email" }]}
           >
             <Input />
+          </Form.Item>
+          <Form.Item
+            style={{ width: "100%" }}
+            label="Тип контрагента"
+            name="type"
+            rules={[{ required: true, message: "Выберите тип контрагента" }]}
+            initialValue={typeCounterparty[0].value}
+          >
+            <Select options={typeCounterparty} />
           </Form.Item>
         </Flex>
 

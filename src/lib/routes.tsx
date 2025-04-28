@@ -50,38 +50,16 @@ export const routes = [
       label: "Настройки",
     },
   },
-
   {
-    name: "accepted-goods",
-    list: "/accepted-goods",
-    show: "/accepted-goods/show/:id",
-    edit: "/accepted-goods/edit/:id",
+    name: "goods-processing",
+    list: "/goods-processing",
+    create: "/goods-processing/create",
+    edit: "/goods-processing/edit/:id",
+    show: "/goods-processing/show/:id",
     meta: {
       canDelete: true,
-      label: "Принятые товары",
+      label: "Все товары",
       parent: "Продукты",
-    },
-  },
-  {
-    name: "grooz",
-    list: "/grooz",
-    show: "/grooz/show/:id",
-    edit: "/grooz/edit/:id",
-    meta: {
-      canDelete: true,
-      label: "Сборные грузы",
-      parent: "Продукты",
-    },
-  },
-  {
-    name: "tasks",
-    list: "/tasks",
-    show: "/tasks/show/:id",
-    edit: "/tasks/edit/:id",
-    meta: {
-      canDelete: true,
-      label: "Задачи",
-      parent: "Автоматизация",
     },
   },
   {
@@ -97,15 +75,46 @@ export const routes = [
     },
   },
   {
-    name: "resend",
-    list: "/resend",
-    create: "/resend/create",
-    edit: "/resend/edit/:id",
-    show: "/resend/show/:id",
+    name: "receiving",
+    list: "/receiving",
+    create: "/receiving/create",
+    edit: "/receiving/edit/:id",
+    show: "/receiving/show/:id",
     meta: {
       canDelete: true,
-      label: "Переотправка",
+      label: "Получение",
       parent: "Продукты",
+    },
+  },
+  {
+    name: "issue",
+    list: "/issue",
+    show: "/issue/show/:id",
+    meta: {
+      canDelete: true,
+      label: "Выдача",
+      parent: "Продукты",
+    },
+  },
+  {
+    name: "nomenclature",
+    list: "/nomenclature",
+    show: "/nomenclature/show/:id",
+    meta: {
+      canDelete: true,
+      label: "Номенклатура",
+      parent: "Продукты",
+    },
+  },
+  {
+    name: "tasks",
+    list: "/tasks",
+    show: "/tasks/show/:id",
+    edit: "/tasks/edit/:id",
+    meta: {
+      canDelete: true,
+      label: "Задачи",
+      parent: "Автоматизация",
     },
   },
   {
@@ -136,18 +145,6 @@ export const routes = [
     },
   },
   {
-    name: "receiving",
-    list: "/receiving",
-    create: "/receiving/create",
-    edit: "/receiving/edit/:id",
-    show: "/receiving/show/:id",
-    meta: {
-      canDelete: true,
-      label: "Получение",
-      parent: "Продукты",
-    },
-  },
-  {
     name: "received",
     list: "/receiving/show/:id/received",
     meta: {
@@ -175,54 +172,12 @@ export const routes = [
     },
   },
   {
-    name: "issue",
-    list: "/issue",
-    show: "/issue/show/:id",
-    meta: {
-      canDelete: true,
-      label: "Выдача",
-      parent: "Продукты",
-    },
-  },
-  {
     name: "issued",
     list: "/issue/received",
     meta: {
       parent: "issue",
       label: "Выданные посылки",
       hide: true,
-    },
-  },
-  {
-    name: "remaining-stock",
-    list: "/remaining-stock",
-    show: "/remaining-stock/show/:id",
-    meta: {
-      canDelete: true,
-      label: "Остатки на складе",
-      parent: "Продукты",
-    },
-  },
-  {
-    name: "goods-processing",
-    list: "/goods-processing",
-    create: "/goods-processing/create",
-    edit: "/goods-processing/edit/:id",
-    show: "/goods-processing/show/:id",
-    meta: {
-      canDelete: true,
-      label: "Все товары",
-      parent: "Продукты",
-    },
-  },
-  {
-    name: "not-paid-goods",
-    list: "/not-paid-goods",
-    show: "/not-paid-goods/show/:id",
-    meta: {
-      canDelete: true,
-      label: "Не оплаченные товары",
-      parent: "Продукты",
     },
   },
   {

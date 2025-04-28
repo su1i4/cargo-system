@@ -23,7 +23,7 @@ import {
   CalendarOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import { CustomTooltip } from "../../shared";
+import { CustomTooltip } from "../../shared/custom-tooltip";
 
 export const IssueProcessingListReceived = () => {
   const [searchparams, setSearchParams] = useSearchParams();

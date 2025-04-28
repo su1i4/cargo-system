@@ -12,7 +12,12 @@ import {
 import { Link } from "react-router";
 import { type Sider } from "@refinedev/antd";
 import { Layout as AntdLayout, Menu, Grid, theme, Button, Drawer } from "antd";
-import { LogoutOutlined, RightOutlined, LeftOutlined, MenuOutlined } from "@ant-design/icons";
+import {
+  LogoutOutlined,
+  RightOutlined,
+  LeftOutlined,
+  MenuOutlined,
+} from "@ant-design/icons";
 import { antLayoutSider, antLayoutSiderMobile } from "./styles";
 
 const { useToken } = theme;
@@ -20,7 +25,8 @@ const { useToken } = theme;
 export const CustomSider: typeof Sider = ({ render }) => {
   const { token } = useToken();
   const [collapsed, setCollapsed] = useState<boolean>(false);
-  const [mobileDrawerVisible, setMobileDrawerVisible] = useState<boolean>(false);
+  const [mobileDrawerVisible, setMobileDrawerVisible] =
+    useState<boolean>(false);
   const isExistAuthentication = useIsExistAuthentication();
   const { warnWhen, setWarnWhen } = useWarnAboutChange();
   const { mutate: mutateLogout } = useLogout();
@@ -44,7 +50,6 @@ export const CustomSider: typeof Sider = ({ render }) => {
 
       const icon = item?.icon;
       const label = meta?.label ?? name;
-      const parent = meta?.parent;
       const route =
         typeof list === "string"
           ? list
@@ -64,7 +69,7 @@ export const CustomSider: typeof Sider = ({ render }) => {
             key={route}
             icon={icon}
             title={label}
-            className={isColor ? "gradient-submenu" : ""}
+            className={isColor ? "cargo-color-submenu" : ""}
             style={{
               textTransform: "capitalize",
             }}
@@ -156,13 +161,13 @@ export const CustomSider: typeof Sider = ({ render }) => {
   if (isMobile) {
     return (
       <>
-        <Button 
-          icon={<MenuOutlined style={{color: 'white'}}/>}
+        <Button
+          icon={<MenuOutlined style={{ color: "white" }} />}
           style={{
-            background: 'linear-gradient(to bottom, #EA653A, #EB2540)',
-            position: 'fixed',
-            top: '16px',
-            left: '16px',
+            background: "#5932EA",
+            position: "fixed",
+            top: "16px",
+            left: "16px",
             zIndex: 50,
           }}
           onClick={() => setMobileDrawerVisible(true)}
@@ -194,7 +199,7 @@ export const CustomSider: typeof Sider = ({ render }) => {
                 push("/accepted-goods");
                 setMobileDrawerVisible(false);
               }}
-              src="../../public/alfa-china.png"
+              src="../../public/cargo-system-logo.png"
             />
           </div>
           <Menu
@@ -261,14 +266,15 @@ export const CustomSider: typeof Sider = ({ render }) => {
           height: "64px",
           backgroundColor: token.colorBgElevated,
           fontSize: "14px",
+          gap: "10px",
         }}
       >
         <img
           style={{
-            width: collapsed ? "70px" : "110px",
+            width: "100px",
           }}
           onClick={() => push("/accepted-goods")}
-          src="../../public/alfa-china.png"
+          src="../../public/cargo-system-logo.png"
         />
       </div>
       <Menu

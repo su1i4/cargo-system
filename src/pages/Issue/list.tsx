@@ -36,7 +36,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { API_URL } from "../../App";
 import type { Key } from "react";
-import { CustomTooltip, operationStatus } from "../../shared";
+import { CustomTooltip, operationStatus } from "../../shared/custom-tooltip";
 import { useSearchParams } from "react-router";
 import { catchDateTable, translateStatus } from "../../lib/utils";
 

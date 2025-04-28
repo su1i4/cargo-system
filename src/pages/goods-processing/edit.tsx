@@ -23,7 +23,7 @@ import { CalendarOutlined, InboxOutlined } from "@ant-design/icons";
 import { EntityMetadata } from "typeorm";
 import { API_URL } from "../../App";
 import dayjs from "dayjs";
-import { entityFields } from "./create";
+// import { entityFields } from "./create";
 
 export const GoodsEdit = () => {
   const { formProps, saveButtonProps, queryResult, form } = useForm();
@@ -145,7 +145,7 @@ export const GoodsEdit = () => {
         }}
       >
         <Row gutter={16}>
-          {entityFields.map((field, index) => (
+          {/* {entityFields.map((field, index) => (
             <Col span={6} key={field.name}>
               <Form.Item
                 label={field.label}
@@ -184,7 +184,7 @@ export const GoodsEdit = () => {
                 )}
               </Form.Item>
             </Col>
-          ))}
+          ))} */}
           <Col span={8}>
             <Form.Item
               label={"Код Клиента"}

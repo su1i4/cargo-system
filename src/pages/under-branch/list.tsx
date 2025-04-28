@@ -1,26 +1,26 @@
 import {
-  DateField,
-  DeleteButton,
-  EditButton,
   List,
-  MarkdownField,
-  ShowButton,
   useTable,
 } from "@refinedev/antd";
-import { type BaseRecord, useMany, useNavigation } from "@refinedev/core";
-import { Space, Table } from "antd";
+import { useMany, useNavigation } from "@refinedev/core";
+import { Table } from "antd";
 
 export const UnderBranchList = () => {
   const { tableProps } = useTable({
     syncWithLocation: false,
+    sorters: {
+      initial: [
+        {
+          field: "id",
+          order: "desc",
+        },
+      ],
+    },
   });
-
-  // Extract currency IDs from the table data
   const currencyIds = tableProps?.dataSource
     ? tableProps.dataSource.map((item: any) => item.currency_id).filter(Boolean)
     : [];
 
-  // Fetch currency data based on the extracted IDs
   const { data: currencyData, isLoading: currencyIsLoading } = useMany({
     resource: "currency",
     ids: currencyIds,
@@ -29,7 +29,6 @@ export const UnderBranchList = () => {
     },
   });
 
-  // Create a map of currency IDs to currency names for efficient lookup
   const currencyMap =
     currencyData?.data?.reduce(
       (acc: Record<string | number, string>, curr: any) => {
@@ -52,7 +51,6 @@ export const UnderBranchList = () => {
         {...tableProps}
         rowKey="id"
       >
-        {/* <Table.Column dataIndex="id" title={"ID"} /> */}
         <Table.Column
           dataIndex="branch"
           title={"Филиал"}

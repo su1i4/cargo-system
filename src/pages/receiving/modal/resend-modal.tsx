@@ -21,7 +21,7 @@ import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { useSearchParams } from "react-router";
-import { CustomTooltip } from "../../../shared";
+import { CustomTooltip } from "../../../shared/custom-tooltip";
 import { CreateReshipment } from "./create-reshipment";
 
 dayjs.extend(utc);

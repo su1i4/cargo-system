@@ -1,13 +1,25 @@
-.gradient-submenu > .ant-menu-submenu-title {
-  background: linear-gradient(to bottom, #EA653A, #EB2540) !important;
-  color: white !important;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cargo-color: #5932EA;
 }
 
-/* Для стрелки в подменю */
-.gradient-submenu > .ant-menu-submenu-title .ant-menu-submenu-arrow::before,
-.gradient-submenu > .ant-menu-submenu-title .ant-menu-submenu-arrow::after {
+/* Основной стиль для заголовка подменю */
+.cargo-color-submenu > .ant-menu-submenu-title {
+  background-color: var(--cargo-color) !important;
+  color: white !important;
+  display: flex; /* Чтобы стрелка не съезжала */
+  align-items: center;
+}
+
+/* Стиль для стрелок подменю */
+.cargo-color-submenu > .ant-menu-submenu-title .ant-menu-submenu-arrow::before,
+.cargo-color-submenu > .ant-menu-submenu-title .ant-menu-submenu-arrow::after {
   background: white !important;
 }
+
 
 .no-scroll-modal .ant-modal {
   position: fixed;
@@ -16,4 +28,3 @@
   margin: 0;
   padding-bottom: 0;
 }
-

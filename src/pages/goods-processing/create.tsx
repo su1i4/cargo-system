@@ -1,141 +1,35 @@
-import { useEffect } from "react";
-import { Create, useForm, useSelect } from "@refinedev/antd";
-import {
-  Form,
-  Input,
-  InputNumber,
-  Select,
-  DatePicker,
-  Upload,
-  Row,
-  Col,
-} from "antd";
-import { API_URL } from "../../App"; // Импорт для типа (если вы можете получить реальные метаданные TypeORM)
+import { useEffect, useState } from "react";
+import { Create, useForm, useSelect, useTable } from "@refinedev/antd";
+import { Button, Col, Form, InputNumber, Row, Select, Table } from "antd";
 import dayjs from "dayjs";
 
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import { FileAddOutlined} from "@ant-design/icons";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 dayjs.tz.setDefault("Asia/Bishkek");
 
-export const entityFields = [
-  { name: "trackCode", label: "Трек-код", type: "varchar", required: true },
-
-  {
-    name: "cargoType",
-    label: "Тип груза",
-    type: "enum",
-    required: true,
-    enumValues: [
-      "Одежда",
-      "Хозка",
-      "Обувь",
-      "Головные уборы",
-      "Смешка",
-      "Ткань",
-      "Оборудование",
-      "Фурнитура",
-      "Автозапчасти",
-      "Электро товары",
-      "Мебель",
-      "Инструменты",
-      "Аксессуары",
-    ],
-  },
-  {
-    name: "packageType",
-    label: "Упаковать в",
-    type: "enum",
-    // required: true,
-    enumValues: [
-      "коробку с скотчем",
-      "коробку, водонепроницаемый мешок и скотч",
-      "картонные уголки",
-      "деревянную обрешетку",
-      "деревянный паллет",
-      "мешок и скотч",
-      "скотч",
-      "мешок",
-      "водонепроницаемый мешок и скотч",
-    ],
-  },
-
-  {
-    name: "pricePackageType",
-    label: "Цена за упаковку ",
-    type: "decimal",
-    // required: true,
-  },
-  { name: "weight", label: "Вес", type: "decimal", required: true },
-  { name: "comments", label: "Комментарии", type: "text", required: false },
+const columns = [
+  { title: "№", value: "id" },
+  { title: "Номенклатура", value: "name" },
+  { title: "Страна", value: "quantity" },
+  { title: "Бренд", value: "price" },
+  { title: "Количество", value: "sum" },
+  { title: "Вес", value: "sum" },
+  { title: "Цена", value: "sum" },
+  { title: "Сумма", value: "sum" },
+  { title: "Штрихкод", value: "sum" },
 ];
 
-// Интерфейс для значений формы
-interface GoodsFormValues {
-  trackCode?: string;
-  cargoType?: string[];
-  packageType?: string[];
-  pricePackageType?: number;
-  weight?: number;
-  comments?: string;
-  counterparty_id?: string | number;
-  discount_custom?: number;
-  created_at?: any;
-  photo?: {
-    file?: {
-      response?: {
-        filePath?: string;
-      };
-    };
-  };
-}
-
 export const GoodsCreate = () => {
-  const { formProps, saveButtonProps, form } = useForm<GoodsFormValues>({
-    onMutationSuccess: (data, variables: GoodsFormValues, context) => {
-      if (variables.photo) {
-        const cleanedPhoto = {
-          file: {
-            response: {
-              filePath: variables.photo.file?.response?.filePath,
-            },
-          },
-        };
-        variables.photo = cleanedPhoto;
-      }
-    },
-  });
+  const { formProps, saveButtonProps, form } = useForm();
 
-  const { selectProps: counterpartySelectProps } = useSelect({
-    resource: "counterparty",
-    optionLabel: (record: any) => {
-      return `${record?.name}, ${record?.clientPrefix}-${record?.clientCode}`;
-    },
-    onSearch: (value) => {
-      const isOnlyDigits = /^\d+$/.test(value);
+  const [services, setServices] = useState<any>([]);
 
-      if (isOnlyDigits) {
-        return [
-          {
-            field: "clientCode",
-            operator: "contains",
-            value,
-          },
-        ];
-      } else {
-        return [
-          {
-            field: "name",
-            operator: "contains",
-            value,
-          },
-        ];
-      }
-    },
-  });
+  const values: any = Form.useWatch([], form);
 
   const currentDateDayjs = dayjs().tz("Asia/Bishkek");
 
@@ -148,7 +42,7 @@ export const GoodsCreate = () => {
   }, []);
 
   const handleFormSubmit = (values: any) => {
-    const submitValues: GoodsFormValues = { ...values };
+    const submitValues = { ...values };
 
     if (submitValues.created_at) {
       if (typeof submitValues.created_at === "object") {
@@ -178,129 +72,163 @@ export const GoodsCreate = () => {
     }
   };
 
+  const { selectProps: counterpartySelectPropsSender } = useSelect({
+    resource: "counterparty",
+    optionLabel: (record: any) => {
+      return `${record?.clientPrefix}-${record?.clientCode}, ${record?.name}, `;
+    },
+    filters: [
+      {
+        field: "type",
+        operator: "eq",
+        value: "sender",
+      },
+    ],
+  });
+
+  const { selectProps: counterpartySelectPropsReceiver } = useSelect({
+    resource: "counterparty",
+    optionLabel: (record: any) => {
+      return `${record?.clientPrefix}-${record?.clientCode}, ${record?.name}, `;
+    },
+    filters: [
+      {
+        field: "type",
+        operator: "eq",
+        value: "receiver",
+      },
+    ],
+  });
+
+  const { selectProps: discountSelectProps }: any = useSelect({
+    resource: "discount",
+    optionLabel: (record: any) => {
+      return `${record?.counter_party?.clientPrefix}-${record?.counter_party?.clientCode}, ${record?.counter_party?.name}, ${record?.discount}%`;
+    },
+    optionValue: (record: any) => {
+      return record?.counter_party?.id;
+    },
+    filters: [
+      {
+        field: "counter_party_id",
+        operator: "in",
+        value: [values?.sender_id, values?.recipient_id],
+      },
+    ],
+    queryOptions: {
+      enabled: !!values?.sender_id && !!values?.recipient_id,
+    },
+  });
+
+  const { selectProps: branchSelectProps } = useSelect({
+    resource: "branch",
+    optionLabel: (record: any) => {
+      return `${record?.name}`;
+    },
+  });
+
+  const { selectProps: nomenclatureSelectProps } = useSelect({
+    resource: "nomenclature",
+    optionLabel: (record: any) => {
+      return `${record?.name}`;
+    },
+  });
+
+  useEffect(() => {
+    if (discountSelectProps?.options?.length > 0) {
+      formProps.form?.setFieldsValue({
+        discount_id: discountSelectProps?.options?.reduce(
+          (max: any, current: any) => {
+            return parseFloat(current.discount) > parseFloat(max.discount)
+              ? current
+              : max;
+          }
+        ).value,
+      });
+      console.log(
+        discountSelectProps?.options?.reduce((max: any, current: any) => {
+          return parseFloat(current.discount) > parseFloat(max.discount)
+            ? current
+            : max;
+        })
+      );
+    }
+  }, [discountSelectProps]);
+
   return (
     <Create saveButtonProps={saveButtonProps}>
-      <Form {...formProps} layout="horizontal" onFinish={handleFormSubmit}>
+      <Form {...formProps} layout="vertical" onFinish={handleFormSubmit}>
         <Row gutter={16}>
-          <Form.Item
-            label="Дата создание"
-            name="created_at"
-            style={{ marginBottom: 5 }}
-            rules={[
-              {
-                required: true,
-              },
-            ]}
-          >
-            <DatePicker
-              style={{ width: "100%" }}
-              format="YYYY-MM-DD HH:mm"
-              placeholder="Выберите дату"
-              onChange={(time) => {
-                if (time) {
-                  form.setFieldValue("created_at", time);
-                }
-              }}
-              showTime
-            />
-          </Form.Item>
-          {entityFields.map((field, index) => (
-            <Col span={8} key={field.name}>
-              <Form.Item
-                label={field.label}
-                name={field.name}
-                rules={field.required ? [{ required: true }] : []}
-              >
-                {field.type === "varchar" || field.type === "text" ? (
-                  <Input />
-                ) : field.type === "decimal" ? (
-                  <InputNumber style={{ width: "100%" }} />
-                ) : field.type === "enum" ? (
-                  <Select
-                    // mode="tags"
-                    style={{ width: "100%" }}
-                    // @ts-ignore
-                    options={field?.enumValues.map((enumValue) => ({
-                      label: enumValue,
-                      value: enumValue,
-                    }))}
-                    onChange={(value) => {
-                      // Ограничиваем выбор только одним значением
-                      if (Array.isArray(value) && value.length > 1) {
-                        // Берем только последнее выбранное значение
-                        form.setFieldValue(field.name, [
-                          value[value.length - 1],
-                        ]);
-                      }
-                    }}
-                  />
-                ) : field.type === "date" || field.type === "timestamp" ? (
-                  <DatePicker
-                    style={{ width: "100%" }}
-                    format="YYYY-MM-DD HH:mm:ss"
-                    showTime
-                  />
-                ) : (
-                  <Input />
-                )}
-              </Form.Item>
-            </Col>
-          ))}
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item
-              label={"Код Клиента"}
-              name={["counterparty_id"]}
               rules={[
-                {
-                  required: true,
-                },
+                { required: true, message: "Город назначения обязателен" },
               ]}
+              label="Город назначения"
+              name="destination_id"
             >
-              <Select {...counterpartySelectProps} />
+              <Select {...branchSelectProps} allowClear />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item label={"Скидка"} name={["discount_custom"]}>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                style={{ width: "100%" }}
+            <Form.Item
+              rules={[{ required: true, message: "Отправитель обязателен" }]}
+              label="Отправитель"
+              name="sender_id"
+            >
+              <Select {...counterpartySelectPropsSender} allowClear />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              rules={[{ required: true, message: "Получатель обязателен" }]}
+              label="Получатель"
+              name="recipient_id"
+            >
+              <Select {...counterpartySelectPropsReceiver} allowClear />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              rules={[{ required: true, message: "Оплачивает" }]}
+              label="Оплачивает"
+              name="pays"
+            >
+              <Select
+                options={[
+                  { label: "Получатель", value: "recipient" },
+                  { label: "Отправитель", value: "sender" },
+                ]}
+                allowClear
               />
             </Form.Item>
           </Col>
-        </Row>
-
-        {/* Поле загрузки фото - на отдельной строке */}
-        <Row>
-          <Col span={24}>
-            <Form.Item label="Фото">
-              <Form.Item name="photo" noStyle>
-                <Upload.Dragger
-                  name="file"
-                  action={`${API_URL}/file-upload`}
-                  listType="picture"
-                  accept=".png,.jpg,.jpeg"
-                  onChange={(info) => {
-                    if (info.file.status === "done") {
-                      form.setFieldsValue({
-                        photo: {
-                          file: {
-                            response: {
-                              filePath: info.file.response.filePath,
-                            },
-                          },
-                        },
-                      });
-                    }
-                  }}
-                >
-                  <p className="ant-upload-text">Загрузите Фото</p>
-                </Upload.Dragger>
-              </Form.Item>
+          <Col span={8}>
+            <Form.Item
+              rules={[{ required: true, message: "Скидка обязательна" }]}
+              label="Скидка"
+              name="discount_id"
+            >
+              <Select {...discountSelectProps} allowClear />
             </Form.Item>
           </Col>
         </Row>
+        <Row gutter={16}>
+          <Col span={8}>
+            <Button onClick={() => setServices([...services, columns])} icon={<FileAddOutlined />} />
+          </Col>
+        </Row>
+        <Table dataSource={services} style={{ marginTop: 10 }}>
+          <Table.Column title="№" dataIndex="id" render={(value: any, record: any, index: any) => index + 1} />
+          <Table.Column title="Номенклатура" dataIndex="name" render={(value: any, record: any) => <Select style={{ width: 200 }} {...nomenclatureSelectProps} allowClear />} />
+          <Table.Column title="Страна" dataIndex="quantity" />
+          <Table.Column title="Тип товара" dataIndex="price" />
+          <Table.Column title="Количество" dataIndex="sum" />
+          <Table.Column title="Вес" dataIndex="sum" />
+          <Table.Column title="Цена" dataIndex="sum" />
+          <Table.Column title="Сумма" dataIndex="sum" />
+          <Table.Column title="Штрихкод" dataIndex="sum" />
+        </Table>
       </Form>
     </Create>
   );

@@ -23,7 +23,7 @@ import {
   DownloadOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import { CustomTooltip } from "../../shared";
+import { CustomTooltip } from "../../shared/custom-tooltip";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";

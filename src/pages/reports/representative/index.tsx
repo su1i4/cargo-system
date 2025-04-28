@@ -30,7 +30,7 @@ import { useCustom, useNavigation, useUpdate } from "@refinedev/core";
 import dayjs from "dayjs";
 import { API_URL } from "../../../App";
 import { useSearchParams } from "react-router";
-import { operationStatus } from "../../../shared";
+import { operationStatus } from "../../../shared/custom-tooltip";
 import * as XLSX from "xlsx";
 
 import timezone from "dayjs/plugin/timezone";

@@ -49,6 +49,10 @@ export const CargoReceivedReport = () => {
   });
 
   // Fixed: Update filters function that properly formats filters
+  useEffect(() => {
+    refetch();
+  }, [searchFilters, sortDirection, currentPage, pageSize]);
+  
   const setFilters = (
     filters: any[],
     mode: "replace" | "append" = "append"
@@ -58,14 +62,8 @@ export const CargoReceivedReport = () => {
     } else {
       setSearchFilters((prevFilters) => [...prevFilters, ...filters]);
     }
-
-    // We'll refetch in useEffect after state updates
   };
 
-  // Fixed: Add effect to trigger refetch when filters or sorting changes
-  useEffect(() => {
-    refetch();
-  }, [searchFilters, sortDirection, currentPage, pageSize]);
 
   const datePickerContent = (
     <DatePicker.RangePicker
@@ -75,7 +73,6 @@ export const CargoReceivedReport = () => {
       format="YYYY-MM-DD HH:mm"
       onChange={(dates, dateStrings) => {
         if (dates && dateStrings[0] && dateStrings[1]) {
-          // Fixed: Use consistent filter format
           setFilters(
             [
               {

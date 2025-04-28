@@ -27,7 +27,7 @@ import { useCustom, useNavigation, useUpdate } from "@refinedev/core";
 import dayjs from "dayjs";
 import { API_URL } from "../../App";
 import { useSearchParams } from "react-router";
-import { CustomTooltip, operationStatus } from "../../shared";
+import { CustomTooltip, operationStatus } from "../../shared/custom-tooltip";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { translateStatus } from "../../lib/utils";

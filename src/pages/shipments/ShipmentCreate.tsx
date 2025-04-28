@@ -18,7 +18,7 @@ import {
 import { catchDateTable, translateStatus } from "../../lib/utils";
 import { API_URL } from "../../App";
 import { useSearchParams } from "react-router";
-import { CustomTooltip } from "../../shared";
+import { CustomTooltip } from "../../shared/custom-tooltip";
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,

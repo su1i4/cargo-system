@@ -21,7 +21,7 @@ import {
   ArrowDownOutlined,
 } from "@ant-design/icons";
 import { API_URL } from "../../App";
-import { CustomTooltip } from "../../shared";
+import { CustomTooltip } from "../../shared/custom-tooltip";
 import { translateStatus } from "../../lib/utils";
 
 const ShipmentAdd = () => {

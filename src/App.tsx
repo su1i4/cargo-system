@@ -31,7 +31,6 @@ import {
   GoogsProcessingList,
   GoodsEdit,
 } from "./pages/goods-processing";
-import { AcceptedGoodsList, AcceptedGoodsShow } from "./pages/accepted-goods";
 import {
   BranchCreate,
   BranchEdit,
@@ -56,7 +55,6 @@ import { CashBackList } from "./pages/cash-back";
 import { BankCreate, BankEdit, BankList, BankShow } from "./pages/bank";
 import { CashDeskCreate, CashDeskList } from "./pages/cash-desk";
 import { CashDeskOutcomeList } from "./pages/cash-desk/outcome";
-import { RemainingStockProcessingList } from "./pages/remaining-stock";
 import { ExeptionCodeCreate, ExeptionCodeList } from "./pages/exception-code";
 import {
   UnderBranchCreate,
@@ -104,34 +102,23 @@ import { ShipmentHistory } from "./pages/shipments/ShipmentHistory";
 import { ReceivingHistory } from "./pages/receiving/ReceivingHistory";
 import { ReceivingHistoryShow } from "./pages/receiving/ReceivingHistoryShow";
 import { ShipmentHistoryShow } from "./pages/shipments/ShipmentHistoryShow";
-import { NotPaidGoodsList } from "./pages/not-paid-goods/list";
-import { NotPaidGoodsShow } from "./pages/not-paid-goods/show";
 import { routes } from "./lib/routes";
 import { TriggersEdit } from "./pages/triggers/edit";
 import { TriggersShow } from "./pages/triggers/show";
 import { NotificationsList } from "./pages/notifications/list";
 import { NotificationsCreate } from "./pages/notifications/create";
-import { AcceptedGoodsEdit } from "./pages/accepted-goods/edit";
-import { ScrollRestoration } from "./hooks/save-scroll";
-import ResendList from "./pages/resend/list";
-import ResendCreate from "./pages/resend/create";
-import ResendShow from "./pages/resend/show";
-import ResendEdit from "./pages/resend/edit";
-import { ResendHistory } from "./pages/resend/history";
-import { ResendHistoryShow } from "./pages/resend/history-show";
+import { ScrollRestoration } from "./components/save-scroll";
 import ReceivingAll from "./pages/receiving/ReceivingAll";
 import { IncomeShow } from "./pages/cash-desk/incomeShow";
 import { TasksList } from "./pages/tasks/list";
 import { TasksCreate } from "./pages/tasks/create";
-// import { TasksyShow } from "./pages/tasks/show";
 import { TasksEdit } from "./pages/tasks/edit";
 import TasksyShow from "./pages/tasks/show";
 import { liveProvider } from "./contexts/liveProvider";
 import { TasksArchive } from "./pages/tasks/archive";
 import { IncomeShowReport } from "./pages/reports/income-report/show";
-import { CounterpartyGrooz } from "./pages/grooz/list";
-import { GroozShow } from "./pages/grooz/show";
 import { RepresentativeReport } from "./pages/reports/representative";
+import { NomenklaturaList } from "./pages/nomenklatura/list";
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
 function App() {
@@ -222,7 +209,7 @@ function App() {
               authProvider={authProvider}
               i18nProvider={i18nProvider_ru}
               accessControlProvider={{
-                can: async ({ resource, action }) => {
+                can: async ({ resource }) => {
                   const role = localStorage.getItem("role");
 
                   if (role === "user" && resource === "users") {
@@ -238,8 +225,11 @@ function App() {
                 warnWhenUnsavedChanges: true,
                 useNewQueryKeys: true,
                 liveMode: "auto",
+                title: {
+                  icon: <img src="/cargo-system-logo.png" alt="Logo" />,
+                  text: "Cargo System",
+                },
               }}
-              onLiveEvent={(event) => {}}
             >
               <Routes>
                 <Route
@@ -267,22 +257,6 @@ function App() {
                     <Route path="create" element={<GoodsCreate />} />
                     <Route path="edit/:id" element={<GoodsEdit />} />
                     <Route path="show/:id" element={<GoodsShow />} />
-                  </Route>
-
-                  <Route path="/accepted-goods">
-                    <Route index element={<AcceptedGoodsList />} />
-                    <Route path="show/:id" element={<AcceptedGoodsShow />} />
-                    <Route path="edit/:id" element={<AcceptedGoodsEdit />} />
-                  </Route>
-
-                  <Route path="/not-paid-goods">
-                    <Route index element={<NotPaidGoodsList />} />
-                    <Route path="show/:id" element={<NotPaidGoodsShow />} />
-                  </Route>
-
-                  <Route path="/grooz">
-                    <Route index element={<CounterpartyGrooz />} />
-                    <Route path="show/:id" element={<GroozShow />} />
                   </Route>
 
                   <Route path="/issue">
@@ -325,18 +299,6 @@ function App() {
                     <Route
                       path="history/show/:id"
                       element={<ShipmentHistoryShow />}
-                    />
-                  </Route>
-
-                  <Route path="/resend">
-                    <Route index element={<ResendList />} />
-                    <Route path="create" element={<ResendCreate />} />
-                    <Route path="show/:id" element={<ResendShow />} />
-                    <Route path="edit/:id" element={<ResendEdit />} />
-                    <Route path="history" element={<ResendHistory />} />
-                    <Route
-                      path="history/show/:id"
-                      element={<ResendHistoryShow />}
                     />
                   </Route>
 
@@ -460,8 +422,6 @@ function App() {
                   <Route path="/outcome">
                     <Route index element={<CashDeskOutcomeList />} />
                     <Route path="create" element={<CashDeskCreate />} />
-                    {/*<Route path="show/:id" element={<ReceivingShow />} />*/}
-                    {/*<Route path="edit/:id" element={<ReceivingEdit />} />*/}
                   </Route>
 
                   <Route path="/currency">
@@ -471,16 +431,13 @@ function App() {
                     <Route path="edit/:id" element={<CurrencyEdit />} />
                   </Route>
 
-                  <Route path="/remaining-stock">
-                    <Route index element={<RemainingStockProcessingList />} />
-                    {/*<Route path="create" element={<BankCreate />} />*/}
-                    {/*<Route path="show/:id" element={<ReceivingShow />} />*/}
-                    {/*<Route path="edit/:id" element={<ReceivingEdit />} />*/}
-                  </Route>
-
                   <Route path="/exception-code">
                     <Route index element={<ExeptionCodeList />} />
                     <Route path="create" element={<ExeptionCodeCreate />} />
+                  </Route>
+
+                  <Route path="/nomenclature">
+                    <Route index element={<NomenklaturaList />} />
                   </Route>
 
                   <Route path="*" element={<ErrorComponent />} />
