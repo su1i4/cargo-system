@@ -106,6 +106,10 @@ export const i18nProvider_ru = {
       "grooz.titles.list": "Сборные грузы",
       "grooz.titles.show": "Просмотр сборных грузов",
       "nomenclature.titles.list": "Номенклатура",
+      "type-product.titles.list": "Тип товара",
+      "products.titles.list": "Продукты",
+      "packers.titles.list": "Упаковщики",
+      "visiting-group.titles.list": "Выездные группы",
     };
     return translations[key] || key;
   },

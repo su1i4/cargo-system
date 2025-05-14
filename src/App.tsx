@@ -119,6 +119,10 @@ import { TasksArchive } from "./pages/tasks/archive";
 import { IncomeShowReport } from "./pages/reports/income-report/show";
 import { RepresentativeReport } from "./pages/reports/representative";
 import { NomenklaturaList } from "./pages/nomenklatura/list";
+import { BrandList } from "./pages/brand/list";
+import { ProductsList } from "./pages/products/list";
+import { PackersList } from "./pages/packers/list";
+import { OutGroupList } from "./pages/out-group/list";
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
 function App() {
@@ -440,6 +444,21 @@ function App() {
                     <Route index element={<NomenklaturaList />} />
                   </Route>
 
+                  <Route path="/type-product">
+                    <Route index element={<BrandList />} />
+                  </Route>
+
+                  <Route path="/products">
+                    <Route index element={<ProductsList />} />
+                  </Route>
+
+                  <Route path="/packers">
+                    <Route index element={<PackersList />} />
+                  </Route>
+
+                  <Route path="/visiting-group">
+                    <Route index element={<OutGroupList />} />
+                  </Route>
                   <Route path="*" element={<ErrorComponent />} />
                 </Route>
 

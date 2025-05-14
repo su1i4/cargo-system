@@ -12,6 +12,7 @@ import {
   Card,
   Modal,
   Checkbox,
+  Flex,
 } from "antd";
 import {
   SearchOutlined,
@@ -206,6 +207,7 @@ export const GoogsProcessingList = () => {
   };
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
 
   const dataSource = data?.data?.data || [];
 
@@ -223,21 +225,6 @@ export const GoogsProcessingList = () => {
     } else {
       setSelectedRowKeys([]);
     }
-  };
-
-  const handleCheckboxChange = (record: any) => {
-    if (record.visible) return;
-
-    const newSelectedKeys = selectedRowKeys.includes(record.id)
-      ? selectedRowKeys.filter((id) => id !== record.id)
-      : [...selectedRowKeys, record.id];
-    setSelectedRowKeys(newSelectedKeys);
-
-    const allFalseItems = dataSource.filter((item: any) => !item.visible);
-    const allFalseSelected = allFalseItems.every((item: any) =>
-      newSelectedKeys.includes(item.id)
-    );
-    setMainChecked(allFalseSelected);
   };
 
   const handleSaveChanges = async () => {
@@ -269,9 +256,10 @@ export const GoogsProcessingList = () => {
   };
 
   const checkboxContent = (
-    <Card style={{ padding: 10 }}>
-      <Button onClick={handleSaveChanges}>Показать клиенту</Button>
-    </Card>
+    <Flex vertical gap={10} style={{ backgroundColor: "white", padding: 15, borderRadius: 10, boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.1)" }}>
+      <Button onClick={handleSaveChanges}>Показать накладную</Button>
+      <Button onClick={handleSaveChanges}>Приходный кассовый ордер</Button>
+    </Flex>
   );
 
   const { show, push } = useNavigation();
@@ -342,7 +330,7 @@ export const GoogsProcessingList = () => {
                 ></Button>
               </Dropdown>
             </CustomTooltip>
-            <CustomTooltip title="Показать клиентам">
+            <CustomTooltip title="Настройки">
               <Dropdown
                 overlay={checkboxContent}
                 trigger={["click"]}
@@ -430,27 +418,17 @@ export const GoogsProcessingList = () => {
             show("goods-processing", record.id as number);
           },
         })}
+        rowSelection={{
+          onChange: (selectedRowKeys, selectedRows) => {
+            setSelectedRowKeys(selectedRowKeys);
+            setSelectedRows(selectedRows);
+          },
+        }}
       >
         <Table.Column
           title="№"
           render={(_: any, __: any, index: number) => {
             return (data?.data?.page - 1) * pageSize + index + 1;
-          }}
-        />
-        <Table.Column
-          dataIndex="visible"
-          title={<Checkbox checked={mainChecked} onChange={clickAll} />}
-          render={(value, record) => {
-            if (value) {
-              return <EyeOutlined />;
-            } else {
-              return (
-                <Checkbox
-                  checked={selectedRowKeys.includes(record.id)}
-                  onChange={() => handleCheckboxChange(record)}
-                />
-              );
-            }
           }}
         />
         <Table.Column
@@ -460,22 +438,30 @@ export const GoogsProcessingList = () => {
             value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
           }
         />
-        <Table.Column dataIndex="trackCode" title="Трек-код" />
-        <Table.Column dataIndex="cargoType" title="Тип груза" />
+        <Table.Column dataIndex="invoice_number" title="№ накладной" />
+        <Table.Column dataIndex="employee" title="Пункт приема" render={(value) => `${value?.branch?.name}, ${value?.under_branch?.address || ""}`} />
         <Table.Column
-          dataIndex="counterparty"
+          dataIndex="sender"
+          title="Код отправителя"
+          render={(value) => {
+            return value?.clientPrefix + "-" + value?.clientCode;
+          }}
+        />
+        <Table.Column dataIndex="sender" title="Фио отправителя" render={(value) => value?.name} />
+        <Table.Column
+          dataIndex="recipient"
           title="Код получателя"
           render={(value) => {
             return value?.clientPrefix + "-" + value?.clientCode;
           }}
         />
         <Table.Column
-          dataIndex="counterparty"
-          title="ФИО получателя"
+          dataIndex="recipient"
+          title="Фио получателя"
           render={(value) => value?.name}
         />
         <Table.Column
-          dataIndex="counterparty"
+          dataIndex="recipient"
           render={(value) => (
             <p
               style={{
@@ -487,42 +473,26 @@ export const GoogsProcessingList = () => {
               {`${value?.branch?.name}, ${value?.under_branch?.address || ""}`}
             </p>
           )}
-          title="Пункт назначения, Пвз"
+          title="Пункт назначения"
         />
         <Table.Column
-          dataIndex="weight"
+          dataIndex="totalServiceWeight"
           title="Вес"
           render={(value) => value + " кг"}
         />
         <Table.Column
-          dataIndex="counterparty"
-          title="Тариф клиента"
-          render={(value, record) => {
-            return `${(
-              Number(value?.branch?.tarif || 0) -
-              Number(record?.counterparty?.discount?.discount || 0)
-            ).toFixed(2)}$`;
-          }}
-        />
-
-        <Table.Column
-          dataIndex="amount"
-          title="Сумма"
-          render={(value) => value + " $"}
+          dataIndex="totalProductAmountSum"
+          title="Сумма продуктов"
+          render={(value) => value + " руб"}
         />
         <Table.Column
-          dataIndex="discount"
-          title="Скидка"
-          render={(value, record) => {
-            return `${(Number(value) + Number(record?.discount_custom)).toFixed(
-              2
-            )}`;
-          }}
+          dataIndex="totalServiceAmountSum"
+          title="Сумма услуг"
+          render={(value) => value + " руб"}
         />
         <Table.Column
-          dataIndex="status"
-          title="Статус"
-          render={(value) => translateStatus(value)}
+          dataIndex="payment_method"
+          title="Способ оплаты"
         />
         {operationStatus()}
         <Table.Column

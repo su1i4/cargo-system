@@ -1,39 +1,41 @@
 import {
-  ShoppingCartOutlined,
   WalletOutlined,
-  UsergroupAddOutlined,
   SettingOutlined,
   RobotOutlined,
   OrderedListOutlined,
+  AppstoreOutlined,
+  ContactsOutlined,
+  BankOutlined,
+  HomeOutlined,
 } from "@ant-design/icons";
 
 export const routes = [
   {
     name: "Продукты",
-    icon: <ShoppingCartOutlined />,
+    icon: <AppstoreOutlined />,
     meta: {
       label: "Продукты",
     },
   },
   {
     name: "Контрагенты",
-    icon: <UsergroupAddOutlined />,
+    icon: <ContactsOutlined />,
     meta: {
       label: "Контрагенты",
     },
   },
   {
     name: "Касса",
-    icon: <WalletOutlined />,
+    icon: <BankOutlined />,
     meta: {
       label: "Касса",
     },
   },
   {
     name: "Автоматизация",
-    icon: <RobotOutlined />,
+    icon: <HomeOutlined />,
     meta: {
-      label: "Автоматизация",
+      label: "Компания",
     },
   },
   {
@@ -103,6 +105,26 @@ export const routes = [
     meta: {
       canDelete: true,
       label: "Номенклатура",
+      parent: "Продукты",
+    },
+  },
+  {
+    name: "type-product",
+    list: "/type-product",
+    show: "/type-product/show/:id",
+    meta: {
+      canDelete: true,
+      label: "Тип товара",
+      parent: "Продукты",
+    },
+  },
+  {
+    name: "products",
+    list: "/products",
+    show: "/products/show/:id",
+    meta: {
+      canDelete: true,
+      label: "Продукты",
       parent: "Продукты",
     },
   },
@@ -310,6 +332,24 @@ export const routes = [
     meta: {
       canDelete: true,
       label: "Исключение",
+      parent: "Настройки",
+    },
+  },
+  {
+    name: "packers",
+    list: "/packers",
+    meta: {
+      canDelete: true,
+      label: "Упаковщики",
+      parent: "Настройки",
+    },
+  },
+  {
+    name: "visiting-group",
+    list: "/visiting-group",
+    meta: {
+      canDelete: true,
+      label: "Выездные группы",
       parent: "Настройки",
     },
   },
