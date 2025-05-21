@@ -7,4 +7,9 @@ export default defineConfig({
   define: {
     "process.env": {},
   },
+  server: {
+    host: true, // позволяет доступ извне, включая через домен
+    port: 5173, // (если нужно явно указать порт)
+    allowedHosts: ['systemcargo.ru'], // ✅ разрешён ваш домен
+  },
 });

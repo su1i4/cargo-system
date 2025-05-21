@@ -110,6 +110,7 @@ export const i18nProvider_ru = {
       "products.titles.list": "Продукты",
       "packers.titles.list": "Упаковщики",
       "visiting-group.titles.list": "Выездные группы",
+      "tariff.titles.list": "Тарифы",
     };
     return translations[key] || key;
   },

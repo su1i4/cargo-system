@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Create, useForm, useSelect, useTable } from "@refinedev/antd";
+import { useApiUrl, useCustom } from "@refinedev/core";
 import {
   Button,
   Col,
@@ -58,6 +59,25 @@ interface ProductItem {
   isSelected?: boolean; // Флаг для отслеживания выбранных товаров
 }
 
+interface TariffItem {
+  id: number;
+  branch_id: number;
+  product_type_id: number;
+  tariff: string;
+  product_type: {
+    id: number;
+    name: string;
+    tariff: string;
+  };
+  branch: {
+    id: number;
+    name: string;
+    tarif: string;
+    prefix: string;
+    visible: boolean;
+  };
+}
+
 const countries = [
   { label: "Китай", value: "Китай" },
   { label: "Узбекистан", value: "Узбекистан" },
@@ -68,6 +88,7 @@ const countries = [
 
 export const GoodsCreate = () => {
   const { formProps, saveButtonProps, form } = useForm();
+  const apiUrl = useApiUrl();
 
   const { tableProps } = useTable({
     resource: "products",
@@ -78,13 +99,38 @@ export const GoodsCreate = () => {
   const [typeProducts, setTypeProducts] = useState<TypeProduct[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
+  const [tariffs, setTariffs] = useState<TariffItem[]>([]);
 
   const [senderData, setSenderData] = useState<any>(null);
   const values: any = Form.useWatch([], form);
 
   const currentDateDayjs = dayjs().tz("Asia/Bishkek");
 
-  // Расчет суммы комиссии на основе объявленной ценности и процента комиссии
+  // Загрузка тарифов
+  const { refetch: refetchTariffs } = useCustom({
+    url: `${apiUrl}/tariff`,
+    method: "get",
+    queryOptions: {
+      onSuccess: (data: any) => {
+        setTariffs(data?.data || []);
+      },
+    },
+  });
+
+  useEffect(() => {
+    refetchTariffs();
+  }, []);
+
+  const findTariff = (branchId: number, productTypeId: number): number => {
+    const foundTariff = tariffs.find(
+      (tariff) => 
+        tariff.branch_id === branchId && 
+        tariff.product_type_id === productTypeId
+    );
+    
+    return foundTariff ? parseFloat(foundTariff.tariff) : 0;
+  };
+
   const calculateCommissionAmount = (
     declaredValue: number,
     commissionPercent: number
@@ -105,7 +151,7 @@ export const GoodsCreate = () => {
       const formattedProducts = tableProps.dataSource.map((item: any) => ({
         id: item.id,
         name: item.name,
-        price: Number(item.price) || 0, // Цена берется из бэкенда
+        price: Number(item.price) || 0,
         quantity: 0,
         sum: 0,
         isSelected: false,
@@ -114,7 +160,6 @@ export const GoodsCreate = () => {
     }
   }, [tableProps.dataSource]);
 
-  // Отслеживание изменений в полях объявленной ценности и комиссии
   useEffect(() => {
     if (values?.declared_value && values?.commission) {
       const declaredValue = Number(values.declared_value);
@@ -133,15 +178,14 @@ export const GoodsCreate = () => {
   }, [values?.declared_value, values?.commission]);
 
   const generateBarcode = (): string => {
-    const prefix = "45"; // Префикс для штрихкода
-    const timestamp = Date.now().toString().slice(-10); // Последние 10 цифр временной метки
+    const prefix = "45";
+    const timestamp = Date.now().toString().slice(-10);
     const random = Math.floor(Math.random() * 10000)
       .toString()
-      .padStart(4, "0"); // Случайное число
+      .padStart(4, "0") 
     return `${prefix}${timestamp}${random}`;
   };
 
-  // Добавление нового товара
   const addNewItem = () => {
     const senderPrefix = typeof senderData?.label === 'string' ? senderData.label.split(",")[0] : '';
     const newItem: GoodItem = {
@@ -153,7 +197,6 @@ export const GoodsCreate = () => {
     setNextId(nextId + 1);
   };
 
-  // Копирование выбранных товаров
   const copySelectedItems = () => {
     if (selectedRowKeys.length === 0) {
       message.warning("Выберите товары для копирования");
@@ -179,7 +222,7 @@ export const GoodsCreate = () => {
 
     setServices([...services, ...newItems]);
     setNextId(nextId + selectedItems.length);
-    setSelectedRowKeys([]); // Сбрасываем выбор после копирования
+    setSelectedRowKeys([]);
 
     message.success(`Скопировано ${selectedItems.length} товаров`);
   };
@@ -218,14 +261,20 @@ export const GoodsCreate = () => {
           // Если выбран тип товара, получаем тариф
           if (field === "type_id") {
             const selectedType = typeProducts.find((type) => type.id === value);
-            if (selectedType) {
+            const branchId = Number(values?.destination_id);
+            const productTypeId = Number(value);
+            
+            if (selectedType && branchId) {
+              // Найти соответствующий тариф на основе филиала и типа товара
+              const tariffValue = findTariff(branchId, productTypeId);
+              
               newItem.type_name = selectedType.name;
-              newItem.tariff = selectedType.tariff;
-              newItem.price = selectedType.tariff;
+              newItem.tariff = tariffValue > 0 ? tariffValue : selectedType.tariff;
+              newItem.price = tariffValue > 0 ? tariffValue : selectedType.tariff;
 
               // Пересчитываем сумму на основе веса и нового тарифа
               if (newItem.weight) {
-                newItem.sum = calculateSum(newItem.weight, selectedType.tariff);
+                newItem.sum = calculateSum(newItem.weight, newItem.tariff);
               }
             }
           }
@@ -243,6 +292,36 @@ export const GoodsCreate = () => {
       })
     );
   };
+
+  // Обработка изменения филиала назначения
+  useEffect(() => {
+    if (values?.destination_id && services.length > 0) {
+      // Обновляем тарифы для всех сервисов при изменении филиала
+      const branchId = Number(values.destination_id);
+      
+      setServices(
+        services.map((item) => {
+          if (item.type_id) {
+            const productTypeId = Number(item.type_id);
+            const tariffValue = findTariff(branchId, productTypeId);
+            
+            if (tariffValue > 0) {
+              const newItem = { ...item };
+              newItem.tariff = tariffValue;
+              newItem.price = tariffValue;
+              
+              if (newItem.weight) {
+                newItem.sum = calculateSum(newItem.weight, tariffValue);
+              }
+              
+              return newItem;
+            }
+          }
+          return item;
+        })
+      );
+    }
+  }, [values?.destination_id, tariffs]);
 
   // Обновление данных товара из бэкенда
   const updateProductField = (

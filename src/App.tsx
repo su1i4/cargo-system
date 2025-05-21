@@ -123,6 +123,7 @@ import { BrandList } from "./pages/brand/list";
 import { ProductsList } from "./pages/products/list";
 import { PackersList } from "./pages/packers/list";
 import { OutGroupList } from "./pages/out-group/list";
+import { TariffList } from "./pages/tarif/list";
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
 function App() {
@@ -459,6 +460,11 @@ function App() {
                   <Route path="/visiting-group">
                     <Route index element={<OutGroupList />} />
                   </Route>
+
+                  <Route path="/tariff">
+                    <Route index element={<TariffList />} />
+                  </Route>
+
                   <Route path="*" element={<ErrorComponent />} />
                 </Route>
 

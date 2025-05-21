@@ -185,6 +185,18 @@ export const routes = [
     },
   },
   {
+    name: "tariff",
+    list: "/tariff",
+    create: "/tariff/create",
+    edit: "/tariff/edit/:id",
+    show: "/tariff/show/:id",
+    meta: {
+      canDelete: true,
+      label: "Тарифы",
+      parent: "Настройки",
+    },
+  },
+  {
     name: "receiving-history-show",
     list: "/receiving/history/show/:id",
     meta: {

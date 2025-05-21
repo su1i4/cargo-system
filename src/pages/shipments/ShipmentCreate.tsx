@@ -1,8 +1,10 @@
-import { Create, useForm, useTable } from "@refinedev/antd";
-import { Col, DatePicker, Form, Input, Row, Select, Table } from "antd";
+import { Create, useForm, useTable, useSelect } from "@refinedev/antd";
+import { useUpdateMany, useCreate, useNavigation } from "@refinedev/core";
+import { Col, DatePicker, Form, Input, Row, Select, Table, Button, message } from "antd";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import { useState } from "react";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -10,70 +12,165 @@ dayjs.extend(timezone);
 dayjs.tz.setDefault("Asia/Bishkek");
 
 const ShipmentCreate = () => {
-  const {form, saveButtonProps} = useForm();
+  const { form, saveButtonProps, formProps } = useForm({
+    redirect: "list",
+  });
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const { list } = useNavigation();
 
   const { tableProps } = useTable({
     resource: "service",
+    filters: {
+      permanent: [
+        {
+          field: "status",
+          operator: "eq",
+          value: "На складе",
+        },
+      ],
+    },
   });
 
+  const { mutate: updateServices } = useUpdateMany({
+    resource: "service",
+  })
+
+   const {selectProps: employeeSelectProps} = useSelect({
+    resource: "users",
+    optionLabel: (record: any) => `${record.firstName} ${record.lastName}`,
+   })
+
+   const {selectProps: typeSelectProps} = useSelect({
+    resource: "type-product",
+    optionLabel: (record: any) => record.name,
+   })
+
+   const {selectProps: branchSelectProps} = useSelect({
+    resource: "branch",
+    optionLabel: (record: any) => record.name,
+    onSearch(value) {
+      return value ? [
+        {
+          field: "name",
+          operator: "contains",
+          value: value,
+        },
+      ] : [];
+    },
+   })
+
+  const { mutate: createShipment } = useCreate();
+
   const handleFinish = (values: any) => {
-    console.log(values);
+    if (selectedRowKeys.length === 0) {
+      message.error("Выберите хотя бы один сервис");
+      return;
+    }
+
+    // Создаем отгрузку
+    createShipment(
+      {
+        resource: "shipments",
+        values,
+      },
+      {
+        onSuccess: (data) => {
+          const shipmentId = data.data.id;
+          
+          // Обновляем выбранные сервисы, привязывая их к отгрузке
+          updateServices(
+            {
+              resource: "service",
+              ids: selectedRowKeys as number[],
+              values: {
+                shipment_id: shipmentId,
+                status: "В пути" // Опционально: обновить статус сервиса
+              },
+            },
+            {
+              onSuccess: () => {
+                // Переход на страницу списка отгрузок после успешного создания
+                list("shipments");
+              },
+              onError: (error) => {
+                message.error("Ошибка при обновлении сервисов: " + error);
+              }
+            }
+          );
+        },
+        onError: (error) => {
+          message.error("Ошибка при создании отгрузки: " + error);
+        },
+      }
+    );
+  };
+
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (keys: React.Key[]) => {
+      setSelectedRowKeys(keys);
+    },
   };
 
   return (
-    //@ts-ignore
     <Create
-      saveButtonProps={{ ...saveButtonProps, style: { display: "none" } }}
+      saveButtonProps={{ 
+        ...saveButtonProps, 
+        onClick: () => {
+          form.submit();
+        } 
+      }}
     >
-      <Form form={form} layout="vertical" onFinish={handleFinish}>
+      <Form {...formProps} form={form} layout="vertical" onFinish={handleFinish}>
         <Row gutter={[16, 0]}>
-          <Col span={8}>
-            <Form.Item label="Рейс" name="flight">
+          <Col span={6}>
+            <Form.Item label="Номер рейса" name="truck_number">
               <Input />
             </Form.Item>
           </Col>
-          <Col span={8}>
-            <Form.Item label="Номер" name="number">
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="Сотрудник" name="employee">
-              <Select options={[]} />
+          <Col span={6}>
+            <Form.Item label="Сотрудник" name="employee_id">
+              <Select {...employeeSelectProps} />
             </Form.Item>
           </Col>
           <Col span={6}>
             <Form.Item label="Водитель" name="driver">
-              <Select options={[]} />
+              <Input />
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item label="Тип" name="driver">
-              <Select options={[]} />
+            <Form.Item label="Тип" name="type_product_id">
+              <Select {...typeSelectProps} />
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item label="Пункт назначения" name="destination">
-              <Select options={[]} />
+            <Form.Item label="Пункт назначения" name="branch_id">
+              <Select {...branchSelectProps} />
             </Form.Item>
           </Col>
-          <Col span={6}>
-            <Form.Item label="Комментарий" name="amount">
+          <Col span={18}>
+            <Form.Item label="Комментарий" name="comment">
               <Input />
             </Form.Item>
           </Col>
         </Row>
-        <Row gutter={16}>
-
-        </Row>
-        <Table dataSource={tableProps.dataSource} pagination={false}>
-          <Table.Column title="№" dataIndex="number" />
+        <Table 
+          {...tableProps}
+          rowKey="id"
+          rowSelection={rowSelection}
+        >
+          <Table.Column title="№" dataIndex="index" render={(value, record, index) => index + 1} />
           <Table.Column title="Тип товара" dataIndex="type" />
-          <Table.Column title="Номер мешка" dataIndex="name" />
+          <Table.Column title="Номер мешка" dataIndex="bag_number" />
           <Table.Column title="Город" dataIndex="country" />
           <Table.Column title="Количество" dataIndex="quantity" />
           <Table.Column title="Вес" dataIndex="weight" />
-          <Table.Column title='Пункт назначения' dataIndex='good' render={(value) => value?.label} />
+          <Table.Column title="Статус" dataIndex="status" />
+          <Table.Column
+            title="Пункт назначения"
+            dataIndex="good"
+            render={(value) => value?.label}
+          />
           <Table.Column title="Штрихкод" dataIndex="barcode" />
         </Table>
       </Form>

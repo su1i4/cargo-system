@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Edit, useForm, useSelect, useTable } from "@refinedev/antd";
+import { useApiUrl, useCustom } from "@refinedev/core";
 import {
   Button,
   Col,
@@ -61,6 +62,25 @@ interface ProductItem {
   is_created?: boolean; // Флаг, указывающий, что товар был создан
 }
 
+interface TariffItem {
+  id: number;
+  branch_id: number;
+  product_type_id: number;
+  tariff: string;
+  product_type: {
+    id: number;
+    name: string;
+    tariff: string;
+  };
+  branch: {
+    id: number;
+    name: string;
+    tarif: string;
+    prefix: string;
+    visible: boolean;
+  };
+}
+
 const countries = [
   { label: "Китай", value: "Китай" },
   { label: "Узбекистан", value: "Узбекистан" },
@@ -71,6 +91,7 @@ const countries = [
 
 export const GoodsEdit = () => {
   const { formProps, saveButtonProps, form, queryResult } = useForm();
+  const apiUrl = useApiUrl();
 
   const { tableProps } = useTable({
     resource: "products",
@@ -85,11 +106,37 @@ export const GoodsEdit = () => {
   );
   const [deletedServices, setDeletedServices] = useState<GoodItem[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
+  const [tariffs, setTariffs] = useState<TariffItem[]>([]);
 
   const values: any = Form.useWatch([], form);
   const record = queryResult?.data?.data;
 
   const currentDateDayjs = dayjs().tz("Asia/Bishkek");
+
+  // Загрузка тарифов
+  const { refetch: refetchTariffs } = useCustom({
+    url: `${apiUrl}/tariff`,
+    method: "get",
+    queryOptions: {
+      onSuccess: (data: any) => {
+        setTariffs(data?.data || []);
+      },
+    },
+  });
+
+  useEffect(() => {
+    refetchTariffs();
+  }, []);
+
+  const findTariff = (branchId: number, productTypeId: number): number => {
+    const foundTariff = tariffs.find(
+      (tariff) => 
+        tariff.branch_id === branchId && 
+        tariff.product_type_id === productTypeId
+    );
+    
+    return foundTariff ? parseFloat(foundTariff.tariff) : 0;
+  };
 
   // Загрузка данных из записи при открытии формы редактирования
   useEffect(() => {
@@ -288,14 +335,20 @@ export const GoodsEdit = () => {
           // Если выбран тип товара, получаем тариф
           if (field === "type_id") {
             const selectedType = typeProducts.find((type) => type.id === value);
-            if (selectedType) {
+            const branchId = Number(values?.destination_id);
+            const productTypeId = Number(value);
+            
+            if (selectedType && branchId) {
+              // Найти соответствующий тариф на основе филиала и типа товара
+              const tariffValue = findTariff(branchId, productTypeId);
+              
               newItem.type_name = selectedType.name;
-              newItem.tariff = selectedType.tariff;
-              newItem.price = selectedType.tariff;
+              newItem.tariff = tariffValue > 0 ? tariffValue : selectedType.tariff;
+              newItem.price = tariffValue > 0 ? tariffValue : selectedType.tariff;
 
               // Пересчитываем сумму на основе веса и нового тарифа
               if (newItem.weight) {
-                newItem.sum = calculateSum(newItem.weight, selectedType.tariff);
+                newItem.sum = calculateSum(newItem.weight, newItem.tariff);
               }
             }
           }
@@ -313,6 +366,36 @@ export const GoodsEdit = () => {
       })
     );
   };
+
+  // Обработка изменения филиала назначения
+  useEffect(() => {
+    if (values?.destination_id && services.length > 0) {
+      // Обновляем тарифы для всех сервисов при изменении филиала
+      const branchId = Number(values.destination_id);
+      
+      setServices(
+        services.map((item) => {
+          if (item.type_id) {
+            const productTypeId = Number(item.type_id);
+            const tariffValue = findTariff(branchId, productTypeId);
+            
+            if (tariffValue > 0) {
+              const newItem = { ...item, updated: true };
+              newItem.tariff = tariffValue;
+              newItem.price = tariffValue;
+              
+              if (newItem.weight) {
+                newItem.sum = calculateSum(newItem.weight, tariffValue);
+              }
+              
+              return newItem;
+            }
+          }
+          return item;
+        })
+      );
+    }
+  }, [values?.destination_id, tariffs]);
 
   // Обновление данных товара из бэкенда
   const updateProductField = (
@@ -596,7 +679,6 @@ export const GoodsEdit = () => {
     },
   ];
 
-  // Добавляем стили для выделения строк
   const styleBlock = (
     <style>{`
       .updated-row {

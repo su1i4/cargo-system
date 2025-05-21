@@ -11,7 +11,6 @@ import {
   Form,
   Card,
   Modal,
-  Checkbox,
   Flex,
 } from "antd";
 import {
@@ -21,22 +20,26 @@ import {
   ArrowDownOutlined,
   FileAddOutlined,
   SettingOutlined,
-  EyeOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useCustom, useNavigation, useUpdate } from "@refinedev/core";
-import dayjs from "dayjs";
+import { useDocumentTitle } from "@refinedev/react-router";
 import { API_URL } from "../../App";
 import { useSearchParams } from "react-router";
 import { CustomTooltip, operationStatus } from "../../shared/custom-tooltip";
+import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-import { translateStatus } from "../../lib/utils";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 export const GoogsProcessingList = () => {
+  const setTitle = useDocumentTitle();
+
+  useEffect(() => {
+    setTitle("Все товары");
+  }, []);
   const [searchparams, setSearchParams] = useSearchParams();
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState<
@@ -256,7 +259,16 @@ export const GoogsProcessingList = () => {
   };
 
   const checkboxContent = (
-    <Flex vertical gap={10} style={{ backgroundColor: "white", padding: 15, borderRadius: 10, boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.1)" }}>
+    <Flex
+      vertical
+      gap={10}
+      style={{
+        backgroundColor: "white",
+        padding: 15,
+        borderRadius: 10,
+        boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.1)",
+      }}
+    >
       <Button onClick={handleSaveChanges}>Показать накладную</Button>
       <Button onClick={handleSaveChanges}>Приходный кассовый ордер</Button>
     </Flex>
@@ -439,7 +451,13 @@ export const GoogsProcessingList = () => {
           }
         />
         <Table.Column dataIndex="invoice_number" title="№ накладной" />
-        <Table.Column dataIndex="employee" title="Пункт приема" render={(value) => `${value?.branch?.name}, ${value?.under_branch?.address || ""}`} />
+        <Table.Column
+          dataIndex="employee"
+          title="Пункт приема"
+          render={(value) =>
+            `${value?.branch?.name}, ${value?.under_branch?.address || ""}`
+          }
+        />
         <Table.Column
           dataIndex="sender"
           title="Код отправителя"
@@ -447,7 +465,11 @@ export const GoogsProcessingList = () => {
             return value?.clientPrefix + "-" + value?.clientCode;
           }}
         />
-        <Table.Column dataIndex="sender" title="Фио отправителя" render={(value) => value?.name} />
+        <Table.Column
+          dataIndex="sender"
+          title="Фио отправителя"
+          render={(value) => value?.name}
+        />
         <Table.Column
           dataIndex="recipient"
           title="Код получателя"
@@ -490,10 +512,7 @@ export const GoogsProcessingList = () => {
           title="Сумма услуг"
           render={(value) => value + " руб"}
         />
-        <Table.Column
-          dataIndex="payment_method"
-          title="Способ оплаты"
-        />
+        <Table.Column dataIndex="payment_method" title="Способ оплаты" />
         {operationStatus()}
         <Table.Column
           dataIndex="employee"
