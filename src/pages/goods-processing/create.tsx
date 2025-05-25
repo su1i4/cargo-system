@@ -12,6 +12,7 @@ import {
   Space,
   message,
   Input,
+  Tooltip,
 } from "antd";
 import dayjs from "dayjs";
 
@@ -35,11 +36,11 @@ interface GoodItem {
   country?: string;
   type_id?: string;
   type_name?: string;
-  tariff?: number; // Тариф (цена за кг)
+  tariff?: number;
   quantity?: number;
   weight?: number;
-  price?: number; // Цена за кг (из тарифа)
-  sum?: number; // Общая сумма (вес * цена)
+  price?: number;
+  sum?: number;
   barcode: string;
   bag_number?: string;
 }
@@ -53,10 +54,10 @@ interface TypeProduct {
 interface ProductItem {
   id: string | number;
   name: string;
-  price: number; // Цена приходит с бэкенда
+  price: number;
   quantity?: number;
   sum?: number;
-  isSelected?: boolean; // Флаг для отслеживания выбранных товаров
+  isSelected?: boolean;
 }
 
 interface TariffItem {
@@ -94,6 +95,13 @@ export const GoodsCreate = () => {
     resource: "products",
   });
 
+  const { tableProps: tariffTableProps } = useTable({
+    resource: "tariff",
+    pagination: {
+      mode: "off",
+    },
+  });
+
   const [services, setServices] = useState<GoodItem[]>([]);
   const [nextId, setNextId] = useState(1);
   const [typeProducts, setTypeProducts] = useState<TypeProduct[]>([]);
@@ -106,7 +114,6 @@ export const GoodsCreate = () => {
 
   const currentDateDayjs = dayjs().tz("Asia/Bishkek");
 
-  // Загрузка тарифов
   const { refetch: refetchTariffs } = useCustom({
     url: `${apiUrl}/tariff`,
     method: "get",
@@ -123,11 +130,11 @@ export const GoodsCreate = () => {
 
   const findTariff = (branchId: number, productTypeId: number): number => {
     const foundTariff = tariffs.find(
-      (tariff) => 
-        tariff.branch_id === branchId && 
+      (tariff) =>
+        tariff.branch_id === branchId &&
         tariff.product_type_id === productTypeId
     );
-    
+
     return foundTariff ? parseFloat(foundTariff.tariff) : 0;
   };
 
@@ -182,16 +189,19 @@ export const GoodsCreate = () => {
     const timestamp = Date.now().toString().slice(-10);
     const random = Math.floor(Math.random() * 10000)
       .toString()
-      .padStart(4, "0") 
+      .padStart(4, "0");
     return `${prefix}${timestamp}${random}`;
   };
 
   const addNewItem = () => {
-    const senderPrefix = typeof senderData?.label === 'string' ? senderData.label.split(",")[0] : '';
+    const senderPrefix =
+      typeof senderData?.label === "string"
+        ? senderData.label.split(",")[0]
+        : "";
     const newItem: GoodItem = {
       id: nextId,
       barcode: generateBarcode(),
-      bag_number: senderPrefix ? `${senderPrefix}/${services.length + 1}` : '',
+      bag_number: senderPrefix ? `${senderPrefix}/${services.length + 1}` : "",
     };
     setServices([...services, newItem]);
     setNextId(nextId + 1);
@@ -207,16 +217,19 @@ export const GoodsCreate = () => {
       selectedRowKeys.includes(item.id)
     );
 
-    const senderPrefix = typeof senderData?.label === 'string' ? senderData.label.split(",")[0] : '';
+    const senderPrefix =
+      typeof senderData?.label === "string"
+        ? senderData.label.split(",")[0]
+        : "";
     const newItems = selectedItems.map((item) => {
       const newId = nextId + selectedItems.indexOf(item);
       const newIndex = services.length + selectedItems.indexOf(item) + 1;
-      
+
       return {
         ...item,
         id: newId,
         barcode: generateBarcode(),
-        bag_number: senderPrefix ? `${senderPrefix}/${newIndex}` : '',
+        bag_number: senderPrefix ? `${senderPrefix}/${newIndex}` : "",
       };
     });
 
@@ -236,50 +249,61 @@ export const GoodsCreate = () => {
       (item) => !selectedRowKeys.includes(item.id)
     );
     setServices(selectedItems);
-    setSelectedRowKeys([]); // Сбрасываем выбор после копирования
+    setSelectedRowKeys([]);
 
     message.success(`Удалено ${selectedItems.length} товаров`);
   };
 
-  // Удаление товара из таблицы
   const removeItem = (id: number) => {
     setServices(services.filter((item) => item.id !== id));
   };
 
-  // Расчет суммы на основе веса и тарифа
   const calculateSum = (weight: number = 0, tariff: number = 0): number => {
     return weight * tariff;
   };
 
-  // Обновление данных товара
   const updateItemField = (id: number, field: string, value: any) => {
     setServices(
       services.map((item) => {
         if (item.id === id) {
           const newItem = { ...item, [field]: value };
 
-          // Если выбран тип товара, получаем тариф
-          if (field === "type_id") {
-            const selectedType = typeProducts.find((type) => type.id === value);
-            const branchId = Number(values?.destination_id);
-            const productTypeId = Number(value);
-            
-            if (selectedType && branchId) {
-              // Найти соответствующий тариф на основе филиала и типа товара
-              const tariffValue = findTariff(branchId, productTypeId);
-              
-              newItem.type_name = selectedType.name;
-              newItem.tariff = tariffValue > 0 ? tariffValue : selectedType.tariff;
-              newItem.price = tariffValue > 0 ? tariffValue : selectedType.tariff;
+          // if (field === "type_id") {
+          //   const selectedType = typeProducts.find((type) => type.id === value);
+          //   const branchId = Number(values?.destination_id);
+          //   const productTypeId = Number(value);
 
-              // Пересчитываем сумму на основе веса и нового тарифа
+          //   if (selectedType && branchId) {
+          //     // Найти соответствующий тариф на основе филиала и типа товара
+          //     const tariffValue = findTariff(branchId, productTypeId);
+
+          //     newItem.type_name = selectedType.name;
+          //     newItem.tariff = tariffValue > 0 ? tariffValue : selectedType.tariff;
+          //     newItem.price = tariffValue > 0 ? tariffValue : selectedType.tariff;
+
+          //     // Пересчитываем сумму на основе веса и нового тарифа
+          //     if (newItem.weight) {
+          //       newItem.sum = calculateSum(newItem.weight, newItem.tariff);
+          //     }
+          //   }
+          // }
+
+          if (field === "type_id") {
+            const selectedType = tariffTableProps?.dataSource?.find(
+              (type: any) =>
+                type.branch_id === values?.destination_id &&
+                type.product_type_id === value
+            );
+
+            if (selectedType) {
+              newItem.tariff = selectedType.tariff;
+              newItem.price = selectedType.tariff;
               if (newItem.weight) {
-                newItem.sum = calculateSum(newItem.weight, newItem.tariff);
+                newItem.sum = calculateSum(newItem.weight, selectedType.tariff);
               }
             }
           }
 
-          // Если изменяется вес, пересчитываем сумму
           if (field === "weight") {
             if (newItem.tariff) {
               newItem.sum = calculateSum(value, newItem.tariff);
@@ -293,27 +317,25 @@ export const GoodsCreate = () => {
     );
   };
 
-  // Обработка изменения филиала назначения
   useEffect(() => {
     if (values?.destination_id && services.length > 0) {
-      // Обновляем тарифы для всех сервисов при изменении филиала
       const branchId = Number(values.destination_id);
-      
+
       setServices(
         services.map((item) => {
           if (item.type_id) {
             const productTypeId = Number(item.type_id);
             const tariffValue = findTariff(branchId, productTypeId);
-            
+
             if (tariffValue > 0) {
               const newItem = { ...item };
               newItem.tariff = tariffValue;
               newItem.price = tariffValue;
-              
+
               if (newItem.weight) {
                 newItem.sum = calculateSum(newItem.weight, tariffValue);
               }
-              
+
               return newItem;
             }
           }
@@ -323,7 +345,6 @@ export const GoodsCreate = () => {
     }
   }, [values?.destination_id, tariffs]);
 
-  // Обновление данных товара из бэкенда
   const updateProductField = (
     id: string | number,
     field: string,
@@ -334,7 +355,6 @@ export const GoodsCreate = () => {
         if (item.id === id) {
           const newItem = { ...item, [field]: value };
 
-          // Если изменяется количество, пересчитываем сумму на основе количества и цены
           if (field === "quantity") {
             newItem.sum = value * item.price;
           }
@@ -346,7 +366,6 @@ export const GoodsCreate = () => {
     );
   };
 
-  // Настройки для выбора строк в таблице услуг
   const rowSelection = {
     selectedRowKeys,
     onChange: (newSelectedRowKeys: React.Key[]) => {
@@ -357,7 +376,6 @@ export const GoodsCreate = () => {
         | GoodItem
         | { weight: number; price: number; quantity: number; sum: number }
     ) => ({
-      // Отключаем выбор для итоговой строки (которая содержит все поля итогового объекта)
       disabled:
         "weight" in record &&
         "price" in record &&
@@ -378,13 +396,11 @@ export const GoodsCreate = () => {
   };
 
   const handleFormSubmit = (values: any) => {
-    // Проверяем наличие услуг
     if (services.length === 0) {
       message.warning("Выберите услуги");
       return;
     }
 
-    // Проверяем заполнение обязательных полей в услугах
     let hasInvalidFields = false;
     services.forEach((service, index) => {
       if (!service.type_id || !service.weight || service.weight <= 0) {
@@ -440,14 +456,18 @@ export const GoodsCreate = () => {
       );
       if (selectedSender) {
         setSenderData(selectedSender);
-        
-        // Обновляем номер мешка для всех элементов в services при изменении отправителя
+
         if (services.length > 0) {
-          const senderPrefix = typeof selectedSender?.label === 'string' ? selectedSender.label.split(",")[0] : '';
-          setServices(services.map((service, index) => ({
-            ...service,
-            bag_number: `${senderPrefix}/${index + 1}`
-          })));
+          const senderPrefix =
+            typeof selectedSender?.label === "string"
+              ? selectedSender.label.split(",")[0]
+              : "";
+          setServices(
+            services.map((service, index) => ({
+              ...service,
+              bag_number: `${senderPrefix}/${index + 1}`,
+            }))
+          );
         }
       }
     }
@@ -455,9 +475,8 @@ export const GoodsCreate = () => {
 
   const { selectProps: counterpartySelectPropsSender } = useSelect({
     resource: "counterparty",
-    optionLabel: (record: any) => {
-      return `${record?.clientPrefix}-${record?.clientCode}, ${record?.name}, `;
-    },
+    optionLabel: (record: any) =>
+      `${record?.clientPrefix}-${record?.clientCode}, ${record?.name}`,
     filters: [
       {
         field: "type",
@@ -465,18 +484,61 @@ export const GoodsCreate = () => {
         value: "sender",
       },
     ],
+    onSearch: (value) => [
+      {
+        operator: "or",
+        value: [
+          {
+            field: "clientCode",
+            operator: "contains",
+            value,
+          },
+          {
+            field: "clientPrefix",
+            operator: "contains",
+            value,
+          },
+          {
+            field: "name",
+            operator: "contains",
+            value,
+          },
+        ],
+      },
+    ],
   });
 
   const { selectProps: counterpartySelectPropsReceiver } = useSelect({
     resource: "counterparty",
-    optionLabel: (record: any) => {
-      return `${record?.clientPrefix}-${record?.clientCode}, ${record?.name}, `;
-    },
+    optionLabel: (record: any) =>
+      `${record?.clientPrefix}-${record?.clientCode}, ${record?.name}`,
     filters: [
       {
         field: "type",
         operator: "eq",
         value: "receiver",
+      },
+    ],
+    onSearch: (value) => [
+      {
+        operator: "or",
+        value: [
+          {
+            field: "clientCode",
+            operator: "contains",
+            value,
+          },
+          {
+            field: "clientPrefix",
+            operator: "contains",
+            value,
+          },
+          {
+            field: "name",
+            operator: "contains",
+            value,
+          },
+        ],
       },
     ],
   });
@@ -503,9 +565,21 @@ export const GoodsCreate = () => {
 
   const { selectProps: branchSelectProps } = useSelect({
     resource: "branch",
-    optionLabel: (record: any) => {
-      return `${record?.name}`;
-    },
+    optionLabel: (record: any) => `${record?.name}`,
+    filters: [
+      {
+        field: "name",
+        operator: "ne",
+        value: "Бишкек",
+      },
+    ],
+    onSearch: (value) => [
+      {
+        field: "name",
+        operator: "contains",
+        value,
+      },
+    ],
   });
 
   const { selectProps: nomenclatureSelectProps } = useSelect({
@@ -518,7 +592,7 @@ export const GoodsCreate = () => {
   const { selectProps: typeProductSelectProps } = useSelect({
     resource: "type-product",
     optionLabel: (record: any) => {
-      return `${record?.name} (${record?.tariff} за кг)`;
+      return record?.name;
     },
     onSearch: (value) => [],
     queryOptions: {
@@ -582,8 +656,6 @@ export const GoodsCreate = () => {
     },
   ];
 
-  console.log(senderData);
-
   return (
     <Create saveButtonProps={saveButtonProps}>
       <Form {...formProps} layout="vertical" onFinish={handleFormSubmit}>
@@ -630,11 +702,18 @@ export const GoodsCreate = () => {
               name="pays"
             >
               <Select
+                showSearch
+                allowClear
+                placeholder="Выберите"
                 options={[
                   { label: "Получатель", value: "recipient" },
                   { label: "Отправитель", value: "sender" },
                 ]}
-                allowClear
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
               />
             </Form.Item>
           </Col>
@@ -645,20 +724,24 @@ export const GoodsCreate = () => {
               name="payment_method"
             >
               <Select
+                showSearch
+                allowClear
+                placeholder="Выберите способ оплаты"
                 options={[
                   { label: "Наличные", value: "Наличные" },
                   { label: "Безналичные", value: "Безналичные" },
                   { label: "Перечислением", value: "Перечислением" },
                 ]}
-                allowClear
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
               />
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item
-              label="Скидка"
-              name="discount_id"
-            >
+            <Form.Item label="Скидка" name="discount_id">
               <Select {...discountSelectProps} allowClear />
             </Form.Item>
           </Col>
@@ -667,9 +750,22 @@ export const GoodsCreate = () => {
         <Row gutter={16} style={{ marginBottom: 10 }}>
           <Col>
             <Space>
-              <Button onClick={addNewItem} icon={<FileAddOutlined />}>
-                Добавить товар
-              </Button>
+              <Tooltip
+                color="red"
+                title={
+                  !values?.destination_id
+                    ? "Сначала выберите город назначения"
+                    : ""
+                }
+              >
+                <Button
+                  disabled={!values?.destination_id}
+                  onClick={addNewItem}
+                  icon={<FileAddOutlined />}
+                >
+                  Добавить товар
+                </Button>
+              </Tooltip>
               <Button
                 onClick={copySelectedItems}
                 icon={<CopyOutlined />}
@@ -744,7 +840,10 @@ export const GoodsCreate = () => {
                   style={{ width: 200 }}
                   {...typeProductSelectProps}
                   value={value}
-                  onChange={(val) => updateItemField(record.id, "type_id", val)}
+                  onChange={(val) => {
+                    console.log(val);
+                    updateItemField(record.id, "type_id", val);
+                  }}
                   allowClear
                 />
               )
@@ -754,13 +853,18 @@ export const GoodsCreate = () => {
             title="Номер мешка"
             dataIndex="bag_number"
             render={(value, record: any, index: number) => {
-              const senderPrefix = typeof senderData?.label === 'string' ? senderData.label.split(",")[0] : '';
-              return index < services.length && (
-                <Input
-                  style={{ width: 100 }}
-                  value={value || `${senderPrefix}/${index + 1}`}
-                  disabled={true}
-                />
+              const senderPrefix =
+                typeof senderData?.label === "string"
+                  ? senderData.label.split(",")[0]
+                  : "";
+              return (
+                index < services.length && (
+                  <Input
+                    style={{ width: 100 }}
+                    value={value || `${senderPrefix}/${index + 1}`}
+                    disabled={true}
+                  />
+                )
               );
             }}
           />
@@ -894,7 +998,7 @@ export const GoodsCreate = () => {
                   min={0}
                   precision={2}
                   value={value}
-                  disabled={index >= products.length}
+                  disabled
                 />
               )
             }

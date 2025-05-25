@@ -99,13 +99,25 @@ export const routes = [
     },
   },
   {
+    name: "shipment",
+    list: "/shipment",
+    show: "/shipment/show/:id",
+    create: "/shipment/create",
+    edit: "/shipment/edit/:id",
+    meta: {
+      canDelete: true,
+      label: "Рейсы",
+      parent: "Продукты",
+    },
+  },
+  {
     name: "nomenclature",
     list: "/nomenclature",
     show: "/nomenclature/show/:id",
     meta: {
       canDelete: true,
       label: "Номенклатура",
-      parent: "Продукты",
+      parent: "Настройки",
     },
   },
   {
@@ -115,7 +127,7 @@ export const routes = [
     meta: {
       canDelete: true,
       label: "Тип товара",
-      parent: "Продукты",
+      parent: "Настройки",
     },
   },
   {
@@ -124,8 +136,8 @@ export const routes = [
     show: "/products/show/:id",
     meta: {
       canDelete: true,
-      label: "Продукты",
-      parent: "Продукты",
+      label: "Наши продукты",
+      parent: "Настройки",
     },
   },
   {
@@ -222,7 +234,7 @@ export const routes = [
     show: "/branch/show/:id",
     meta: {
       canDelete: true,
-      label: "Филиал",
+      label: "Города",
       parent: "Настройки",
     },
   },
@@ -234,7 +246,7 @@ export const routes = [
     show: "/under-branch/show/:id",
     meta: {
       canDelete: true,
-      label: "Пвз",
+      label: "Филиалы",
       parent: "Настройки",
     },
   },
@@ -338,16 +350,6 @@ export const routes = [
     },
   },
   {
-    name: "exception-code",
-    list: "/exception-code",
-    create: "/exception-code/create",
-    meta: {
-      canDelete: true,
-      label: "Исключение",
-      parent: "Настройки",
-    },
-  },
-  {
     name: "packers",
     list: "/packers",
     meta: {
@@ -361,7 +363,7 @@ export const routes = [
     list: "/visiting-group",
     meta: {
       canDelete: true,
-      label: "Выездные группы",
+      label: "Выездная группа",
       parent: "Настройки",
     },
   },

@@ -18,7 +18,7 @@ export const BranchList = () => {
   const { push } = useNavigation();
 
   return (
-    <List>
+    <List title="Города">
       <Table
         onRow={(record) => ({
           onDoubleClick: () => {
@@ -28,15 +28,8 @@ export const BranchList = () => {
         {...tableProps}
         rowKey="id"
       >
-        <Table.Column dataIndex="id" title={"ID"} />
-        <Table.Column dataIndex="name" title={"Филиал"} />
-        <Table.Column dataIndex="tarif" title={"Тариф"} />
-        <Table.Column dataIndex="prefix" title={"Префикс"} />
-        <Table.Column
-          dataIndex="visible"
-          title="Показать в тг боте"
-          render={(value) => <Checkbox checked={value} />}
-        />
+        <Table.Column dataIndex="id" title="№" width={50} />
+        <Table.Column dataIndex="name" title="Название города" />
       </Table>
     </List>
   );

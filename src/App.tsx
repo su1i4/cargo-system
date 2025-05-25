@@ -20,7 +20,7 @@ import routerBindings, {
   UnsavedChangesNotifier,
 } from "@refinedev/react-router";
 
-import { App as AntdApp } from "antd";
+import { App as AntdApp, Layout as AntLayout } from "antd";
 import { BrowserRouter, Outlet, Route, Routes } from "react-router";
 import { Header } from "./components/header";
 import { CustomSider } from "./components/sider";
@@ -55,7 +55,6 @@ import { CashBackList } from "./pages/cash-back";
 import { BankCreate, BankEdit, BankList, BankShow } from "./pages/bank";
 import { CashDeskCreate, CashDeskList } from "./pages/cash-desk";
 import { CashDeskOutcomeList } from "./pages/cash-desk/outcome";
-import { ExeptionCodeCreate, ExeptionCodeList } from "./pages/exception-code";
 import {
   UnderBranchCreate,
   UnderBranchEdit,
@@ -98,10 +97,10 @@ import { CurrencyShow } from "./pages/currency/show";
 import { CurrencyEdit } from "./pages/currency/edit";
 import { TriggersList } from "./pages/triggers/list";
 import { TriggersCreate } from "./pages/triggers/create";
-import { ShipmentHistory } from "./pages/shipments/ShipmentHistory";
+import ShipmentHistory from "./pages/shipments/ShipmentHistory";
 import { ReceivingHistory } from "./pages/receiving/ReceivingHistory";
 import { ReceivingHistoryShow } from "./pages/receiving/ReceivingHistoryShow";
-import { ShipmentHistoryShow } from "./pages/shipments/ShipmentHistoryShow";
+import ShipmentHistoryShow from "./pages/shipments/ShipmentHistoryShow";
 import { routes } from "./lib/routes";
 import { TriggersEdit } from "./pages/triggers/edit";
 import { TriggersShow } from "./pages/triggers/show";
@@ -110,12 +109,6 @@ import { NotificationsCreate } from "./pages/notifications/create";
 import { ScrollRestoration } from "./components/save-scroll";
 import ReceivingAll from "./pages/receiving/ReceivingAll";
 import { IncomeShow } from "./pages/cash-desk/incomeShow";
-import { TasksList } from "./pages/tasks/list";
-import { TasksCreate } from "./pages/tasks/create";
-import { TasksEdit } from "./pages/tasks/edit";
-import TasksyShow from "./pages/tasks/show";
-import { liveProvider } from "./contexts/liveProvider";
-import { TasksArchive } from "./pages/tasks/archive";
 import { IncomeShowReport } from "./pages/reports/income-report/show";
 import { RepresentativeReport } from "./pages/reports/representative";
 import { NomenklaturaList } from "./pages/nomenklatura/list";
@@ -124,6 +117,8 @@ import { ProductsList } from "./pages/products/list";
 import { PackersList } from "./pages/packers/list";
 import { OutGroupList } from "./pages/out-group/list";
 import { TariffList } from "./pages/tarif/list";
+import { TrackList } from "./pages/track/list";
+import { CustomLayout } from "./components/layout";
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
 function App() {
@@ -207,7 +202,6 @@ function App() {
         <ColorModeContextProvider>
           <AntdApp>
             <Refine
-              liveProvider={liveProvider}
               dataProvider={dataProvider}
               notificationProvider={useNotificationProvider}
               routerProvider={routerBindings}
@@ -243,18 +237,18 @@ function App() {
                       key="authenticated-routes"
                       fallback={<CatchAllNavigate to="/login" />}
                     >
-                      <ThemedLayoutV2
+                      <CustomLayout
                         Header={() => <Header sticky />}
                         Sider={(props) => <CustomSider {...props} />}
                       >
                         <Outlet />
-                      </ThemedLayoutV2>
+                      </CustomLayout>
                     </Authenticated>
                   }
                 >
                   <Route
                     index
-                    element={<NavigateToResource resource="accepted-goods" />}
+                    element={<NavigateToResource resource="goods-processing" />}
                   />
 
                   <Route path="/goods-processing">
@@ -312,14 +306,6 @@ function App() {
                     <Route path="create" element={<CounterpartyCreate />} />
                     <Route path="show/:id" element={<CounterpartyShow />} />
                     <Route path="edit/:id" element={<CounterpartyEdit />} />
-                  </Route>
-
-                  <Route path="/tasks">
-                    <Route index element={<TasksList />} />
-                    <Route path="create" element={<TasksCreate />} />
-                    <Route path="show/:id" element={<TasksyShow />} />
-                    <Route path="edit/:id" element={<TasksEdit />} />
-                    <Route path="archive" element={<TasksArchive />} />
                   </Route>
 
                   <Route path="/receiving">
@@ -436,9 +422,8 @@ function App() {
                     <Route path="edit/:id" element={<CurrencyEdit />} />
                   </Route>
 
-                  <Route path="/exception-code">
-                    <Route index element={<ExeptionCodeList />} />
-                    <Route path="create" element={<ExeptionCodeCreate />} />
+                  <Route path="/shipment">
+                    <Route index element={<TrackList />} />
                   </Route>
 
                   <Route path="/nomenclature">
@@ -477,7 +462,7 @@ function App() {
                       forgotPasswordLink={false}
                       title={
                         <img
-                          src="/alfa-china.png"
+                          src="/cargo-system-logo.png"
                           alt="Logo"
                           style={{
                             width: 150,

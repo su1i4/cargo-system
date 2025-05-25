@@ -1,185 +1,248 @@
 import {
   ArrowDownOutlined,
-  ArrowUpOutlined,
+  ArrowLeftOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import { List } from "@refinedev/antd";
-import { useNavigation, useCustom } from "@refinedev/core";
-import { Button, Flex, Input, Table } from "antd";
-import { useState, useEffect } from "react";
-import { API_URL } from "../../App";
-import { catchDateTable, translateStatus } from "../../lib/utils";
-import { useSearchParams } from "react-router";
+import { ArrowUpOutlined } from "@ant-design/icons";
+import { CreateButton, List, useTable } from "@refinedev/antd";
+import { useNavigation } from "@refinedev/core";
+import {
+  Button,
+  Col,
+  Dropdown,
+  Flex,
+  Input,
+  Menu,
+  Row,
+  Table,
+  Typography,
+} from "antd";
+import dayjs from "dayjs";
+import { useState } from "react";
 
-export const ShipmentHistory = () => {
-  const [searchparams, setSearchParams] = useSearchParams();
+const ShipmentHistory = () => {
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(100);
-  const [filters, setFilters] = useState<any[]>([]);
+  const [searchValue, setSearchValue] = useState("");
+  const [sortField, setSortField] = useState("created_at");
 
-  const buildQueryParams = () => ({
-    sort: `id,${sortDirection}`,
-    page: currentPage,
-    limit: pageSize,
-    offset: currentPage * pageSize,
-    s: JSON.stringify({
-      $and: [
-        ...filters,
-        { status: { $eq: "Выгрузили" } },
-        { reshipment: { $eq: false } },
+  const { tableProps, setSorters, setFilters } = useTable({
+    resource: "shipments",
+    filters: {
+      permanent: [
+        {
+          field: "status",
+          operator: "eq",
+          value: "Выгрузили",
+        },
       ],
-    }),
-  });
-
-  const { data, isLoading, refetch } = useCustom<any>({
-    url: `${API_URL}/shipments`,
-    method: "get",
-    config: {
-      query: buildQueryParams(),
     },
+    sorters: {
+      initial: [{ field: "created_at", order: "desc" }],
+    },
+    syncWithLocation: false,
   });
 
-  useEffect(() => {
-    if (!searchparams.get("page") && !searchparams.get("size")) {
-      searchparams.set("page", String(currentPage));
-      searchparams.set("size", String(pageSize));
-      setSearchParams(searchparams);
+  const { push, show } = useNavigation();
+
+  const handleSort = (field: string, direction: "ASC" | "DESC") => {
+    setSortField(field);
+    setSortDirection(direction);
+    setSorters([
+      {
+        field,
+        order: direction.toLowerCase() as "asc" | "desc",
+      },
+    ]);
+  };
+
+  const handleSortClick = () => {
+    const newDirection = sortDirection === "ASC" ? "DESC" : "ASC";
+    handleSort(sortField, newDirection);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+
+    if (value.trim() === "") {
+      setFilters([], "replace");
     } else {
-      const page = searchparams.get("page");
-      const size = searchparams.get("size");
-      setCurrentPage(Number(page));
-      setPageSize(Number(size));
+      setFilters(
+        [
+          {
+            operator: "or",
+            value: [
+              {
+                field: "truck_number",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "employee.firstName",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "employee.lastName",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "branch.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+            ],
+          },
+        ],
+        "replace"
+      );
     }
-    refetch();
-  }, [filters, sortDirection, currentPage, pageSize]);
-
-  const dataSource = data?.data?.data || [];
-
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
-    searchparams.set("page", pagination.current);
-    searchparams.set("size", pagination.pageSize);
-    setSearchParams(searchparams);
-    setCurrentPage(pagination.current);
-    setPageSize(pagination.pageSize);
   };
 
-  const tableProps = {
-    dataSource: dataSource,
-    loading: isLoading,
-    pagination: {
-      current: currentPage,
-      pageSize: pageSize,
-      total: data?.data?.total || 0,
-    },
-    onChange: handleTableChange,
+  const sortFields = [
+    { key: "created_at", label: "Дата отправки" },
+    { key: "truck_number", label: "Номер рейса" },
+  ];
+
+  const getSortFieldLabel = () => {
+    const field = sortFields.find((f) => f.key === sortField);
+    return field ? field.label : "Дата отправки";
   };
 
-  const { push } = useNavigation();
+  const sortMenu = (
+    <Menu>
+      {sortFields.map((field) => (
+        <Menu.SubMenu key={field.key} title={field.label}>
+          <Menu.Item
+            key={`${field.key}-asc`}
+            onClick={() => handleSort(field.key, "ASC")}
+          >
+            <ArrowUpOutlined /> По возрастанию
+          </Menu.Item>
+          <Menu.Item
+            key={`${field.key}-desc`}
+            onClick={() => handleSort(field.key, "DESC")}
+          >
+            <ArrowDownOutlined /> По убыванию
+          </Menu.Item>
+        </Menu.SubMenu>
+      ))}
+    </Menu>
+  );
+
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <List headerButtons={() => false}>
-      <Flex gap={10} style={{ width: "100%", marginBottom: 10 }}>
-        <Button
-          icon={
-            sortDirection === "ASC" ? (
-              <ArrowUpOutlined />
-            ) : (
-              <ArrowDownOutlined />
-            )
-          }
-          onClick={() => {
-            setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
-          }}
+    <List
+      title={
+        <Flex
+          justify="center"
+          align="center"
+          gap={20}
+          style={{ width: "100%" }}
         >
-          {/* {sortField === "id" ? "Дата" : "Имя"} */}
-        </Button>
-        <Input
-          placeholder="Поиск по номеру рейса, коду коробки и по номеру фуры"
-          prefix={<SearchOutlined />}
-          style={{ width: "50%", height: 33 }}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (!value) {
-              setFilters([]);
-              return;
-            }
-
-            setCurrentPage(1);
-            searchparams.set("page", "1");
-            setSearchParams(searchparams);
-            setFilters([
-              {
-                $or: [
-                  { id: { $contL: value } },
-                  { boxCode: { $contL: value } },
-                  { truck_number: { $contL: value } },
-                ],
-              },
-            ]);
-          }}
-        />
-      </Flex>
+          <div
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onClick={() => push("/shipments")}
+            style={{
+              padding: "8px 10px",
+              borderRadius: 4,
+              cursor: "pointer",
+              backgroundColor: isHovered ? "#e0e0e0" : "transparent",
+              transition: "background-color 0.2s",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ArrowLeftOutlined style={{ fontSize: 16 }} />
+          </div>
+          <Typography.Title style={{ marginTop: 7 }} level={5}>
+            История отправлений
+          </Typography.Title>
+        </Flex>
+      }
+      headerButtons={false}
+    >
+      <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
+        <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10}>
+          <Dropdown overlay={sortMenu} trigger={["click"]}>
+            <Button
+              icon={
+                sortDirection === "ASC" ? (
+                  <ArrowUpOutlined />
+                ) : (
+                  <ArrowDownOutlined />
+                )
+              }
+              // onClick={handleSortClick}
+            >
+              {getSortFieldLabel()}
+            </Button>
+          </Dropdown>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="Поиск по номеру рейса, сотруднику, пункту назначения..."
+            value={searchValue}
+            onChange={(e) => handleSearch(e.target.value)}
+            allowClear
+            style={{ width: "50%" }}
+          />
+        </Flex>
+      </Row>
       <Table
-        onRow={(record) => ({
-          onDoubleClick: () => {
-            push(`/shipments/history/show/${record.id}`);
-          },
-        })}
+        onRow={(record) => {
+          return {
+            onDoubleClick: () => {
+              push(`/shipments/history/show/${record.id}`);
+            },
+          };
+        }}
         {...tableProps}
         rowKey="id"
-        scroll={{ x: "max-content" }}
       >
         <Table.Column
+          width={10}
           title="№"
-          render={(_: any, __: any, index: number) => {
-            return (
-              //@ts-ignore
-              (tableProps?.pagination?.current - 1) *
-                tableProps?.pagination?.pageSize +
-              index +
-              1
-            );
-          }}
+          dataIndex="number"
+          render={(value, record, index) => index + 1}
         />
-        {catchDateTable("Дата отправки")}
-        <Table.Column dataIndex="id" title={"Номер рейса"} />
-        <Table.Column dataIndex="boxCode" title={"Код коробки"} />
         <Table.Column
+          title="Дата отправки"
+          dataIndex="created_at"
+          width={50}
+          render={(value) => dayjs(value).format("DD.MM.YYYY HH:mm")}
+        />
+        <Table.Column width={50} title="Номер рейса" dataIndex="truck_number" />
+        <Table.Column
+          width={50}
+          title="Пункт погрузки"
           dataIndex="employee"
-          title={"Место погрузки"}
           render={(value) => value?.branch?.name}
         />
-        <Table.Column dataIndex="count" title={"Количество посылок"} />
-        <Table.Column dataIndex="weight" title={"Вес"} />
         <Table.Column
-          dataIndex="Dimensions"
-          title={"Размеры (Д × Ш × В)"}
-          render={(value, record) => {
-            return `${record?.length} x ${record?.width} x ${record?.height}`;
-          }}
+          width={50}
+          title="Количество мест"
+          dataIndex="totalService"
         />
-        <Table.Column dataIndex="cube" title={"Куб"} />
-        <Table.Column dataIndex="density" title={"Плотность"} />
-        <Table.Column dataIndex="type" title={"Тип"} />
+        <Table.Column width={50} title="Вес" dataIndex="totalServiceWeight" />
         <Table.Column
-          render={(value) => value?.name}
+          width={50}
+          title="Пункт назначения"
           dataIndex="branch"
-          title={"Пункт назначения"}
+          render={(value) => value?.name}
         />
         <Table.Column
-          dataIndex="status"
-          title="Статус"
-          render={(value) => translateStatus(value)}
-        />
-        <Table.Column
+          width={50}
+          title="Сотрудник"
           dataIndex="employee"
-          title={"Сотрудник"}
-          render={(value) => {
-            return `${value?.firstName || ""}-${value?.lastName || ""}`;
-          }}
+          render={(value) => `${value?.firstName} ${value?.lastName}`}
         />
+        <Table.Column width={50} title="Статус" dataIndex="status" />
       </Table>
     </List>
   );
 };
+
+export default ShipmentHistory;

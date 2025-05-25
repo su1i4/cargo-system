@@ -10,10 +10,11 @@ export const BranchEdit = () => {
       headerButtons={() => false}
       saveButtonProps={saveButtonProps}
       isLoading={formLoading}
+      title="Редактирование города"
     >
       <Form {...formProps} layout="vertical">
         <Form.Item
-          label={"Филиал"}
+          label="Название города"
           name={["name"]}
           rules={[
             {
@@ -22,36 +23,6 @@ export const BranchEdit = () => {
           ]}
         >
           <Input />
-        </Form.Item>
-        <Form.Item
-          label={"Тариф"}
-          name={["tarif"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-
-        <Form.Item
-          label={"Префикс"}
-          name={["prefix"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          label="Показать в тг боте"
-          name="visible"
-          valuePropName="checked" // 👈 Фикс
-        >
-          <Checkbox />
         </Form.Item>
       </Form>
     </Edit>

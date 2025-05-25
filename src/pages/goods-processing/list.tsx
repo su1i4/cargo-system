@@ -20,6 +20,7 @@ import {
   ArrowDownOutlined,
   FileAddOutlined,
   SettingOutlined,
+  NodeIndexOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useCustom, useNavigation, useUpdate } from "@refinedev/core";
@@ -424,7 +425,7 @@ export const GoogsProcessingList = () => {
       <Table
         {...tableProps}
         rowKey="id"
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1000 }}
         onRow={(record) => ({
           onDoubleClick: () => {
             show("goods-processing", record.id as number);
@@ -483,18 +484,8 @@ export const GoogsProcessingList = () => {
           render={(value) => value?.name}
         />
         <Table.Column
-          dataIndex="recipient"
-          render={(value) => (
-            <p
-              style={{
-                width: "200px",
-                textOverflow: "ellipsis",
-                overflow: "hidden",
-              }}
-            >
-              {`${value?.branch?.name}, ${value?.under_branch?.address || ""}`}
-            </p>
-          )}
+          dataIndex="destination"
+          render={(value) => value?.name}
           title="Пункт назначения"
         />
         <Table.Column
@@ -503,14 +494,19 @@ export const GoogsProcessingList = () => {
           render={(value) => value + " кг"}
         />
         <Table.Column
-          dataIndex="totalProductAmountSum"
-          title="Сумма продуктов"
-          render={(value) => value + " руб"}
+          dataIndex="services"
+          title="Кол-во мешков"
+          render={(value) => value?.length + " шт"}
         />
         <Table.Column
           dataIndex="totalServiceAmountSum"
-          title="Сумма услуг"
-          render={(value) => value + " руб"}
+          title="Сумма"
+          render={(_, record: any) =>
+            `${
+              Number(record.totalServiceAmountSum) +
+              Number(record.totalProductAmountSum)
+            } руб`
+          }
         />
         <Table.Column dataIndex="payment_method" title="Способ оплаты" />
         {operationStatus()}

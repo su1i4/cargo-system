@@ -43,7 +43,6 @@ export const BrandList = () => {
     <List headerButtons={<CreateButton onClick={() => showCreateModal()} />}>
       <Table {...tableProps} rowKey="id">
         <Table.Column dataIndex="name" title="Наименование" />
-        <Table.Column dataIndex="tariff" title="Тариф" />
         <Table.Column<any>
           title="Действия"
           render={(record) => (
@@ -80,13 +79,6 @@ export const BrandList = () => {
           >
             <Input />
           </Form.Item>
-          <Form.Item
-            label="Тариф"
-            name="tariff"
-            rules={[{ required: true, message: "Введите тариф" }]}
-          >
-            <InputNumber style={{ width: "100%" }} min={0} precision={2} />
-          </Form.Item>
         </Form>
       </Modal>
 
@@ -99,13 +91,6 @@ export const BrandList = () => {
             rules={[{ required: true, message: "Введите наименование" }]}
           >
             <Input />
-          </Form.Item>
-          <Form.Item
-            label="Тариф"
-            name="tariff"
-            rules={[{ required: true, message: "Введите тариф" }]}
-          >
-            <InputNumber style={{ width: "100%" }} min={0} precision={2} />
           </Form.Item>
         </Form>
       </Modal>

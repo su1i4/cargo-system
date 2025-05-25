@@ -1,7 +1,4 @@
-import {
-  List,
-  useTable,
-} from "@refinedev/antd";
+import { List, useTable } from "@refinedev/antd";
 import { useMany, useNavigation } from "@refinedev/core";
 import { Table } from "antd";
 
@@ -41,11 +38,11 @@ export const UnderBranchList = () => {
   const { show, push } = useNavigation();
 
   return (
-    <List>
+    <List title="Филиалы">
       <Table
         onRow={(record) => ({
           onDoubleClick: () => {
-            push(`/under-branch/show/${record?.id}`)
+            push(`/under-branch/show/${record?.id}`);
           },
         })}
         {...tableProps}
@@ -53,30 +50,12 @@ export const UnderBranchList = () => {
       >
         <Table.Column
           dataIndex="branch"
-          title={"Филиал"}
+          title="Название филиала"
           render={(value) => value?.name || ""}
+          width={250}
         />
-        <Table.Column dataIndex="work_schedule" title={"Рабочее время"} />
-        <Table.Column dataIndex="address" title={"Адрес"} />
-        <Table.Column
-          dataIndex="currency_id"
-          title="Валюта"
-          render={(value) =>
-            currencyIsLoading ? "Loading..." : currencyMap[value] || ""
-          }
-        />
-
-        {/* <Table.Column
-          title={"Действия"}
-          dataIndex="actions"
-          render={(_, record: BaseRecord) => (
-            <Space>
-              <EditButton hideText size="small" recordItemId={record.id} />
-              <ShowButton hideText size="small" recordItemId={record.id} />
-              <DeleteButton hideText size="small" recordItemId={record.id} />
-            </Space>
-          )}
-        /> */}
+        <Table.Column dataIndex="work_schedule" title="Рабочее время" width={250} />
+        <Table.Column dataIndex="address" title="Адрес" />
       </Table>
     </List>
   );

@@ -18,7 +18,7 @@ export const MyCreateModal: React.FC<{
     onMutationSuccess: () => {
       onClose();
       if (onSuccess) {
-        onSuccess(); 
+        onSuccess();
       }
     },
   });
@@ -81,29 +81,6 @@ export const MyCreateModal: React.FC<{
         <Flex style={{ width: "100%" }} gap={10}>
           <Form.Item
             style={{ width: "100%" }}
-            name="branch_id"
-            label="Пунк назначения"
-            rules={[{ required: true, message: "Введите Пунк назначения" }]}
-          >
-            <Select
-              {...branchSelectProps}
-              style={{ width: "100%" }}
-              onChange={handleBranchChange}
-            />
-          </Form.Item>
-          <Form.Item
-            style={{ width: "100%" }}
-            name="under_branch_id"
-            label="Пвз"
-            rules={[{ required: true, message: "Введите пвз" }]}
-          >
-            <Select {...underBranchSelectProps} style={{ width: "100%" }} />
-          </Form.Item>
-        </Flex>
-
-        <Flex style={{ width: "100%" }} gap={10}>
-          <Form.Item
-            style={{ width: "100%" }}
             label="Фио"
             name="name"
             rules={[{ required: true, message: "Укажите Фио" }]}
@@ -115,6 +92,14 @@ export const MyCreateModal: React.FC<{
             style={{ width: "100%" }}
             label="Адрес"
             name="address"
+            rules={[{ required: false }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            style={{ width: "100%" }}
+            label="Инн"
+            name="inn"
             rules={[{ required: false }]}
           >
             <Input />
@@ -160,5 +145,3 @@ export const MyCreateModal: React.FC<{
     </Modal>
   );
 };
-
-

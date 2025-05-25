@@ -1,6 +1,7 @@
 import { Create, useForm, useSelect, useTable } from "@refinedev/antd";
 import MDEditor from "@uiw/react-md-editor";
 import { Col, Flex, Form, Input, Row, Select } from "antd";
+import PhoneInput from "react-phone-input-2";
 
 export const UnderBranchCreate = () => {
   const { selectProps: branchSelectProps } = useSelect({
@@ -12,17 +13,17 @@ export const UnderBranchCreate = () => {
     resource: "currency",
     optionLabel: "name",
   });
-  
+
   const { formProps, saveButtonProps } = useForm({});
 
   return (
-    <Create saveButtonProps={saveButtonProps}>
+    <Create title="Создать филиал" saveButtonProps={saveButtonProps}>
       <Form {...formProps} layout="vertical">
         <Row gutter={[16, 16]}>
           <Col span={12}>
             {" "}
             <Form.Item
-              label={"Филлиал"}
+              label="Название города"
               name={["branch_id"]}
               rules={[
                 {
@@ -30,32 +31,13 @@ export const UnderBranchCreate = () => {
                 },
               ]}
             >
-              <Select
-                placeholder="Выберите филиал"
-                {...branchSelectProps}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              label={"Валюта"}
-              name={["currency_id"]}
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
-            >
-              <Select
-                placeholder="Выберите валюту"
-                {...currencySelectProps}
-              />
+              <Select placeholder="Выберите город" {...branchSelectProps} />
             </Form.Item>
           </Col>
         </Row>
 
         <Form.Item
-          label={"Адрес"}
+          label="Название филиала"
           name={["address"]}
           rules={[
             {
@@ -64,6 +46,22 @@ export const UnderBranchCreate = () => {
           ]}
         >
           <Input />
+        </Form.Item>
+
+        <Form.Item
+          label="Телефон"
+          name={["phone"]}
+          rules={[
+            {
+              required: true,
+            },
+          ]}
+        >
+          <PhoneInput
+            inputStyle={{ width: "100%", height: 32 }}
+            country={"kg"}
+            onlyCountries={["kg", "ru"]}
+          />
         </Form.Item>
 
         <Form.Item

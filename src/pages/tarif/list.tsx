@@ -61,9 +61,8 @@ export const TariffList = () => {
   return (
     <List headerButtons={<CreateButton onClick={() => showCreateModal()} />}>
       <Table {...tableProps} rowKey="id">
-        <Table.Column dataIndex="branch" title="Филиал" render={(value) => value.name} />
-        <Table.Column dataIndex="product_type" title="Тип товара" render={(value) => value.name} />
-        <Table.Column dataIndex="tariff" title="Цена" />
+        <Table.Column dataIndex="branch" width={250} title="Название города" render={(value) => value.name} />
+        <Table.Column dataIndex="product_type" width={250} title="Тип товара" render={(value) => value.name} />
         <Table.Column<any>
           title="Действия"
           render={(record) => (
@@ -93,9 +92,9 @@ export const TariffList = () => {
       <Modal {...createModalProps} title="Создание тарифа">
         <Form {...createFormProps} layout="vertical">
           <Form.Item
-            label="Филиал"
+            label="Название города"
             name="branch_id"
-            rules={[{ required: true, message: "Выберите филиал" }]}
+            rules={[{ required: true, message: "Выберите город" }]}
           >
             <Select {...branchSelectProps} />
           </Form.Item>
@@ -105,13 +104,6 @@ export const TariffList = () => {
             rules={[{ required: true, message: "Выберите тип товара" }]}
           >
             <Select {...productTypeSelectProps} />
-          </Form.Item>
-          <Form.Item
-            label="Цена"
-            name="tariff"
-            rules={[{ required: true, message: "Введите цену" }]}
-          >
-            <InputNumber style={{ width: "100%" }} />
           </Form.Item>
         </Form>
       </Modal>
@@ -119,9 +111,9 @@ export const TariffList = () => {
       <Modal {...editModalProps} title="Редактирование тарифа">
         <Form {...editFormProps} layout="vertical">
           <Form.Item
-            label="Филиал"
+            label="Название города"
             name="branch_id"
-            rules={[{ required: true, message: "Выберите филиал" }]}
+            rules={[{ required: true, message: "Выберите город" }]}
           >
             <Select {...branchSelectProps} />
           </Form.Item>
@@ -131,13 +123,6 @@ export const TariffList = () => {
             rules={[{ required: true, message: "Выберите тип товара" }]}
           >
             <Select {...productTypeSelectProps} />
-          </Form.Item>
-          <Form.Item
-            label="Цена"
-            name="tariff"
-            rules={[{ required: true, message: "Введите цену" }]}
-          >
-            <InputNumber style={{ width: "100%" }} />
           </Form.Item>
         </Form>
       </Modal>

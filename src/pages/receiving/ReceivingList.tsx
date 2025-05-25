@@ -15,22 +15,20 @@ const ReceivingList = () => {
         },
       ],
     },
+    sorters: {
+      initial: [
+        {
+          field: "id",
+          order: "desc",
+        },
+      ],
+    },
   });
 
   const { push, show } = useNavigation();
 
   return (
-    <List
-      headerButtons={(createButtonProps) => {
-        return (
-          <>
-            {/* {createButtonProps && (
-              <CreateButton {...createButtonProps} meta={{ foo: "bar" }} />
-            )} */}
-          </>
-        );
-      }}
-    >
+    <List headerButtons={false}>
       <Table
         onRow={(record) => {
           return {

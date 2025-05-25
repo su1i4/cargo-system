@@ -8,7 +8,6 @@ import {
   useCustom,
 } from "@refinedev/core";
 import {
-  Space,
   Table,
   Input,
   Button,
@@ -17,7 +16,6 @@ import {
   DatePicker,
   Form,
   Card,
-  Image,
   Flex,
   Dropdown,
   Typography,
@@ -38,7 +36,6 @@ import { API_URL } from "../../App";
 import type { Key } from "react";
 import { CustomTooltip, operationStatus } from "../../shared/custom-tooltip";
 import { useSearchParams } from "react-router";
-import { catchDateTable, translateStatus } from "../../lib/utils";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -488,7 +485,6 @@ export const IssueProcessingList = () => {
         </Col>
       </Row>
 
-      {/* Кнопки для действий */}
       <Flex
         gap={10}
         style={{ marginBottom: 10, position: "sticky", top: 120, zIndex: 100 }}
@@ -555,7 +551,7 @@ export const IssueProcessingList = () => {
           selectedRowKeys,
           onChange: handleRowSelectionChange,
         }}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1000 }}
       >
         <Table.Column
           title="№"
@@ -563,92 +559,80 @@ export const IssueProcessingList = () => {
             return (data?.data?.page - 1) * pageSize + index + 1;
           }}
         />
-        {catchDateTable("Дата приемки в Китае", "В Складе")}
-        {catchDateTable("Дата получения", "Готов к выдаче")}
-        <Table.Column dataIndex="trackCode" title="Трек-код" />
-        <Table.Column dataIndex="cargoType" title="Тип груза" />
         <Table.Column
-          dataIndex="counterparty"
-          title="Код получателя"
+          dataIndex="created_at"
+          title="Дата приемки"
+          render={(value) =>
+            value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
+          }
+        />
+        <Table.Column dataIndex="invoice_number" title="№ накладной" />
+        <Table.Column
+          dataIndex="employee"
+          title="Пункт приема"
+          render={(value) =>
+            `${value?.branch?.name}, ${value?.under_branch?.address || ""}`
+          }
+        />
+        <Table.Column
+          dataIndex="sender"
+          title="Код отправителя"
           render={(value) => {
-            return `${value?.clientPrefix || ""}-${value?.clientCode || ""}`;
+            return value?.clientPrefix + "-" + value?.clientCode;
           }}
         />
         <Table.Column
-          dataIndex="counterparty"
-          title="ФИО получателя"
+          dataIndex="sender"
+          title="Фио отправителя"
           render={(value) => value?.name}
         />
         <Table.Column
-          dataIndex="counterparty"
-          render={(value) => (
-            <p style={{ width: "200px" }}>
-              {`${value?.branch?.name || ""},${
-                value?.under_branch?.address || ""
-              }`}
-            </p>
-          )}
-          title="Пункт назначения, Пвз"
+          dataIndex="recipient"
+          title="Код получателя"
+          render={(value) => {
+            return value?.clientPrefix + "-" + value?.clientCode;
+          }}
         />
         <Table.Column
-          dataIndex="weight"
+          dataIndex="recipient"
+          title="Фио получателя"
+          render={(value) => value?.name}
+        />
+        <Table.Column
+          dataIndex="destination"
+          render={(value) => value?.name}
+          title="Пункт назначения"
+        />
+        <Table.Column
+          dataIndex="totalServiceWeight"
           title="Вес"
           render={(value) => value + " кг"}
         />
         <Table.Column
-          dataIndex="counterparty"
-          title="Тариф клиента"
-          render={(value, record) => {
-            return `${(
-              Number(value?.branch?.tarif || 0) -
-              Number(record?.counterparty?.discount?.discount || 0)
-            ).toFixed(2)}$`;
-          }}
+          dataIndex="services"
+          title="Кол-во мешков"
+          render={(value) => value?.length + " шт"}
         />
         <Table.Column
-          dataIndex="amount"
+          dataIndex="totalServiceAmountSum"
           title="Сумма"
-          render={(value) => value + " $"}
+          render={(_, record: any) =>
+            `${
+              Number(record.totalServiceAmountSum) +
+              Number(record.totalProductAmountSum)
+            } руб`
+          }
         />
-        {/* <Table.Column dataIndex="paymentMethod" title="Способ оплаты" /> */}
-        {/* <Table.Column
+        <Table.Column dataIndex="payment_method" title="Способ оплаты" />
+        {operationStatus()}
+        <Table.Column
           dataIndex="employee"
           title="Сотрудник"
           render={(value) => {
-            return `${value?.firstName || ""}-${value?.lastName || ""}`;
+            return `${value?.firstName}-${value?.lastName}`;
           }}
-        /> */}
-        {/* <Table.Column
-          dataIndex="employee"
-          title="Филиал"
-          render={(value) => value?.branch?.name}
-        /> */}
+        />
         <Table.Column dataIndex="comments" title="Комментарий" />
-        <Table.Column
-          dataIndex="photo"
-          title="Фото"
-          render={(photo) =>
-            photo ? (
-              <Image width={30} height={30} src={API_URL + "/" + photo} />
-            ) : null
-          }
-        />
-        <Table.Column
-          dataIndex="status"
-          title="Статус"
-          render={(value) => translateStatus(value)}
-        />
-        {operationStatus()}
-        {/* <Table.Column
-          title="Действия"
-          dataIndex="actions"
-          render={(_, record: BaseRecord) => (
-            <Space>
-              <ShowButton hideText size="small" recordItemId={record.id} />
-              <DeleteButton hideText size="small" recordItemId={record.id} />
-            </Space>
-          )}
-        /> */}
       </Table>
     </List>
   );

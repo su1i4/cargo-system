@@ -1,4 +1,11 @@
-import { DateField, DeleteButton, EditButton, MarkdownField, Show, TextField } from "@refinedev/antd";
+import {
+  DateField,
+  DeleteButton,
+  EditButton,
+  MarkdownField,
+  Show,
+  TextField,
+} from "@refinedev/antd";
 import { useOne, useShow } from "@refinedev/core";
 import { Typography } from "antd";
 
@@ -24,12 +31,8 @@ export const BranchShow = () => {
       )}
       isLoading={isLoading}
     >
-      <Title level={5}>{"ID"}</Title>
-      <TextField value={record?.id} />
-      <Title level={5}>{"Филиал"}</Title>
+      <Title level={5}>Название города</Title>
       <TextField value={record?.name} />
-      <Title level={5}>{"Тариф"}</Title>
-      <TextField value={record?.prefix} />
     </Show>
   );
 };

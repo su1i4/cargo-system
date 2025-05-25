@@ -32,24 +32,16 @@ export const UnderBranchShow = () => {
         </>
       )}
       isLoading={isLoading}
+      title="Просмотр филиала"
     >
-      <Title level={5}>{"ID"}</Title>
-      <TextField value={record?.id} />
+      <Title level={5}>Название филиала</Title>
+      <TextField value={record?.address} />
 
-      <Title level={5}>{"Филиал"}</Title>
-      <TextField value={record?.branch?.name} />
+      <Title level={5}>Телефон</Title>
+      <TextField value={record?.phone} />
 
-      <Title level={5}>{"Тариф"}</Title>
-      <TextField value={record?.branch?.tarif} />
-
-      <Title level={5}>{"Валюта"}</Title>
-      <TextField
-        value={
-          currencyIsLoading
-            ? "Loading..."
-            : currencyData?.data?.name || "Not specified"
-        }
-      />
+      <Title level={5}>Рабочее время</Title>
+      <TextField value={record?.work_schedule} />
     </Show>
   );
 };

@@ -14,7 +14,13 @@ export const CounterpartyList: React.FC = () => {
     resource: "counterparty",
     syncWithLocation: false,
     pagination: {
-      mode: "off",
+      pageSize: 10,
+      current: 1,
+      // showSizeChanger: true,
+      // showQuickJumper: true,
+      // showTotal: (total, range) => 
+      //   `${range[0]}-${range[1]} из ${total} записей`,
+      // pageSizeOptions: ["10", "20", "50", "100"],
     },
     sorters: {
       initial: [
@@ -96,7 +102,8 @@ export const CounterpartyList: React.FC = () => {
         <Table.Column
           title="№"
           render={(_: any, __: any, index: number) => {
-            return (1 - 1) * 10000 + index + 1;
+            const { current = 1, pageSize = 10 } = tableProps.pagination || {};
+            return (current - 1) * pageSize + index + 1;
           }}
         />
         <Table.Column

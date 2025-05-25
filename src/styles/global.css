@@ -3,7 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --cargo-color: #5932EA;
+  --cargo-color: #5932ea;
+  --refine-layout-padding: 0px;
+  --refine-layout-margin: 0px;
+  --refine-content-padding: 0px;
+  --refine-content-margin: 0px;
 }
 
 /* Основной стиль для заголовка подменю */
@@ -20,11 +24,64 @@
   background: white !important;
 }
 
-
 .no-scroll-modal .ant-modal {
   position: fixed;
   top: 3%;
   left: 5%;
   margin: 0;
   padding-bottom: 0;
+}
+
+.refine-themed-layout-v2 {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.refine-themed-layout-v2 .ant-layout {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.refine-themed-layout-v2 .ant-layout-content {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 100vh;
+}
+
+.refine-themed-layout-v2 .refine-page-container {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Стили для страниц без отступов */
+.no-padding-page {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.no-padding-page .ant-card {
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.no-padding-page .ant-card-body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.no-padding-page .ant-table-wrapper {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Переопределение стилей Refine для конкретных страниц */
+.no-padding-page .refine-page-container {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.no-padding-page .ant-layout-content {
+  margin: 0 !important;
+  padding: 0 !important;
 }

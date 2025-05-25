@@ -1,5 +1,12 @@
-import { DeleteButton, Edit, EditButton, useForm, useSelect } from "@refinedev/antd";
+import {
+  DeleteButton,
+  Edit,
+  EditButton,
+  useForm,
+  useSelect,
+} from "@refinedev/antd";
 import { Col, Form, Input, Row, Select } from "antd";
+import PhoneInput from "react-phone-input-2";
 
 export const UnderBranchEdit = () => {
   const { selectProps: branchSelectProps } = useSelect({
@@ -25,7 +32,7 @@ export const UnderBranchEdit = () => {
           <Col span={12}>
             {" "}
             <Form.Item
-              label={"Филлиал"}
+              label={"Название города"}
               name={["branch_id"]}
               rules={[
                 {
@@ -38,21 +45,25 @@ export const UnderBranchEdit = () => {
           </Col>
           <Col span={12}>
             <Form.Item
-              label={"Валюта"}
-              name={["currency_id"]}
+              label="Телефон"
+              name={["phone"]}
               rules={[
                 {
                   required: true,
                 },
               ]}
             >
-              <Select placeholder="Выберите валюту" {...currencySelectProps} />
+              <PhoneInput
+                inputStyle={{ width: "100%", height: 32 }}
+                country={"kg"}
+                onlyCountries={["kg", "ru"]}
+              />
             </Form.Item>
           </Col>
         </Row>
 
         <Form.Item
-          label={"Адрес"}
+          label={"Название филиала"}
           name={["address"]}
           rules={[
             {

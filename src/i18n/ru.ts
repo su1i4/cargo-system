@@ -109,7 +109,7 @@ export const i18nProvider_ru = {
       "type-product.titles.list": "Тип товара",
       "products.titles.list": "Продукты",
       "packers.titles.list": "Упаковщики",
-      "visiting-group.titles.list": "Выездные группы",
+      "visiting-group.titles.list": "Выездная группа",
       "tariff.titles.list": "Тарифы",
     };
     return translations[key] || key;

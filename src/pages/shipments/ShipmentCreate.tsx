@@ -129,11 +129,6 @@ const ShipmentCreate = () => {
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item label="Сотрудник" name="employee_id">
-              <Select {...employeeSelectProps} />
-            </Form.Item>
-          </Col>
-          <Col span={6}>
             <Form.Item label="Водитель" name="driver">
               <Input />
             </Form.Item>
@@ -160,18 +155,37 @@ const ShipmentCreate = () => {
           rowSelection={rowSelection}
         >
           <Table.Column title="№" dataIndex="index" render={(value, record, index) => index + 1} />
-          <Table.Column title="Тип товара" dataIndex="type" />
-          <Table.Column title="Номер мешка" dataIndex="bag_number" />
-          <Table.Column title="Город" dataIndex="country" />
-          <Table.Column title="Количество" dataIndex="quantity" />
-          <Table.Column title="Вес" dataIndex="weight" />
-          <Table.Column title="Статус" dataIndex="status" />
           <Table.Column
-            title="Пункт назначения"
-            dataIndex="good"
-            render={(value) => value?.label}
-          />
-          <Table.Column title="Штрихкод" dataIndex="barcode" />
+          title="Дата приемки"
+          dataIndex="good"
+          render={(value) =>
+            dayjs.utc(value?.created_at).format("DD.MM.YYYY HH:mm")
+          }
+        />
+        <Table.Column
+          title="Отправитель"
+          dataIndex="good"
+          render={(value) =>
+            `${value?.sender?.clientPrefix}-${value?.sender?.clientCode}`
+          }
+        />
+        <Table.Column title="Номер мешка" dataIndex="bag_number" />
+        <Table.Column
+          title="Получатель"
+          dataIndex="good"
+          render={(value) =>
+            `${value?.recipient?.clientPrefix}-${value?.recipient?.clientCode}`
+          }
+        />
+        <Table.Column title="Количество" dataIndex="quantity" />
+        <Table.Column title="Вес" dataIndex="weight" />
+        <Table.Column title="Статус" dataIndex="status" />
+        <Table.Column
+          title="Пункт назначения"
+          dataIndex="good"
+          render={(value) => value?.destination?.name}
+        />
+        <Table.Column title="Штрихкод" dataIndex="barcode" />
         </Table>
       </Form>
     </Create>

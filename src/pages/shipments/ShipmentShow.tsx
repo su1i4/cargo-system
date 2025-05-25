@@ -6,9 +6,27 @@ import {
   useTable,
 } from "@refinedev/antd";
 import { useShow } from "@refinedev/core";
-import { Typography, Row, Col, Table } from "antd";
+import {
+  Typography,
+  Row,
+  Col,
+  Table,
+  Flex,
+  Dropdown,
+  Button,
+  Input,
+  Menu,
+} from "antd";
 import { useParams } from "react-router";
 import { translateStatus } from "../../lib/utils";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import { ArrowUpOutlined } from "@ant-design/icons";
+import { ArrowDownOutlined } from "@ant-design/icons";
+import { SearchOutlined } from "@ant-design/icons";
+import { useState } from "react";
+
+dayjs.extend(utc);
 
 const { Title } = Typography;
 
@@ -18,7 +36,7 @@ const ShipmentShow = () => {
   const { id } = useParams();
   const record = data?.data;
 
-  const { tableProps } = useTable({
+  const { tableProps, setSorters, setFilters } = useTable({
     resource: "service",
     syncWithLocation: false,
     initialSorter: [
@@ -34,15 +52,90 @@ const ShipmentShow = () => {
           operator: "eq",
           value: Number(id),
         },
-        {
-          field: "status",
-          operator: "eq",
-          value: "В пути",
-        },
       ],
     },
     queryOptions: {},
   });
+
+  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
+  const [searchValue, setSearchValue] = useState("");
+  const [sortField, setSortField] = useState("created_at");
+
+  const handleSort = (field: string, direction: "ASC" | "DESC") => {
+    setSortField(field);
+    setSortDirection(direction);
+    setSorters([
+      {
+        field,
+        order: direction.toLowerCase() as "asc" | "desc",
+      },
+    ]);
+  };
+
+  const sortFields = [
+    { key: "created_at", label: "Дата приемки" },
+    { key: "bag_number", label: "Номер мешка" },
+  ];
+
+  const getSortFieldLabel = () => {
+    const field = sortFields.find((f) => f.key === sortField);
+    return field ? field.label : "Дата приемки";
+  };
+
+  const sortMenu = (
+    <Menu>
+      {sortFields.map((field) => (
+        <Menu.SubMenu key={field.key} title={field.label}>
+          <Menu.Item
+            key={`${field.key}-asc`}
+            onClick={() => handleSort(field.key, "ASC")}
+          >
+            <ArrowUpOutlined /> По возрастанию
+          </Menu.Item>
+          <Menu.Item
+            key={`${field.key}-desc`}
+            onClick={() => handleSort(field.key, "DESC")}
+          >
+            <ArrowDownOutlined /> По убыванию
+          </Menu.Item>
+        </Menu.SubMenu>
+      ))}
+    </Menu>
+  );
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+
+    if (value.trim() === "") {
+      setFilters([], "replace");
+    } else {
+      setFilters(
+        [
+          {
+            operator: "or",
+            value: [
+              {
+                field: "bag_number",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.sender.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.recipient.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+            ],
+          },
+        ],
+        "replace"
+      );
+    }
+  };
 
   return (
     <Show
@@ -85,7 +178,7 @@ const ShipmentShow = () => {
 
         <Col xs={24} md={6}>
           <Title level={5}>Количество мест</Title>
-          <TextField value={record?.count ?? "-"} />
+          <TextField value={tableProps.dataSource?.length} />
         </Col>
 
         <Col xs={24} md={6}>
@@ -111,6 +204,31 @@ const ShipmentShow = () => {
       <Title level={4} style={{ marginTop: 24 }}>
         Товары в этом рейсе
       </Title>
+      <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
+        <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10}>
+          <Dropdown overlay={sortMenu} trigger={["click"]}>
+            <Button
+              icon={
+                sortDirection === "ASC" ? (
+                  <ArrowUpOutlined />
+                ) : (
+                  <ArrowDownOutlined />
+                )
+              }
+            >
+              {getSortFieldLabel()}
+            </Button>
+          </Dropdown>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="Поиск"
+            value={searchValue}
+            onChange={(e) => handleSearch(e.target.value)}
+            allowClear
+            style={{ width: "50%" }}
+          />
+        </Flex>
+      </Row>
       <Table {...tableProps} rowKey="id">
         <Table.Column
           title="№"
@@ -118,17 +236,32 @@ const ShipmentShow = () => {
           render={(value, record, index) => index + 1}
         />
         <Table.Column
-          title="Тип товара"
-          dataIndex="product_type"
-          render={(value) => value?.name}
+          title="Дата приемки"
+          dataIndex="good"
+          render={(value) =>
+            dayjs.utc(value?.created_at).format("DD.MM.YYYY HH:mm")
+          }
+        />
+        <Table.Column
+          title="Отправитель"
+          dataIndex="good"
+          render={(value) =>
+            `${value?.sender?.name}`
+          }
         />
         <Table.Column title="Номер мешка" dataIndex="bag_number" />
-        <Table.Column title="Город" dataIndex="country" />
+        <Table.Column
+          title="Получатель"
+          dataIndex="good"
+          render={(value) =>
+            `${value?.recipient?.name}`
+          }
+        />
         <Table.Column title="Количество" dataIndex="quantity" />
         <Table.Column title="Вес" dataIndex="weight" />
         <Table.Column title="Статус" dataIndex="status" />
         <Table.Column
-          title="Город назначения"
+          title="Пункт назначения"
           dataIndex="good"
           render={(value) => value?.destination?.name}
         />
