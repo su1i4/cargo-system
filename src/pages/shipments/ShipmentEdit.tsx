@@ -19,9 +19,18 @@ import {
   DatePicker,
   message,
   Tooltip,
+  Flex,
+  Dropdown,
+  Menu,
 } from "antd";
 import { useParams, useSearchParams } from "react-router";
-import { FileAddOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  CalendarOutlined,
+  FileAddOutlined,
+  SearchOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+} from "@ant-design/icons";
 import { translateStatus } from "../../lib/utils";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
@@ -40,7 +49,7 @@ const ShipmentEdit = () => {
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
 
-  const { tableProps, setFilters } = useTable({
+  const { tableProps, setFilters, setSorters } = useTable({
     resource: "service",
     sorters: {
       initial: [
@@ -243,21 +252,129 @@ const ShipmentEdit = () => {
         status: "На складе",
       },
     });
-    updateServices({
-      ids: unselectedServices?.map((item: any) => item.id),
-      values: {
-        shipment_id: Number(id),
-        status: "В пути",
+    updateServices(
+      {
+        ids: unselectedServices?.map((item: any) => item.id),
+        values: {
+          shipment_id: Number(id),
+          status: "В пути",
+        },
       },
-    },
-    {
-      onSuccess: () => {
-        list("shipments");
-      },
-      onError: (error) => {
-        message.error("Ошибка при обновлении сервисов: " + error);
+      {
+        onSuccess: () => {
+          list("shipments");
+        },
+        onError: (error) => {
+          message.error("Ошибка при обновлении сервисов: " + error);
+        },
       }
-    });
+    );
+  };
+
+  const handleDateRangeChange = (dates: any, dateStrings: [string, string]) => {
+    if (dates && dateStrings[0] && dateStrings[1]) {
+      setFilters([
+        {
+          field: "created_at",
+          operator: "gte",
+          value: dateStrings[0],
+        },
+        {
+          field: "created_at",
+          operator: "lte",
+          value: dateStrings[1],
+        },
+      ]);
+    } else {
+      setFilters([]);
+    }
+  };
+
+  const datePickerContent = (
+    <DatePicker.RangePicker
+      style={{ width: "280px" }}
+      placeholder={["Начальная дата", "Конечная дата"]}
+      onChange={handleDateRangeChange}
+    />
+  );
+
+  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
+  const [sortField, setSortField] = useState("created_at");
+
+  const handleSort = (field: string, direction: "ASC" | "DESC") => {
+    setSortField(field);
+    setSortDirection(direction);
+    setSorters([
+      {
+        field,
+        order: direction.toLowerCase() as "asc" | "desc",
+      },
+    ]);
+  };
+
+  const sortFields = [
+    { key: "good.created_at", label: "Дата" },
+    { key: "bag_number", label: "Номер мешка" },
+  ];
+
+  const getSortFieldLabel = () => {
+    const field = sortFields.find((f) => f.key === sortField);
+    return field ? field.label : "Дата приемки";
+  };
+
+  const sortMenu = (
+    <Menu>
+      {sortFields.map((field) => (
+        <Menu.SubMenu key={field.key} title={field.label}>
+          <Menu.Item
+            key={`${field.key}-asc`}
+            onClick={() => handleSort(field.key, "ASC")}
+          >
+            <ArrowUpOutlined /> По возрастанию
+          </Menu.Item>
+          <Menu.Item
+            key={`${field.key}-desc`}
+            onClick={() => handleSort(field.key, "DESC")}
+          >
+            <ArrowDownOutlined /> По убыванию
+          </Menu.Item>
+        </Menu.SubMenu>
+      ))}
+    </Menu>
+  );
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+
+    if (value.trim() === "") {
+      setFilters([], "replace");
+    } else {
+      setFilters(
+        [
+          {
+            operator: "or",
+            value: [
+              {
+                field: "bag_number",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.sender.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.recipient.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+            ],
+          },
+        ],
+        "replace"
+      );
+    }
   };
 
   return (
@@ -269,6 +386,7 @@ const ShipmentEdit = () => {
           handleFinish(form.getFieldsValue());
         },
       }}
+      headerButtons={() => null}
       isLoading={formLoading || isLoadingShipment}
     >
       <Form form={form} layout="vertical">
@@ -304,8 +422,8 @@ const ShipmentEdit = () => {
             </Form.Item>
           </Col>
         </Row>
-        <Row gutter={16} style={{ marginTop: 16, marginBottom: 16 }}>
-          <Col span={12}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
+          <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10}>
             <Tooltip title="Подбор остатков">
               <Button
                 icon={<FileAddOutlined />}
@@ -314,32 +432,71 @@ const ShipmentEdit = () => {
                 }}
               />
             </Tooltip>
-          </Col>
-          <Col span={12} style={{ textAlign: "right" }}>
+            <Dropdown overlay={sortMenu} trigger={["click"]}>
+              <Button
+                icon={
+                  sortDirection === "ASC" ? (
+                    <ArrowUpOutlined />
+                  ) : (
+                    <ArrowDownOutlined />
+                  )
+                }
+              >
+                {getSortFieldLabel()}
+              </Button>
+            </Dropdown>
             <Input
-              placeholder="Поиск по трек-коду"
               prefix={<SearchOutlined />}
+              placeholder="Поиск по номеру мешка, отправителю, получателю"
               value={searchValue}
-              onChange={(e) => handleSearchChange(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
+              allowClear
             />
-          </Col>
+            <Dropdown
+              overlay={datePickerContent}
+              trigger={["click"]}
+              placement="bottomRight"
+            >
+              <Button
+                icon={<CalendarOutlined />}
+                className="date-picker-button"
+              >
+                Дата
+              </Button>
+            </Dropdown>
+          </Flex>
         </Row>
         <Table {...tableProps} rowKey="id" rowSelection={rowSelection}>
           <Table.Column
             title="№"
-            dataIndex="index"
+            dataIndex="number"
             render={(value, record, index) => index + 1}
           />
-          <Table.Column title="Тип товара" dataIndex="type" />
+          <Table.Column
+            title="Дата приемки"
+            dataIndex="good"
+            render={(value) =>
+              dayjs.utc(value?.created_at).format("DD.MM.YYYY HH:mm")
+            }
+          />
+          <Table.Column
+            title="Отправитель"
+            dataIndex="good"
+            render={(value) => `${value?.sender?.name}`}
+          />
           <Table.Column title="Номер мешка" dataIndex="bag_number" />
-          <Table.Column title="Город" dataIndex="country" />
+          <Table.Column
+            title="Получатель"
+            dataIndex="good"
+            render={(value) => `${value?.recipient?.name}`}
+          />
           <Table.Column title="Количество" dataIndex="quantity" />
           <Table.Column title="Вес" dataIndex="weight" />
           <Table.Column title="Статус" dataIndex="status" />
           <Table.Column
             title="Пункт назначения"
             dataIndex="good"
-            render={(value) => value?.label}
+            render={(value) => value?.destination?.name}
           />
           <Table.Column title="Штрихкод" dataIndex="barcode" />
         </Table>

@@ -63,6 +63,7 @@ export const TariffList = () => {
       <Table {...tableProps} rowKey="id">
         <Table.Column dataIndex="branch" width={250} title="Название города" render={(value) => value.name} />
         <Table.Column dataIndex="product_type" width={250} title="Тип товара" render={(value) => value.name} />
+        <Table.Column dataIndex="tariff" width={250} title="Цена" />
         <Table.Column<any>
           title="Действия"
           render={(record) => (
@@ -105,6 +106,13 @@ export const TariffList = () => {
           >
             <Select {...productTypeSelectProps} />
           </Form.Item>
+          <Form.Item
+            label="Цена"
+            name="tariff"
+            rules={[{ required: true, message: "Введите цену" }]}
+          >
+            <InputNumber />
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -123,6 +131,13 @@ export const TariffList = () => {
             rules={[{ required: true, message: "Выберите тип товара" }]}
           >
             <Select {...productTypeSelectProps} />
+          </Form.Item>
+          <Form.Item
+            label="Цена"
+            name="tariff"
+            rules={[{ required: true, message: "Введите цену" }]}
+          >
+            <InputNumber />
           </Form.Item>
         </Form>
       </Modal>

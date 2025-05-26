@@ -24,16 +24,16 @@ const authProvider: AuthProvider = {
       }
 
       const data = await response.json();
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
-      localStorage.setItem("email", data.email);
-      localStorage.setItem("role", data.role);
-      localStorage.setItem("firstName", data.firstName);
-      localStorage.setItem("lastName", data.lastName);
-      localStorage.setItem("id", data.id);
+      localStorage.setItem("cargo-system-token", data.access_token);
+      localStorage.setItem("cargo-system-refresh-token", data.refresh_token);
+      localStorage.setItem("cargo-system-email", data.email);
+      localStorage.setItem("cargo-system-role", data.role);
+      localStorage.setItem("cargo-system-firstName", data.firstName);
+      localStorage.setItem("cargo-system-lastName", data.lastName);
+      localStorage.setItem("cargo-system-id", data.id);
       axiosInstance.defaults.headers.common[
         "Authorization"
-      ] = `Bearer ${localStorage.getItem("token")}`;
+      ] = `Bearer ${localStorage.getItem("cargo-system-token")}`;
 
       return { success: true, redirectTo: "/" };
     } catch (error) {
@@ -48,19 +48,19 @@ const authProvider: AuthProvider = {
   },
 
   logout: async () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("email");
-    localStorage.removeItem("role");
-    localStorage.removeItem("firstName");
-    localStorage.removeItem("lastName");
-    localStorage.removeItem("id");
+    localStorage.removeItem("cargo-system-token");
+    localStorage.removeItem("cargo-system-refresh-token");
+    localStorage.removeItem("cargo-system-email");
+    localStorage.removeItem("cargo-system-role");
+    localStorage.removeItem("cargo-system-firstName");
+    localStorage.removeItem("cargo-system-lastName");
+    localStorage.removeItem("cargo-system-id");
 
     return { success: true, redirectTo: "/login" };
   },
 
   check: async () => {
-    return localStorage.getItem("access_token")
+    return localStorage.getItem("cargo-system-token")
       ? { authenticated: true }
       : {
           authenticated: false,
@@ -70,14 +70,14 @@ const authProvider: AuthProvider = {
   },
 
   getPermissions: async () => {
-    const role = localStorage.getItem("role");
+    const role = localStorage.getItem("cargo-system-role");
     return role ? { permissions: role } : null;
   },
 
   getIdentity: async () => {
-    const email = localStorage.getItem("email");
-    const firstName = localStorage.getItem("firstName");
-    const lastName = localStorage.getItem("lastName");
+    const email = localStorage.getItem("cargo-system-email");
+    const firstName = localStorage.getItem("cargo-system-firstName");
+    const lastName = localStorage.getItem("cargo-system-lastName");
 
     if (!email) {
       return null;

@@ -73,7 +73,7 @@ const ShipmentShow = () => {
   };
 
   const sortFields = [
-    { key: "created_at", label: "Дата приемки" },
+    { key: "good.created_at", label: "Дата" },
     { key: "bag_number", label: "Номер мешка" },
   ];
 
@@ -221,7 +221,7 @@ const ShipmentShow = () => {
           </Dropdown>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Поиск"
+            placeholder="Поиск по номеру мешка, отправителю, получателю"
             value={searchValue}
             onChange={(e) => handleSearch(e.target.value)}
             allowClear

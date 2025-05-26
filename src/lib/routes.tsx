@@ -141,17 +141,6 @@ export const routes = [
     },
   },
   {
-    name: "tasks",
-    list: "/tasks",
-    show: "/tasks/show/:id",
-    edit: "/tasks/edit/:id",
-    meta: {
-      canDelete: true,
-      label: "Задачи",
-      parent: "Автоматизация",
-    },
-  },
-  {
     name: "shipment",
     list: "/shipments/show/:id/adding",
     meta: {
@@ -386,18 +375,6 @@ export const routes = [
     meta: {
       canDelete: true,
       label: "Уведомления",
-      parent: "Автоматизация",
-    },
-  },
-  {
-    name: "chatbot-history",
-    list: "/chatbot-history",
-    create: "/chatbot-history/create",
-    edit: "/chatbot-history/edit/:id",
-    show: "/chatbot-history/show/:id",
-    meta: {
-      canDelete: true,
-      label: "История чат-бота",
       parent: "Автоматизация",
     },
   },

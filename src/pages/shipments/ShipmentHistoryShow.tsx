@@ -6,9 +6,23 @@ import {
   useTable,
 } from "@refinedev/antd";
 import { useShow } from "@refinedev/core";
-import { Typography, Row, Col, Table } from "antd";
+import {
+  Typography,
+  Row,
+  Col,
+  Table,
+  Flex,
+  Dropdown,
+  Button,
+  Input,
+  Menu,
+} from "antd";
 import { useParams } from "react-router";
 import { translateStatus } from "../../lib/utils";
+import { ArrowUpOutlined } from "@ant-design/icons";
+import { ArrowDownOutlined } from "@ant-design/icons";
+import { SearchOutlined } from "@ant-design/icons";
+import { useState } from "react";
 
 const { Title } = Typography;
 
@@ -18,7 +32,11 @@ const ShipmentHistoryShow = () => {
   const { data, isLoading } = queryResult;
   const record = data?.data;
 
-  const { tableProps } = useTable({
+  const [searchValue, setSearchValue] = useState("");
+  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("ASC");
+  const [sortField, setSortField] = useState<string>("id");
+
+  const { tableProps, setFilters, setSorters } = useTable({
     resource: "service",
     syncWithLocation: false,
     initialSorter: [
@@ -38,6 +56,82 @@ const ShipmentHistoryShow = () => {
     },
     queryOptions: {},
   });
+
+  const sortFields = [
+    { key: "good.created_at", label: "Дата" },
+    { key: "bag_number", label: "Номер мешка" },
+  ];
+
+  const getSortFieldLabel = () => {
+    const field = sortFields.find((f) => f.key === sortField);
+    return field ? field.label : "Дата приемки";
+  };
+
+  const handleSort = (field: string, direction: "ASC" | "DESC") => {
+    setSortField(field);
+    setSortDirection(direction);
+    setSorters([
+      {
+        field,
+        order: direction.toLowerCase() as "asc" | "desc",
+      },
+    ]);
+  };
+
+  const sortMenu = (
+    <Menu>
+      {sortFields.map((field) => (
+        <Menu.SubMenu key={field.key} title={field.label}>
+          <Menu.Item
+            key={`${field.key}-asc`}
+            onClick={() => handleSort(field.key, "ASC")}
+          >
+            <ArrowUpOutlined /> По возрастанию
+          </Menu.Item>
+          <Menu.Item
+            key={`${field.key}-desc`}
+            onClick={() => handleSort(field.key, "DESC")}
+          >
+            <ArrowDownOutlined /> По убыванию
+          </Menu.Item>
+        </Menu.SubMenu>
+      ))}
+    </Menu>
+  );
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+
+    if (value.trim() === "") {
+      setFilters([], "replace");
+    } else {
+      setFilters(
+        [
+          {
+            operator: "or",
+            value: [
+              {
+                field: "bag_number",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.sender.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.recipient.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+            ],
+          },
+        ],
+        "replace"
+      );
+    }
+  };
 
   return (
     <Show
@@ -98,6 +192,31 @@ const ShipmentHistoryShow = () => {
       <Title level={4} style={{ marginTop: 24 }}>
         Товары в этом рейсе
       </Title>
+      <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
+        <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10}>
+          <Dropdown overlay={sortMenu} trigger={["click"]}>
+            <Button
+              icon={
+                sortDirection === "ASC" ? (
+                  <ArrowUpOutlined />
+                ) : (
+                  <ArrowDownOutlined />
+                )
+              }
+            >
+              {getSortFieldLabel()}
+            </Button>
+          </Dropdown>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="Поиск по номеру мешка, отправителю, получателю"
+            value={searchValue}
+            onChange={(e) => handleSearch(e.target.value)}
+            allowClear
+            style={{ width: "50%" }}
+          />
+        </Flex>
+      </Row>
       <Table {...tableProps} rowKey="id">
         <Table.Column
           title="№"

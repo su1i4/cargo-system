@@ -78,7 +78,7 @@ const ReceivingAll = () => {
   const { push } = useNavigation();
 
   const postIds = async (ids: Record<string, number[]>) => {
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("cargo-system-token");
 
     await fetch(`${API_URL}/goods-processing/send-notification-tg`, {
       method: "POST",

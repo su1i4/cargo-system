@@ -1,15 +1,26 @@
-import {
-  DeleteButton,
-  EditButton,
-  Show,
-  TextField,
-  useTable,
-} from "@refinedev/antd";
+import { Show, TextField, useTable } from "@refinedev/antd";
 import { useShow, useUpdateMany } from "@refinedev/core";
-import { Typography, Row, Col, Table, Button } from "antd";
+import {
+  Typography,
+  Row,
+  Col,
+  Table,
+  Button,
+  Flex,
+  Dropdown,
+  Menu,
+  Input,
+} from "antd";
 import { useParams } from "react-router";
 import { translateStatus } from "../../lib/utils";
 import { useState } from "react";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import { SearchOutlined } from "@ant-design/icons";
+import { ArrowDownOutlined } from "@ant-design/icons";
+import { ArrowUpOutlined } from "@ant-design/icons";
+
+dayjs.extend(utc);
 
 const { Title } = Typography;
 
@@ -19,7 +30,7 @@ const ReceivingShow = () => {
   const { data, isLoading } = queryResult;
   const record = data?.data;
 
-  const { tableProps } = useTable({
+  const { tableProps, setFilters, setSorters } = useTable({
     resource: "service",
     syncWithLocation: false,
     initialSorter: [
@@ -68,20 +79,88 @@ const ReceivingShow = () => {
     });
   };
 
+  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
+  const [searchValue, setSearchValue] = useState("");
+  const [sortField, setSortField] = useState("created_at");
+
+  const handleSort = (field: string, direction: "ASC" | "DESC") => {
+    setSortField(field);
+    setSortDirection(direction);
+    setSorters([
+      {
+        field,
+        order: direction.toLowerCase() as "asc" | "desc",
+      },
+    ]);
+  };
+
+  const sortFields = [
+    { key: "good.created_at", label: "Дата" },
+    { key: "bag_number", label: "Номер мешка" },
+  ];
+
+  const getSortFieldLabel = () => {
+    const field = sortFields.find((f) => f.key === sortField);
+    return field ? field.label : "Дата приемки";
+  };
+
+  const sortMenu = (
+    <Menu>
+      {sortFields.map((field) => (
+        <Menu.SubMenu key={field.key} title={field.label}>
+          <Menu.Item
+            key={`${field.key}-asc`}
+            onClick={() => handleSort(field.key, "ASC")}
+          >
+            <ArrowUpOutlined /> По возрастанию
+          </Menu.Item>
+          <Menu.Item
+            key={`${field.key}-desc`}
+            onClick={() => handleSort(field.key, "DESC")}
+          >
+            <ArrowDownOutlined /> По убыванию
+          </Menu.Item>
+        </Menu.SubMenu>
+      ))}
+    </Menu>
+  );
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+
+    if (value.trim() === "") {
+      setFilters([], "replace");
+    } else {
+      setFilters(
+        [
+          {
+            operator: "or",
+            value: [
+              {
+                field: "bag_number",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.sender.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.recipient.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+            ],
+          },
+        ],
+        "replace"
+      );
+    }
+  };
+
   return (
-    <Show
-      headerButtons={({ deleteButtonProps, editButtonProps }) => (
-        <>
-          {editButtonProps && (
-            <EditButton {...editButtonProps} meta={{ foo: "bar" }} />
-          )}
-          {deleteButtonProps && (
-            <DeleteButton {...deleteButtonProps} meta={{ foo: "bar" }} />
-          )}
-        </>
-      )}
-      isLoading={isLoading}
-    >
+    <Show headerButtons={() => null} isLoading={isLoading}>
       <Row gutter={[16, 16]}>
         <Col xs={24} md={6}>
           <Title level={5}>Номер рейса</Title>
@@ -135,7 +214,38 @@ const ReceivingShow = () => {
       <Title level={4} style={{ marginTop: 24 }}>
         Товары в этом рейсе
       </Title>
-      <Button disabled={selectedRowKeys.length === 0} onClick={handleReceive}>Принять товары</Button>
+      <Flex
+        style={{
+          width: "100%",
+          marginBottom: 10,
+          gap: 10,
+        }}
+        gap={10}
+      >
+        <Button disabled={selectedRowKeys.length === 0} onClick={handleReceive}>
+          Принять товары
+        </Button>
+        <Dropdown overlay={sortMenu} trigger={["click"]}>
+          <Button
+            icon={
+              sortDirection === "ASC" ? (
+                <ArrowUpOutlined />
+              ) : (
+                <ArrowDownOutlined />
+              )
+            }
+          >
+            {getSortFieldLabel()}
+          </Button>
+        </Dropdown>
+        <Input
+          prefix={<SearchOutlined />}
+          placeholder="Поиск по номеру мешка, отправителю, получателю"
+          value={searchValue}
+          onChange={(e) => handleSearch(e.target.value)}
+          allowClear
+        />
+      </Flex>
       <Table
         {...tableProps}
         rowSelection={rowSelection}
@@ -149,17 +259,28 @@ const ReceivingShow = () => {
           render={(value, record, index) => index + 1}
         />
         <Table.Column
-          title="Тип товара"
-          dataIndex="product_type"
-          render={(value) => value?.name}
+          title="Дата приемки"
+          dataIndex="good"
+          render={(value) =>
+            dayjs.utc(value?.created_at).format("DD.MM.YYYY HH:mm")
+          }
+        />
+        <Table.Column
+          title="Отправитель"
+          dataIndex="good"
+          render={(value) => `${value?.sender?.name}`}
         />
         <Table.Column title="Номер мешка" dataIndex="bag_number" />
-        <Table.Column title="Город" dataIndex="country" />
+        <Table.Column
+          title="Получатель"
+          dataIndex="good"
+          render={(value) => `${value?.recipient?.name}`}
+        />
         <Table.Column title="Количество" dataIndex="quantity" />
         <Table.Column title="Вес" dataIndex="weight" />
         <Table.Column title="Статус" dataIndex="status" />
         <Table.Column
-          title="Город назначения"
+          title="Пункт назначения"
           dataIndex="good"
           render={(value) => value?.destination?.name}
         />

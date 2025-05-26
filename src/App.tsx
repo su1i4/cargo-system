@@ -4,7 +4,6 @@ import authProvider from "./authProvider";
 
 import {
   useNotificationProvider,
-  ThemedLayoutV2,
   ErrorComponent,
   AuthPage,
 } from "@refinedev/antd";
@@ -77,12 +76,6 @@ import {
   IncomingFundsReport,
   ExpenseFinanceReport,
 } from "./pages/reports";
-import {
-  ChatbotCreate,
-  ChatbotEdit,
-  ChatbotList,
-  ChatbotShow,
-} from "./pages/chatbot-history";
 import ReceivingShowReceived from "./pages/receiving/ReceivingShowReceived";
 import { DiscountList } from "./pages/discount/list";
 import { DiscountCreate } from "./pages/discount/create";
@@ -124,7 +117,7 @@ export const API_URL = import.meta.env.VITE_DEV_URL;
 function App() {
   axiosInstance.interceptors.request.use(
     (config) => {
-      const token = localStorage.getItem("access_token");
+      const token = localStorage.getItem("cargo-system-token");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -136,7 +129,7 @@ function App() {
   // Функция обновления токена
   const refreshToken = async () => {
     try {
-      const refresh_token = localStorage.getItem("refresh_token");
+      const refresh_token = localStorage.getItem("cargo-system-refresh-token");
       if (!refresh_token) throw new Error("No refresh token available");
 
       const response = await fetch(`${API_URL}/auth/refresh`, {
@@ -152,17 +145,17 @@ function App() {
       }
 
       const data = await response.json();
-      localStorage.setItem("access_token", data.accessToken);
-      localStorage.setItem("refresh_token", data.refreshToken);
+      localStorage.setItem("cargo-system-token", data.accessToken);
+      localStorage.setItem("cargo-system-refresh-token", data.refreshToken);
       return data.accessToken;
     } catch (error) {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("email");
-      localStorage.removeItem("role");
-      localStorage.removeItem("firstName");
-      localStorage.removeItem("lastName");
-      localStorage.removeItem("id");
+      localStorage.removeItem("cargo-system-token");
+      localStorage.removeItem("cargo-system-refresh-token");
+      localStorage.removeItem("cargo-system-email");
+      localStorage.removeItem("cargo-system-role");
+      localStorage.removeItem("cargo-system-firstName");
+      localStorage.removeItem("cargo-system-lastName");
+      localStorage.removeItem("cargo-system-id");
       window.location.href = "/login";
       return null;
     }
@@ -380,13 +373,6 @@ function App() {
                   <Route path="/notification">
                     <Route index element={<NotificationsList />} />
                     <Route path="create" element={<NotificationsCreate />} />
-                  </Route>
-
-                  <Route path="/chatbot-history">
-                    <Route index element={<ChatbotList />} />
-                    <Route path="create" element={<ChatbotCreate />} />
-                    <Route path="show/:id" element={<ChatbotShow />} />
-                    <Route path="edit/:id" element={<ChatbotEdit />} />
                   </Route>
 
                   <Route path="/answer-ready">

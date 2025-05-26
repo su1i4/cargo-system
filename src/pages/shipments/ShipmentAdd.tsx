@@ -13,6 +13,8 @@ import {
   Form,
   message,
   Tooltip,
+  Flex,
+  Menu,
 } from "antd";
 import { useParams } from "react-router";
 import {
@@ -20,19 +22,21 @@ import {
   CalendarOutlined,
   ArrowDownOutlined,
   SearchOutlined,
+  ArrowUpOutlined,
 } from "@ant-design/icons";
-import { translateStatus } from "../../lib/utils";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
 
 const ShipmentAdd = () => {
   const { id } = useParams();
   const { push } = useNavigation();
   const [form] = Form.useForm();
 
-  const [sorterVisible, setSorterVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [searchText, setSearchText] = useState("");
 
-  const { tableProps, setFilters, setSorter } = useTable({
+  const { tableProps, setFilters, setSorters } = useTable({
     resource: "service",
     pagination: {
       pageSize: 10,
@@ -90,9 +94,9 @@ const ShipmentAdd = () => {
           });
         })
       );
-      
+
       message.success("Товары успешно добавлены к отгрузке");
-      
+
       setTimeout(() => {
         push(`/shipments/edit/${id}`);
       }, 500);
@@ -102,24 +106,6 @@ const ShipmentAdd = () => {
     }
   };
 
-  // Обработчик поиска
-  const handleSearch = (value: string) => {
-    setSearchText(value);
-    
-    if (value) {
-      setFilters([
-        {
-          field: "trackCode",
-          operator: "contains",
-          value,
-        },
-      ]);
-    } else {
-      setFilters([]);
-    }
-  };
-
-  // Обработчик изменения диапазона дат
   const handleDateRangeChange = (dates: any, dateStrings: [string, string]) => {
     if (dates && dateStrings[0] && dateStrings[1]) {
       setFilters([
@@ -139,15 +125,16 @@ const ShipmentAdd = () => {
     }
   };
 
-  // Обработчик сортировки
-  const handleSortChange = (field: "id" | "counterparty.name", direction: "asc" | "desc") => {
-    setSorter([
+  const handleSortChange = (
+    field: "id" | "counterparty.name",
+    direction: "asc" | "desc"
+  ) => {
+    setSorters([
       {
         field,
         order: direction,
       },
     ]);
-    setSorterVisible(false);
   };
 
   const datePickerContent = (
@@ -158,57 +145,92 @@ const ShipmentAdd = () => {
     />
   );
 
-  const sortContent = (
-    <Card style={{ width: 200, padding: "0px" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <div
-          style={{
-            marginBottom: "8px",
-            color: "#666",
-            fontSize: "14px",
-            textAlign: "center",
-          }}
-        >
-          Сортировать по
-        </div>
-        <Button
-          type="text"
-          style={{ textAlign: "left" }}
-          onClick={() => handleSortChange("id", "desc")}
-        >
-          Дате создания (новые)
-        </Button>
-        <Button
-          type="text"
-          style={{ textAlign: "left" }}
-          onClick={() => handleSortChange("id", "asc")}
-        >
-          Дате создания (старые)
-        </Button>
-        <Button
-          type="text"
-          style={{ textAlign: "left" }}
-          onClick={() => handleSortChange("counterparty.name", "asc")}
-        >
-          По имени (А-Я)
-        </Button>
-        <Button
-          type="text"
-          style={{ textAlign: "left" }}
-          onClick={() => handleSortChange("counterparty.name", "desc")}
-        >
-          По имени (Я-А)
-        </Button>
-      </div>
-    </Card>
-  );
-
   const rowSelection = {
     selectedRowKeys,
     onChange: (keys: React.Key[], rows: any[]) => {
       setSelectedRowKeys(keys as number[]);
       setSelectedRows(rows);
     },
+  };
+
+  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
+  const [searchValue, setSearchValue] = useState("");
+  const [sortField, setSortField] = useState("created_at");
+
+  const handleSort = (field: string, direction: "ASC" | "DESC") => {
+    setSortField(field);
+    setSortDirection(direction);
+    setSorters([
+      {
+        field,
+        order: direction.toLowerCase() as "asc" | "desc",
+      },
+    ]);
+  };
+
+  const sortFields = [
+    { key: "good.created_at", label: "Дата" },
+    { key: "bag_number", label: "Номер мешка" },
+  ];
+
+  const getSortFieldLabel = () => {
+    const field = sortFields.find((f) => f.key === sortField);
+    return field ? field.label : "Дата приемки";
+  };
+
+  const sortMenu = (
+    <Menu>
+      {sortFields.map((field) => (
+        <Menu.SubMenu key={field.key} title={field.label}>
+          <Menu.Item
+            key={`${field.key}-asc`}
+            onClick={() => handleSort(field.key, "ASC")}
+          >
+            <ArrowUpOutlined /> По возрастанию
+          </Menu.Item>
+          <Menu.Item
+            key={`${field.key}-desc`}
+            onClick={() => handleSort(field.key, "DESC")}
+          >
+            <ArrowDownOutlined /> По убыванию
+          </Menu.Item>
+        </Menu.SubMenu>
+      ))}
+    </Menu>
+  );
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+
+    if (value.trim() === "") {
+      setFilters([], "replace");
+    } else {
+      setFilters(
+        [
+          {
+            operator: "or",
+            value: [
+              {
+                field: "bag_number",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.sender.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.recipient.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+            ],
+          },
+        ],
+        "replace"
+      );
+    }
   };
 
   return (
@@ -224,7 +246,7 @@ const ShipmentAdd = () => {
       title="Добавление товаров к отгрузке"
     >
       <Form form={form} layout="vertical">
-        <Row gutter={[16, 16]}>
+        {/* <Row gutter={[16, 16]}>
           <Col span={24}>
             <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
               <Col xs={24} sm={8}>
@@ -248,9 +270,7 @@ const ShipmentAdd = () => {
                           setSorterVisible(visible);
                         }}
                       >
-                        <Button
-                          icon={<ArrowDownOutlined />}
-                        ></Button>
+                        <Button icon={<ArrowDownOutlined />}></Button>
                       </Dropdown>
                     </Tooltip>
                   </Col>
@@ -271,7 +291,7 @@ const ShipmentAdd = () => {
                 </Row>
               </Col>
               <Col xs={24} sm={8} style={{ textAlign: "right" }}>
-                <Button 
+                <Button
                   type="primary"
                   onClick={handleSave}
                   loading={isSubmitting}
@@ -282,6 +302,50 @@ const ShipmentAdd = () => {
               </Col>
             </Row>
           </Col>
+        </Row> */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
+          <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10}>
+            <Dropdown overlay={sortMenu} trigger={["click"]}>
+              <Button
+                icon={
+                  sortDirection === "ASC" ? (
+                    <ArrowUpOutlined />
+                  ) : (
+                    <ArrowDownOutlined />
+                  )
+                }
+              >
+                {getSortFieldLabel()}
+              </Button>
+            </Dropdown>
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder="Поиск по номеру мешка, отправителю, получателю"
+              value={searchValue}
+              onChange={(e) => handleSearch(e.target.value)}
+              allowClear
+            />
+            <Dropdown
+              overlay={datePickerContent}
+              trigger={["click"]}
+              placement="bottomRight"
+            >
+              <Button
+                icon={<CalendarOutlined />}
+                className="date-picker-button"
+              >
+                Дата
+              </Button>
+            </Dropdown>
+            <Button
+              type="primary"
+              onClick={handleSave}
+              loading={isSubmitting}
+              disabled={isSubmitting || selectedRowKeys.length === 0}
+            >
+              Добавить выбранные товары
+            </Button>
+          </Flex>
         </Row>
         <Table
           {...tableProps}
@@ -294,41 +358,36 @@ const ShipmentAdd = () => {
         >
           <Table.Column
             title="№"
+            dataIndex="number"
             render={(value, record, index) => index + 1}
-            width={60}
           />
           <Table.Column
-            dataIndex="created_at"
-            title="Дата"
-            render={(value) => {
-              return `${value?.split("T")[0]} ${value
-                ?.split("T")[1]
-                ?.slice(0, 5)}`;
-            }}
-          />
-          <Table.Column dataIndex="cargoType" title="Тип товара" />
-          <Table.Column dataIndex="trackCode" title="Трек-код" />
-          <Table.Column
-            dataIndex="counterparty"
-            title="Код получателя"
-            render={(value) => {
-              return value?.clientPrefix + "-" + value?.clientCode;
-            }}
+            title="Дата приемки"
+            dataIndex="good"
+            render={(value) =>
+              dayjs.utc(value?.created_at).format("DD.MM.YYYY HH:mm")
+            }
           />
           <Table.Column
-            dataIndex="status"
-            title="Статус"
-            render={(value) => translateStatus(value)}
+            title="Отправитель"
+            dataIndex="good"
+            render={(value) => `${value?.sender?.name}`}
           />
+          <Table.Column title="Номер мешка" dataIndex="bag_number" />
           <Table.Column
-            dataIndex="counterparty"
+            title="Получатель"
+            dataIndex="good"
+            render={(value) => `${value?.recipient?.name}`}
+          />
+          <Table.Column title="Количество" dataIndex="quantity" />
+          <Table.Column title="Вес" dataIndex="weight" />
+          <Table.Column title="Статус" dataIndex="status" />
+          <Table.Column
             title="Пункт назначения"
-            render={(value) => (
-              `${value?.branch?.name},${value?.under_branch?.address || ""}`
-            )}
+            dataIndex="good"
+            render={(value) => value?.destination?.name}
           />
-          <Table.Column dataIndex="weight" title="Вес" />
-          <Table.Column dataIndex="comments" title="Комментарий" />
+          <Table.Column title="Штрихкод" dataIndex="barcode" />
         </Table>
       </Form>
     </Show>

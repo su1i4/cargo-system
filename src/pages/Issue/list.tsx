@@ -107,7 +107,7 @@ export const IssueProcessingList = () => {
   } | null>(null);
 
   const getSumData = async () => {
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("cargo-system-token");
 
     const response = await fetch(
       `${API_URL}/goods-processing/amount-in-currency/Готов к выдаче`,
@@ -148,7 +148,7 @@ export const IssueProcessingList = () => {
   }, [sortDirection, currentPage, pageSize]);
 
   const filteredByIds = async (ids: number[]) => {
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("cargo-system-token");
 
     const filter = {
       $and: [{ id: { $in: ids } }],
@@ -353,18 +353,15 @@ export const IssueProcessingList = () => {
       },
     },
     {
-      title: "Код клиента",
-      dataIndex: "render",
-      key: "render",
-      render: (value: any, record: any) =>
-        `${record?.counterparty?.clientPrefix || ""}-${
-          record?.counterparty?.clientCode || ""
-        }`,
+      title: "Код получателя",
+      dataIndex: "recipient",
+      key: "recipient",
+      render: (value: any) => value?.name,
     },
     {
-      title: "Трек-код",
-      dataIndex: "trackCode",
-      key: "trackCode",
+      title: "Номер накладной",
+      dataIndex: "invoice_number",
+      key: "invoice_number",
     },
   ];
 
@@ -379,14 +376,14 @@ export const IssueProcessingList = () => {
         cancelText="Отменить"
       >
         <div ref={contentRef} style={{ padding: 10 }}>
-          <Flex justify="center" style={{ width: "100%" }}>
+          {/* <Flex justify="center" style={{ width: "100%" }}>
             <img
               style={{
                 width: "70px",
               }}
               src="../../public/alfa-china.png"
             />
-          </Flex>
+          </Flex> */}
           <Typography.Title level={5}>Выдачи</Typography.Title>{" "}
           <Table
             columns={columns}
@@ -561,7 +558,7 @@ export const IssueProcessingList = () => {
         />
         <Table.Column
           dataIndex="created_at"
-          title="Дата приемки"
+          title="Дата получения"
           render={(value) =>
             value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
           }
