@@ -769,7 +769,6 @@ export const GoodsEdit = () => {
           </Col>
           <Col span={6}>
             <Form.Item
-              rules={[{ required: true, message: "Скидка обязательна" }]}
               label="Скидка"
               name="discount_id"
             >

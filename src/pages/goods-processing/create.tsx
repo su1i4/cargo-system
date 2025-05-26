@@ -108,6 +108,7 @@ export const GoodsCreate = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [tariffs, setTariffs] = useState<TariffItem[]>([]);
+  const [copyCount, setCopyCount] = useState(0);
 
   const [senderData, setSenderData] = useState<any>(null);
   const values: any = Form.useWatch([], form);
@@ -238,6 +239,42 @@ export const GoodsCreate = () => {
     setSelectedRowKeys([]);
 
     message.success(`Скопировано ${selectedItems.length} товаров`);
+  };
+
+  const createItemsByCount = () => {
+    const count = Number(copyCount || 0);
+    if (count <= 0) {
+      message.warning("Укажите корректное количество для создания");
+      return;
+    }
+  
+    const senderPrefix =
+      typeof senderData?.label === "string"
+        ? senderData.label.split(",")[0]
+        : "";
+  
+    const newItems = Array.from({ length: count }, (_, i) => {
+      const newId = nextId + i;
+      const newIndex = services.length + i + 1;
+  
+      return {
+        id: newId,
+        name: "Новый товар",
+        barcode: generateBarcode(),
+        bag_number: senderPrefix ? `${senderPrefix}/${newIndex}` : "",
+      };
+    });
+  
+    setServices([...services, ...newItems]);
+    setNextId(nextId + count);
+  };
+  
+
+  const copyWhileCount = () => {
+    for (let i = 0; i < Number(copyCount || 0); i++) {
+      createItemsByCount();
+    }
+    message.success(`Создано ${copyCount} новых товаров`);
   };
 
   const removeSelectedItems = () => {
@@ -587,6 +624,13 @@ export const GoodsCreate = () => {
     optionLabel: (record: any) => {
       return `${record?.name}`;
     },
+    onSearch: (value) => [
+      {
+        field: "name",
+        operator: "contains",
+        value,
+      },
+    ],
   });
 
   const { selectProps: typeProductSelectProps } = useSelect({
@@ -594,7 +638,13 @@ export const GoodsCreate = () => {
     optionLabel: (record: any) => {
       return record?.name;
     },
-    onSearch: (value) => [],
+    onSearch: (value) => [
+      {
+        field: "name",
+        operator: "contains",
+        value,
+      },
+    ],
     queryOptions: {
       onSuccess: (data: any) => {
         const typeProductsData = data?.data?.map((item: any) => ({
@@ -612,6 +662,23 @@ export const GoodsCreate = () => {
     optionLabel: (record: any) => {
       return `${record?.first_name} ${record?.last_name}`;
     },
+    onSearch: (value) => [
+      {
+        operator: "or",
+        value: [
+          {
+            field: "first_name",
+            operator: "contains",
+            value,
+          },
+          {
+            field: "last_name",
+            operator: "contains",
+            value,
+          },
+        ],
+      },
+    ],
   });
 
   const { selectProps: visitingGroupSelectProps } = useSelect({
@@ -619,6 +686,23 @@ export const GoodsCreate = () => {
     optionLabel: (record: any) => {
       return `${record?.first_name} ${record?.last_name}`;
     },
+    onSearch: (value) => [
+      {
+        operator: "or",
+        value: [
+          {
+            field: "first_name",
+            operator: "contains",
+            value,
+          },
+          {
+            field: "last_name",
+            operator: "contains",
+            value,
+          },
+        ],
+      },
+    ],
   });
   useEffect(() => {
     if (discountSelectProps?.options?.length > 0) {
@@ -700,6 +784,7 @@ export const GoodsCreate = () => {
               rules={[{ required: true, message: "Оплачивает" }]}
               label="Оплачивает"
               name="pays"
+              initialValue="recipient"
             >
               <Select
                 showSearch
@@ -722,6 +807,7 @@ export const GoodsCreate = () => {
               rules={[{ required: true, message: "Способ оплаты обязателен" }]}
               label="Способ оплаты"
               name="payment_method"
+              initialValue="Наличные"
             >
               <Select
                 showSearch
@@ -766,6 +852,20 @@ export const GoodsCreate = () => {
                   Добавить товар
                 </Button>
               </Tooltip>
+              <Input
+                style={{ width: 100 }}
+                min={0}
+                type="number"
+                value={copyCount}
+                onChange={(e: any) => setCopyCount(e.target.value)}
+              />
+              <Button
+                disabled={Number(copyCount || 0) === 0 || values?.destination_id === undefined || values?.sender_id === undefined || values?.recipient_id === undefined}
+                onClick={copyWhileCount}
+                icon={<CopyOutlined />}
+              >
+                Копировать: ({copyCount}) кол-во
+              </Button>
               <Button
                 onClick={copySelectedItems}
                 icon={<CopyOutlined />}
@@ -827,6 +927,14 @@ export const GoodsCreate = () => {
                   value={value}
                   onChange={(val) => updateItemField(record.id, "country", val)}
                   allowClear
+                  showSearch
+                  onSearch={(val) => [
+                    {
+                      field: "name",
+                      operator: "contains",
+                      value: val,
+                    },
+                  ]}
                 />
               )
             }
