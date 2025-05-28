@@ -13,6 +13,12 @@ import { Checkbox, Space, Table } from "antd";
 export const BranchList = () => {
   const { tableProps } = useTable({
     syncWithLocation: true,
+    initialSorter: [
+      {
+        field: "id",
+        order: "desc",
+      },
+    ],
   });
 
   const { push } = useNavigation();
@@ -30,6 +36,11 @@ export const BranchList = () => {
       >
         <Table.Column dataIndex="id" title="№" width={50} />
         <Table.Column dataIndex="name" title="Название города" />
+        <Table.Column
+          dataIndex="is_sent"
+          title="Досыльный город"
+          render={(record) => (record ? "Да" : "Нет")}
+        />
       </Table>
     </List>
   );

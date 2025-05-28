@@ -14,6 +14,12 @@ export const BranchCreate = () => {
         >
           <Input />
         </Form.Item>
+        <Form.Item
+          name="is_sent"
+          valuePropName="checked"
+        >
+          <Checkbox>Досыльный город</Checkbox>
+        </Form.Item>
       </Form>
     </Create>
   );

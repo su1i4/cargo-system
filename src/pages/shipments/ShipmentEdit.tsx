@@ -469,7 +469,7 @@ const ShipmentEdit = () => {
         <Table {...tableProps} rowKey="id" rowSelection={rowSelection}>
           <Table.Column
             title="№"
-            dataIndex="number"
+            dataIndex="index"
             render={(value, record, index) => index + 1}
           />
           <Table.Column
@@ -482,13 +482,22 @@ const ShipmentEdit = () => {
           <Table.Column
             title="Отправитель"
             dataIndex="good"
-            render={(value) => `${value?.sender?.name}`}
+            render={(value) =>
+              `${value?.sender?.clientPrefix}-${value?.sender?.clientCode} ${value?.sender?.name}`
+            }
           />
           <Table.Column title="Номер мешка" dataIndex="bag_number" />
           <Table.Column
+            title="Тип"
+            dataIndex="product_type"
+            render={(value) => value?.name}
+          />
+          <Table.Column
             title="Получатель"
             dataIndex="good"
-            render={(value) => `${value?.recipient?.name}`}
+            render={(value) =>
+              `${value?.recipient?.clientPrefix}-${value?.recipient?.clientCode} ${value?.recipient?.name}`
+            }
           />
           <Table.Column title="Количество" dataIndex="quantity" />
           <Table.Column title="Вес" dataIndex="weight" />

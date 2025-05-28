@@ -112,6 +112,7 @@ import { OutGroupList } from "./pages/out-group/list";
 import { TariffList } from "./pages/tarif/list";
 import { TrackList } from "./pages/track/list";
 import { CustomLayout } from "./components/layout";
+import { SentTheCityList } from "./pages/sent-the-city";
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
 function App() {
@@ -434,6 +435,10 @@ function App() {
 
                   <Route path="/tariff">
                     <Route index element={<TariffList />} />
+                  </Route>
+
+                  <Route path="/sent-the-city">
+                    <Route index element={<SentTheCityList />} />
                   </Route>
 
                   <Route path="*" element={<ErrorComponent />} />

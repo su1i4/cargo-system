@@ -16,11 +16,6 @@ export const CounterpartyList: React.FC = () => {
     pagination: {
       pageSize: 10,
       current: 1,
-      // showSizeChanger: true,
-      // showQuickJumper: true,
-      // showTotal: (total, range) => 
-      //   `${range[0]}-${range[1]} из ${total} записей`,
-      // pageSizeOptions: ["10", "20", "50", "100"],
     },
     sorters: {
       initial: [

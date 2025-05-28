@@ -226,11 +226,21 @@ export const GoodsCreate = () => {
       const newId = nextId + selectedItems.indexOf(item);
       const newIndex = services.length + selectedItems.indexOf(item) + 1;
 
+      const selectedType = tariffTableProps?.dataSource?.find(
+        (type: any) =>
+          type.branch_id === values?.destination_id &&
+          type.product_type_id === item.type_id
+      );
+
       return {
         ...item,
         id: newId,
         barcode: generateBarcode(),
-        bag_number: senderPrefix ? `${senderPrefix}/${newIndex}` : "",
+        bag_number: senderPrefix
+          ? `${senderPrefix}/${
+              selectedType?.product_type?.name.slice(0, 1) || ""
+            }${newIndex}`
+          : "",
       };
     });
 
@@ -247,16 +257,16 @@ export const GoodsCreate = () => {
       message.warning("Укажите корректное количество для создания");
       return;
     }
-  
+
     const senderPrefix =
       typeof senderData?.label === "string"
         ? senderData.label.split(",")[0]
         : "";
-  
+
     const newItems = Array.from({ length: count }, (_, i) => {
       const newId = nextId + i;
       const newIndex = services.length + i + 1;
-  
+
       return {
         id: newId,
         name: "Новый товар",
@@ -264,11 +274,10 @@ export const GoodsCreate = () => {
         bag_number: senderPrefix ? `${senderPrefix}/${newIndex}` : "",
       };
     });
-  
+
     setServices([...services, ...newItems]);
     setNextId(nextId + count);
   };
-  
 
   const copyWhileCount = () => {
     for (let i = 0; i < Number(copyCount || 0); i++) {
@@ -299,31 +308,11 @@ export const GoodsCreate = () => {
     return weight * tariff;
   };
 
-  const updateItemField = (id: number, field: string, value: any) => {
+  const updateItemField = (id: number, field: string, value: any, index?: number) => {
     setServices(
       services.map((item) => {
         if (item.id === id) {
           const newItem = { ...item, [field]: value };
-
-          // if (field === "type_id") {
-          //   const selectedType = typeProducts.find((type) => type.id === value);
-          //   const branchId = Number(values?.destination_id);
-          //   const productTypeId = Number(value);
-
-          //   if (selectedType && branchId) {
-          //     // Найти соответствующий тариф на основе филиала и типа товара
-          //     const tariffValue = findTariff(branchId, productTypeId);
-
-          //     newItem.type_name = selectedType.name;
-          //     newItem.tariff = tariffValue > 0 ? tariffValue : selectedType.tariff;
-          //     newItem.price = tariffValue > 0 ? tariffValue : selectedType.tariff;
-
-          //     // Пересчитываем сумму на основе веса и нового тарифа
-          //     if (newItem.weight) {
-          //       newItem.sum = calculateSum(newItem.weight, newItem.tariff);
-          //     }
-          //   }
-          // }
 
           if (field === "type_id") {
             const selectedType = tariffTableProps?.dataSource?.find(
@@ -332,9 +321,20 @@ export const GoodsCreate = () => {
                 type.product_type_id === value
             );
 
+            const senderPrefix =
+              typeof senderData?.label === "string"
+                ? senderData.label.split(",")[0]
+                : "";
+
+            console.log(selectedType);
+
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
               newItem.price = selectedType.tariff;
+              newItem.bag_number = `${senderPrefix}/${selectedType?.product_type?.name.slice(
+                0,
+                1
+              )}${Number(index) + 1}`;
               if (newItem.weight) {
                 newItem.sum = calculateSum(newItem.weight, selectedType.tariff);
               }
@@ -500,10 +500,19 @@ export const GoodsCreate = () => {
               ? selectedSender.label.split(",")[0]
               : "";
           setServices(
-            services.map((service, index) => ({
-              ...service,
-              bag_number: `${senderPrefix}/${index + 1}`,
-            }))
+            services.map((service, index) => {
+              const selectedType = tariffTableProps?.dataSource?.find(
+                (type: any) =>
+                  type.branch_id === values?.destination_id &&
+                  type.product_type_id === service.type_id
+              );
+              return {
+                ...service,
+                bag_number: `${senderPrefix}/${
+                  selectedType?.product_type?.name.slice(0, 1) || ""
+                }${index + 1}`,
+              };
+            })
           );
         }
       }
@@ -581,16 +590,16 @@ export const GoodsCreate = () => {
   });
 
   const { selectProps: discountSelectProps }: any = useSelect({
-    resource: "discount",
+    resource: "counterparty",
     optionLabel: (record: any) => {
-      return `${record?.counter_party?.clientPrefix}-${record?.counter_party?.clientCode}, ${record?.counter_party?.name}, ${record?.discount}%`;
+      return `${record?.clientPrefix}-${record?.clientCode}, ${record?.name}, ${record?.discount.discount} руб`;
     },
     optionValue: (record: any) => {
-      return record?.counter_party?.id;
+      return record?.id;
     },
     filters: [
       {
-        field: "counter_party_id",
+        field: "id",
         operator: "in",
         value: [values?.sender_id, values?.recipient_id],
       },
@@ -609,6 +618,11 @@ export const GoodsCreate = () => {
         operator: "ne",
         value: "Бишкек",
       },
+      {
+        field: "is_sent",
+        operator: "eq",
+        value: false,
+      },
     ],
     onSearch: (value) => [
       {
@@ -617,6 +631,28 @@ export const GoodsCreate = () => {
         value,
       },
     ],
+  });
+
+  const { selectProps: branchSelectPropsIsSent } = useSelect({
+    resource: "sent-the-city",
+    optionLabel: (record: any) => `${record?.sent_city?.name}`,
+    filters: [
+      {
+        field: "city_id",
+        operator: "eq",
+        value: values?.destination_id,
+      },
+    ],
+    onSearch: (value) => [
+      {
+        field: "name",
+        operator: "contains",
+        value,
+      },
+    ],
+    queryOptions: {
+      enabled: !!values?.destination_id,
+    },
   });
 
   const { selectProps: nomenclatureSelectProps } = useSelect({
@@ -704,19 +740,27 @@ export const GoodsCreate = () => {
       },
     ],
   });
+
   useEffect(() => {
     if (discountSelectProps?.options?.length > 0) {
       formProps.form?.setFieldsValue({
         discount_id: discountSelectProps?.options?.reduce(
           (max: any, current: any) => {
-            return parseFloat(current.discount) > parseFloat(max.discount)
+            return parseFloat(current.discount) < parseFloat(max.discount)
               ? current
               : max;
           }
         ).value,
       });
+      console.log(discountSelectProps?.options?.reduce(
+        (max: any, current: any) => {
+          return parseFloat(current.discount) < parseFloat(max.discount)
+            ? current
+            : max;
+        }
+      ).value);
     }
-  }, [discountSelectProps]);
+  }, [values?.sender_id, values?.recipient_id]);
 
   const lastGoods = [
     {
@@ -745,7 +789,7 @@ export const GoodsCreate = () => {
       <Form {...formProps} layout="vertical" onFinish={handleFormSubmit}>
         <Title level={5}>Реквизиты</Title>
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item
               rules={[
                 { required: true, message: "Город назначения обязателен" },
@@ -753,10 +797,18 @@ export const GoodsCreate = () => {
               label="Город назначения"
               name="destination_id"
             >
-              <Select {...branchSelectProps} allowClear />
+              <Select
+                onChange={(val) => {
+                  formProps.form?.setFieldsValue({
+                    sent_back_id: null,
+                  });
+                }}
+                {...branchSelectProps}
+                allowClear
+              />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item
               rules={[{ required: true, message: "Отправитель обязателен" }]}
               label="Отправитель"
@@ -765,7 +817,7 @@ export const GoodsCreate = () => {
               <Select {...counterpartySelectPropsSender} allowClear />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item
               rules={[{ required: true, message: "Получатель обязателен" }]}
               label="Получатель"
@@ -775,8 +827,16 @@ export const GoodsCreate = () => {
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item label="Досыльные города" name="sent_back">
-              <Input style={{ width: "100%" }} />
+            <Form.Item
+              label="Комментарий"
+              name="comment"
+            >
+              <Input />
+            </Form.Item>
+          </Col>
+          <Col span={6}>
+            <Form.Item label="Досыльные города" name="sent_back_id">
+              <Select {...branchSelectPropsIsSent} allowClear />
             </Form.Item>
           </Col>
           <Col span={6}>
@@ -860,7 +920,12 @@ export const GoodsCreate = () => {
                 onChange={(e: any) => setCopyCount(e.target.value)}
               />
               <Button
-                disabled={Number(copyCount || 0) === 0 || values?.destination_id === undefined || values?.sender_id === undefined || values?.recipient_id === undefined}
+                disabled={
+                  Number(copyCount || 0) === 0 ||
+                  values?.destination_id === undefined ||
+                  values?.sender_id === undefined ||
+                  values?.recipient_id === undefined
+                }
                 onClick={copyWhileCount}
                 icon={<CopyOutlined />}
               >
@@ -950,7 +1015,7 @@ export const GoodsCreate = () => {
                   value={value}
                   onChange={(val) => {
                     console.log(val);
-                    updateItemField(record.id, "type_id", val);
+                    updateItemField(record.id, "type_id", val, index);
                   }}
                   allowClear
                 />
@@ -968,7 +1033,7 @@ export const GoodsCreate = () => {
               return (
                 index < services.length && (
                   <Input
-                    style={{ width: 100 }}
+                    style={{ width: 120 }}
                     value={value || `${senderPrefix}/${index + 1}`}
                     disabled={true}
                   />

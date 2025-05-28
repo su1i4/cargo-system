@@ -240,6 +240,18 @@ export const routes = [
     },
   },
   {
+    name: "sent-the-city",
+    list: "/sent-the-city",
+    create: "/sent-the-city/create",
+    edit: "/sent-the-city/edit/:id",
+    show: "/sent-the-city/show/:id",
+    meta: {
+      canDelete: true,
+      label: "Досыльные города",
+      parent: "Настройки",
+    },
+  },
+  {
     name: "users",
     list: "/users",
     create: "/users/create",
