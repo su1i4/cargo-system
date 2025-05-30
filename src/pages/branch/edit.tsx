@@ -1,6 +1,7 @@
 import { Edit, useForm, useSelect } from "@refinedev/antd";
 import MDEditor from "@uiw/react-md-editor";
 import { Checkbox, Form, Input, Select } from "antd";
+import PhoneInput from "react-phone-input-2";
 
 export const BranchEdit = () => {
   const { formProps, saveButtonProps, formLoading } = useForm({});
@@ -24,10 +25,14 @@ export const BranchEdit = () => {
         >
           <Input />
         </Form.Item>
-        <Form.Item
-          name="is_sent"
-          valuePropName="checked"
-        >
+        <Form.Item label="Телефон" name="phone" rules={[{ required: true }]}>
+          <PhoneInput
+            onlyCountries={["kg", "cn", "kz", "ru"]}
+            inputStyle={{ width: "100%", height: 32 }}
+            country={"kg"}
+          />
+        </Form.Item>
+        <Form.Item name="is_sent" valuePropName="checked">
           <Checkbox>Досыльный город</Checkbox>
         </Form.Item>
       </Form>

@@ -33,6 +33,8 @@ export const BranchShow = () => {
     >
       <Title level={5}>Название города</Title>
       <TextField value={record?.name} />
+      <Title level={5}>Телефон</Title>
+      <TextField value={record?.phone} />
       <Title level={5}>Досыльный город</Title>
       <TextField value={record?.is_sent ? "Да" : "Нет"} />
     </Show>
