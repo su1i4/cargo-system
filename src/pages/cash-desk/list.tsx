@@ -314,7 +314,9 @@ export const CashDeskList: React.FC = () => {
         <Table.Column
           dataIndex="counterparty"
           title="Код клиента"
-          render={(value) => `${value?.clientPrefix}-${value?.clientCode}`}
+          render={(value) =>
+            `${value?.clientPrefix || ""}-${value?.clientCode || ""}`
+          }
         />
 
         <Table.Column

@@ -50,7 +50,7 @@ export const CashDeskCreate: React.FC = () => {
   const { push } = useNavigation();
   const navigate = useNavigate();
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
-  const [selectedRows, setSelectedRows] = useState<BaseRecord[]>([]);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
 
   const { mutate: updateManyGoods } = useUpdateMany({
     resource: "goods-processing",
@@ -93,11 +93,17 @@ export const CashDeskCreate: React.FC = () => {
   const [filters, setFilters] = useState<any>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(100);
+  const [change, setChange] = useState(0);
 
   const { data: currency = { data: [] } } = useCustom<any>({
     url: `${API_URL}/currency`,
     method: "get",
   });
+
+  const [selectedSenderId, setSelectedSenderId] = useState<string | null>(null);
+  const [selectedReceipientId, setSelectedReceipientId] = useState<
+    string | null
+  >(null);
 
   const { data, isLoading, refetch } = useCustom<any>({
     url: `${API_URL}/goods-processing`,
@@ -107,12 +113,26 @@ export const CashDeskCreate: React.FC = () => {
         s: JSON.stringify({
           $and: [
             {
-              "counterparty.id": {
-                $eq:
-                  form?.getFieldValue("counterparty_id") === undefined
-                    ? 0
-                    : form?.getFieldValue("counterparty_id"),
-              },
+              $or: [
+                {
+                  "sender.id": {
+                    $eq:
+                      form?.getFieldValue("sender_id") === undefined
+                        ? 0
+                        : form?.getFieldValue("sender_id"),
+                  },
+                },
+                {
+                  "recipient.id": {
+                    $eq:
+                      form?.getFieldValue("sender_id") === undefined
+                        ? 0
+                        : form?.getFieldValue("sender_id"),
+                  },
+                },
+              ],
+            },
+            {
               operation_id: {
                 $eq: null,
               },
@@ -128,11 +148,7 @@ export const CashDeskCreate: React.FC = () => {
     },
   });
 
-  const [selectedCounterpartyId, setSelectedCounterpartyId] = useState<
-    string | null
-  >(null);
-
-  const { selectProps: counterpartySelectProps } = useSelect({
+  const { selectProps: senderSelectProps } = useSelect({
     resource: "counterparty",
     optionLabel: (item) =>
       `${item.name} ${item.clientPrefix}-${item.clientCode}`,
@@ -165,6 +181,7 @@ export const CashDeskCreate: React.FC = () => {
   }, [form]);
 
   useEffect(() => {
+    console.log("change");
     if (formProps.form) {
       if (isAgent) {
         let rate = 0;
@@ -174,10 +191,28 @@ export const CashDeskCreate: React.FC = () => {
             currency.data?.find((item: any) => item.name === currentValue)
               ?.rate || 0;
         }
-        const totalAmount = selectedRows.reduce(
-          (acc, row) => acc + Number(row.amount),
+        console.log(currentValue, rate)
+        const totalServiceAmount = selectedRows.reduce(
+          (total: number, item: any) => {
+            const localAmount = item.services.reduce(
+              (acc: number, service: any) => acc + Number(service.sum || 0),
+              0
+            );
+            return total + localAmount;
+          },
           0
         );
+        const totalProductAmount = selectedRows.reduce(
+          (total: number, item: any) => {
+            const localAmount = item.products.reduce(
+              (acc: number, service: any) => acc + Number(service.sum || 0),
+              0
+            );
+            return total + localAmount;
+          },
+          0
+        );
+        const totalAmount = totalProductAmount + totalServiceAmount;
         const transformAmount = rate > 0 ? rate * totalAmount : totalAmount;
         formProps.form.setFieldsValue({ amount: transformAmount });
       } else {
@@ -203,7 +238,7 @@ export const CashDeskCreate: React.FC = () => {
         formProps.form.setFieldsValue(resetValues);
       }
     }
-  }, [isAgent, selectedRows, currency.data]);
+  }, [isAgent, selectedRows, currency.data, change]);
 
   const { selectProps: bankSelectProps } = useSelect({
     resource: "bank",
@@ -212,9 +247,9 @@ export const CashDeskCreate: React.FC = () => {
 
   const { data: counterpartyData } = useOne({
     resource: "counterparty",
-    id: selectedCounterpartyId ?? "",
+    id: selectedReceipientId ?? "",
     queryOptions: {
-      enabled: !!selectedCounterpartyId,
+      enabled: !!selectedReceipientId,
     },
   });
 
@@ -242,8 +277,10 @@ export const CashDeskCreate: React.FC = () => {
     }
   }, []);
 
-  const handleCounterpartyChange = (value: any) => {
-    setSelectedCounterpartyId(value);
+  const handleSenderChange = (value: any) => {
+    setSelectedSenderId(value);
+    setSelectedRows([]);
+    setChange(change + 1);
   };
 
   const paymentTypes = [
@@ -449,7 +486,6 @@ export const CashDeskCreate: React.FC = () => {
                   message: "Пожалуйста, выберите метод оплаты",
                 },
               ]}
-              // Настройка отступов между лейблом и инпутом
               style={{ marginBottom: 5 }}
             >
               <Select
@@ -466,17 +502,20 @@ export const CashDeskCreate: React.FC = () => {
             <>
               <Col span={10}>
                 <Form.Item
-                  label="Код Клиента"
-                  name="counterparty_id"
+                  label="Код клиента"
+                  name="sender_id"
                   rules={[
-                    { required: true, message: "Пожалуйста, выберите клиента" },
+                    {
+                      required: true,
+                      message: "Пожалуйста, выберите клиента",
+                    },
                   ]}
                   style={{ marginBottom: 5 }}
                 >
                   <Select
-                    {...counterpartySelectProps}
-                    onChange={handleCounterpartyChange}
-                    placeholder="Выберите код клиента"
+                    {...senderSelectProps}
+                    onChange={handleSenderChange}
+                    placeholder="Выберите клиента"
                     style={{ width: "100%" }}
                     showSearch
                     filterOption={false}
@@ -499,6 +538,7 @@ export const CashDeskCreate: React.FC = () => {
                     .includes(input.toLowerCase())
                 }
                 onChange={(value) => {
+                  setChange(change + 1);
                   if (isAgent && value) {
                     let rate = 0;
                     if (value) {
@@ -626,7 +666,7 @@ export const CashDeskCreate: React.FC = () => {
           </Col>
           <Col flex="auto">
             <Input
-              placeholder="Поиск по трек-коду, фио получателя или по коду получателя"
+              placeholder="Поиск по номеру накладной"
               prefix={<SearchOutlined />}
               onChange={(e) => {
                 const value = e.target.value;
@@ -638,9 +678,11 @@ export const CashDeskCreate: React.FC = () => {
                 setFilters([
                   {
                     $or: [
-                      { trackCode: { $contL: value } },
-                      { "counterparty.clientCode": { $contL: value } },
-                      { "counterparty.name": { $contL: value } },
+                      { invoice_number: { $contL: value } },
+                      { "sender.clientCode": { $contL: value } },
+                      { "recipient.clientCode": { $contL: value } },
+                      { "sender.name": { $contL: value } },
+                      { "recipient.name": { $contL: value } },
                     ],
                   },
                 ]);
@@ -677,69 +719,74 @@ export const CashDeskCreate: React.FC = () => {
           }}
         >
           <Table.Column
+            title="№"
+            render={(_: any, __: any, index: number) => {
+              return (data?.data?.page - 1) * pageSize + index + 1;
+            }}
+          />
+          <Table.Column
             dataIndex="created_at"
             title="Дата приемки"
             render={(value) =>
-              value ? dayjs(value).format("DD.MM.YYYY HH:MM") : ""
+              value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
             }
           />
-          <Table.Column dataIndex="trackCode" title="Трек-код" />
-          <Table.Column dataIndex="cargoType" title="Тип груза" />
+          <Table.Column dataIndex="invoice_number" title="№ накладной" />
           <Table.Column
-            dataIndex="counterparty"
+            dataIndex="employee"
+            title="Пункт приема"
+            render={(value) =>
+              `${value?.branch?.name}, ${value?.under_branch?.address || ""}`
+            }
+          />
+          <Table.Column
+            dataIndex="sender"
+            title="Код отправителя"
+            render={(value) => {
+              return value?.clientPrefix + "-" + value?.clientCode;
+            }}
+          />
+          <Table.Column
+            dataIndex="sender"
+            title="Фио отправителя"
+            render={(value) => value?.name}
+          />
+          <Table.Column
+            dataIndex="recipient"
             title="Код получателя"
             render={(value) => {
               return value?.clientPrefix + "-" + value?.clientCode;
             }}
           />
           <Table.Column
-            dataIndex="counterparty"
-            title="ФИО получателя"
+            dataIndex="recipient"
+            title="Фио получателя"
             render={(value) => value?.name}
           />
           <Table.Column
-            dataIndex="counterparty"
-            render={(value) => (
-              <p
-                style={{
-                  width: "200px",
-                  textOverflow: "ellipsis",
-                  overflow: "hidden",
-                }}
-              >
-                {`${value?.branch?.name}, ${
-                  value?.under_branch?.address || ""
-                }`}
-              </p>
-            )}
-            title="Пункт назначения, Пвз"
-          />
-          <Table.Column dataIndex="weight" title="Вес" />
-          <Table.Column
-            dataIndex="counterparty"
-            title="Тариф клиента"
-            render={(value, record) => {
-              return `${(
-                Number(value?.branch?.tarif || 0) -
-                Number(record?.counterparty?.discount?.discount || 0)
-              ).toFixed(2)}`;
-            }}
-          />
-
-          <Table.Column dataIndex="amount" title="Сумма" />
-          <Table.Column
-            dataIndex="discount"
-            title="Скидка"
-            render={(value, record) => {
-              return `${(
-                Number(value) + Number(record?.discount_custom)
-              ).toFixed(2)}`;
-            }}
+            dataIndex="destination"
+            render={(value) => value?.name}
+            title="Пункт назначения"
           />
           <Table.Column
-            dataIndex="status"
-            title="Статус"
-            render={(value) => translateStatus(value)}
+            dataIndex="totalServiceWeight"
+            title="Вес"
+            render={(value) => value + " кг"}
+          />
+          <Table.Column
+            dataIndex="services"
+            title="Кол-во мешков"
+            render={(value) => value?.length + " шт"}
+          />
+          <Table.Column
+            dataIndex="totalServiceAmountSum"
+            title="Сумма"
+            render={(_, record: any) =>
+              `${
+                Number(record.totalServiceAmountSum) +
+                Number(record.totalProductAmountSum)
+              } руб`
+            }
           />
           <Table.Column
             dataIndex="employee"

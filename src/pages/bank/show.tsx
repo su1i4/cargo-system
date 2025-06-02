@@ -332,10 +332,10 @@ export const BankShow = () => {
             return (
               <p>{`${
                 counterparties.find((item: any) => item.id === value)
-                  ?.clientPrefix
+                  ?.clientPrefix || ''
               }-${
                 counterparties.find((item: any) => item.id === value)
-                  ?.clientCode
+                  ?.clientCode || ''
               }`}</p>
             );
           }}

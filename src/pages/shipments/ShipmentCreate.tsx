@@ -1,11 +1,15 @@
-import { SearchOutlined } from "@ant-design/icons";
+import { FilterOutlined, SearchOutlined } from "@ant-design/icons";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { ArrowUpOutlined } from "@ant-design/icons";
 import { Create, useForm, useTable, useSelect } from "@refinedev/antd";
-import { useUpdateMany, useCreate, useNavigation } from "@refinedev/core";
+import {
+  useUpdateMany,
+  useCreate,
+  useNavigation,
+  useCustom,
+} from "@refinedev/core";
 import {
   Col,
-  DatePicker,
   Form,
   Input,
   Row,
@@ -16,11 +20,14 @@ import {
   Flex,
   Dropdown,
   Menu,
+  Card,
 } from "antd";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { useState } from "react";
+import { CustomTooltip } from "../../shared/custom-tooltip";
+import { API_URL } from "../../App";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -39,9 +46,14 @@ const ShipmentCreate = () => {
     filters: {
       permanent: [
         {
-          field: "status",
-          operator: "eq",
-          value: "На складе",
+          operator: "or",
+          value: [
+            {
+              field: "status",
+              operator: "eq",
+              value: "На складе",
+            },
+          ],
         },
       ],
     },
@@ -53,11 +65,6 @@ const ShipmentCreate = () => {
 
   const { mutate: updateServices } = useUpdateMany({
     resource: "service",
-  });
-
-  const { selectProps: employeeSelectProps } = useSelect({
-    resource: "users",
-    optionLabel: (record: any) => `${record.firstName} ${record.lastName}`,
   });
 
   const { selectProps: typeSelectProps } = useSelect({
@@ -89,7 +96,6 @@ const ShipmentCreate = () => {
       return;
     }
 
-    // Создаем отгрузку
     createShipment(
       {
         resource: "shipments",
@@ -99,19 +105,17 @@ const ShipmentCreate = () => {
         onSuccess: (data) => {
           const shipmentId = data.data.id;
 
-          // Обновляем выбранные сервисы, привязывая их к отгрузке
           updateServices(
             {
               resource: "service",
               ids: selectedRowKeys as number[],
               values: {
                 shipment_id: shipmentId,
-                status: "В пути", // Опционально: обновить статус сервиса
+                status: "В пути",
               },
             },
             {
               onSuccess: () => {
-                // Переход на страницу списка отгрузок после успешного создания
                 list("shipments");
               },
               onError: (error) => {
@@ -130,6 +134,7 @@ const ShipmentCreate = () => {
   const rowSelection = {
     selectedRowKeys,
     onChange: (keys: React.Key[]) => {
+      console.log('Выбранные ключи:', keys);
       setSelectedRowKeys(keys);
     },
   };
@@ -152,7 +157,6 @@ const ShipmentCreate = () => {
   const sortFields = [
     { key: "good.created_at", label: "Дата" },
     { key: "bag_number", label: "Номер мешка" },
-    // { key: "good.destination.name", label: "Пункт назначения" },
   ];
 
   const getSortFieldLabel = () => {
@@ -215,6 +219,66 @@ const ShipmentCreate = () => {
     }
   };
 
+  const { data: branch } = useCustom({
+    url: `${API_URL}/branch`,
+    method: "get",
+  });
+
+  const { data: typeProduct } = useCustom({
+    url: `${API_URL}/type-product`,
+    method: "get",
+  });
+
+  const [filterVisible, setFilterVisible] = useState(false);
+
+  const filterContent = (
+    <Card style={{ width: 300, padding: "0px !important" }}>
+      <Select
+        placeholder="Выберите пункт назначения"
+        options={branch?.data?.map((branch: any) => ({
+          label: branch.name,
+          value: branch.id,
+        }))}
+        allowClear
+        onChange={(value) => {
+          setFilters(
+            [
+              {
+                field: "good.destination_id",
+                operator: "eq",
+                value: value,
+              },
+            ],
+            "replace"
+          );
+        }}
+        style={{ width: "100%", marginBottom: 20 }}
+      />
+      <Select
+        title="Выберите тип тов"
+        placeholder="Выберите пункт назначения"
+        options={typeProduct?.data?.map((branch: any) => ({
+          label: branch.name,
+          value: branch.id,
+        }))}
+        allowClear
+        onChange={(value) => {
+          setFilters(
+            [
+              {
+                field: "product_type.id",
+                operator: "eq",
+                value: value,
+              },
+            ],
+            "replace"
+          );
+        }}
+        style={{ width: "100%" }}
+      />
+    </Card>
+  );
+
   return (
     <Create
       saveButtonProps={{
@@ -272,6 +336,19 @@ const ShipmentCreate = () => {
                 {getSortFieldLabel()}
               </Button>
             </Dropdown>
+            <CustomTooltip title="Фильтры">
+              <Dropdown
+                overlay={filterContent}
+                trigger={["click"]}
+                placement="bottomLeft"
+                open={filterVisible}
+                onOpenChange={(visible) => {
+                  setFilterVisible(visible);
+                }}
+              >
+                <Button style={{ width: 40 }} icon={<FilterOutlined />} />
+              </Dropdown>
+            </CustomTooltip>
             <Input
               prefix={<SearchOutlined />}
               placeholder="Поиск по номеру мешка, отправителю, получателю"
@@ -302,7 +379,11 @@ const ShipmentCreate = () => {
             }
           />
           <Table.Column title="Номер мешка" dataIndex="bag_number" />
-          <Table.Column title="Тип" dataIndex="product_type" render={(value) => value?.name} />
+          <Table.Column
+            title="Тип"
+            dataIndex="product_type"
+            render={(value) => value?.name}
+          />
           <Table.Column
             title="Получатель"
             dataIndex="good"

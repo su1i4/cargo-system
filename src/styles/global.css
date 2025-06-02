@@ -85,3 +85,32 @@
   margin: 0 !important;
   padding: 0 !important;
 }
+
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-container {
+    zoom: 0.5;
+    width: 100%;
+    page-break-inside: avoid;
+  }
+
+  .invoice-copy {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 16px;
+  }
+
+  .divider {
+    border-top: 1px dashed #999;
+    margin: 12px 0;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+}

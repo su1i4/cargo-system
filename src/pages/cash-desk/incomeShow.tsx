@@ -200,7 +200,6 @@ export const IncomeShow: React.FC = () => {
     </Card>
   );
 
-
   const handleDownloadPhoto = async () => {
     if (record?.photo) {
       try {
@@ -376,77 +375,90 @@ export const IncomeShow: React.FC = () => {
           </Dropdown>
         </Col>
       </Row>
-      <Table dataSource={data?.data}  pagination={false} rowKey="id" scroll={{ x: 1200 }}>
+      <Table
+        dataSource={data?.data}
+        pagination={false}
+        rowKey="id"
+        scroll={{ x: 1200 }}
+      >
         <Table.Column
           title="№"
           render={(_: any, __: any, index: number) => {
-            return (1 - 1) * 10000 + index + 1;
+            return (data?.data?.page - 1) * pageSize + index + 1;
           }}
         />
-        <Table.Column dataIndex="trackCode" title="Трек-код" />
-        <Table.Column dataIndex="cargoType" title="Тип груза" />
         <Table.Column
-          dataIndex="counterparty"
-          title="Код клиента"
+          dataIndex="created_at"
+          title="Дата приемки"
+          render={(value) =>
+            value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
+          }
+        />
+        <Table.Column dataIndex="invoice_number" title="№ накладной" />
+        <Table.Column
+          dataIndex="employee"
+          title="Пункт приема"
+          render={(value) =>
+            `${value?.branch?.name}, ${value?.under_branch?.address || ""}`
+          }
+        />
+        <Table.Column
+          dataIndex="sender"
+          title="Код отправителя"
           render={(value) => {
             return value?.clientPrefix + "-" + value?.clientCode;
           }}
         />
         <Table.Column
-          dataIndex="counterparty"
-          title="ФИО получателя"
+          dataIndex="sender"
+          title="Фио отправителя"
           render={(value) => value?.name}
         />
         <Table.Column
-          dataIndex="counterparty"
-          render={(value) => (
-            <p
-              style={{
-                width: "200px",
-                textOverflow: "ellipsis",
-                overflow: "hidden",
-              }}
-            >
-              {`${value?.branch?.name}, ${value?.under_branch?.address || ""}`}
-            </p>
-          )}
-          title="Пункт назначения, Пвз"
+          dataIndex="recipient"
+          title="Код получателя"
+          render={(value) => {
+            return value?.clientPrefix + "-" + value?.clientCode;
+          }}
         />
         <Table.Column
-          dataIndex="weight"
+          dataIndex="recipient"
+          title="Фио получателя"
+          render={(value) => value?.name}
+        />
+        <Table.Column
+          dataIndex="destination"
+          render={(value) => value?.name}
+          title="Пункт назначения"
+        />
+        <Table.Column
+          dataIndex="totalServiceWeight"
           title="Вес"
           render={(value) => value + " кг"}
         />
         <Table.Column
-          dataIndex="counterparty"
-          title="Тариф клиента"
-          render={(value, record) => {
-            return `${(
-              Number(value?.branch?.tarif || 0) -
-              Number(record?.counterparty?.discount?.discount || 0)
-            ).toFixed(2)}$`;
-          }}
+          dataIndex="services"
+          title="Кол-во мешков"
+          render={(value) => value?.length + " шт"}
         />
-
         <Table.Column
-          dataIndex="amount"
+          dataIndex="totalServiceAmountSum"
           title="Сумма"
-          render={(value) => value + " $"}
+          render={(_, record: any) =>
+            `${
+              Number(record.totalServiceAmountSum) +
+              Number(record.totalProductAmountSum)
+            } руб`
+          }
         />
         <Table.Column
-          dataIndex="discount"
-          title="Скидка"
-          render={(value, record) => {
-            return `${(Number(value) + Number(record?.discount_custom)).toFixed(
-              2
-            )}`;
+          dataIndex="employee"
+          title="Сотрудник"
+          render={(value) => {
+            return `${value?.firstName}-${value?.lastName}`;
           }}
         />
-        <Table.Column
-          dataIndex="comments"
-          title="Комментарий"
-          render={(value) => value || ""}
-        />
+        <Table.Column dataIndex="comments" title="Комментарий" />
       </Table>
     </Show>
   );

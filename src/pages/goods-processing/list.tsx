@@ -12,6 +12,7 @@ import {
   Card,
   Modal,
   Flex,
+  Select,
 } from "antd";
 import {
   SearchOutlined,
@@ -21,6 +22,7 @@ import {
   FileAddOutlined,
   SettingOutlined,
   NodeIndexOutlined,
+  FilterOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useCustom, useNavigation, useUpdate } from "@refinedev/core";
@@ -31,6 +33,8 @@ import { CustomTooltip, operationStatus } from "../../shared/custom-tooltip";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+
+import moment from "moment";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -44,7 +48,12 @@ export const GoogsProcessingList = () => {
   const [searchparams, setSearchParams] = useSearchParams();
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState<
-    "id" | "counterparty.name" | "operation_id"
+    | "id"
+    | "created_at"
+    | "sender.clientCode"
+    | "sender.name"
+    | "destination.name"
+    | "counterparty.name"
   >("id");
   const [searchFilters, setSearchFilters] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -71,6 +80,7 @@ export const GoogsProcessingList = () => {
   });
 
   const [sorterVisible, setSorterVisible] = useState(false);
+  const [filterVisible, setFilterVisible] = useState(false);
   const [settingVisible, setSettingVisible] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -118,6 +128,96 @@ export const GoogsProcessingList = () => {
     setSearch(value || "");
   }, []);
 
+  const { data: branch } = useCustom({
+    url: `${API_URL}/branch`,
+    method: "get",
+  });
+
+  const { data: typeProduct } = useCustom({
+    url: `${API_URL}/type-product`,
+    method: "get",
+  });
+
+  const filterContent = (
+    <Card style={{ width: 300, padding: "0px !important" }}>
+      <Select
+        title="Выберите пункт назначения"
+        placeholder="Выберите пункт назначения"
+        options={branch?.data?.map((branch: any) => ({
+          label: branch.name,
+          value: branch.id,
+        }))}
+        allowClear
+        mode="multiple"
+        onChange={(value) => {
+          setFilters(
+            [
+              {
+                $or: value.map((item: any) => ({
+                  destination_id: { $eq: item },
+                })),
+              },
+            ],
+            "replace"
+          );
+        }}
+        style={{ width: "100%", marginBottom: 20 }}
+      />
+      <Select
+        placeholder="Оплаченные / Не оплаченные"
+        options={[
+          {
+            label: "Оплаченные",
+            value: "paid",
+          },
+          {
+            label: "Не оплаченные",
+            value: "unpaid",
+          },
+        ]}
+        mode="multiple"
+        allowClear
+        onChange={(value) => {
+          const filters = [];
+
+          if (value.includes("paid")) {
+            filters.push({ operation_id: { $ne: null } });
+          }
+
+          if (value.includes("unpaid")) {
+            filters.push({ operation_id: { $eq: null } });
+          }
+
+          if (filters.length === 0) {
+            // очищено — убираем фильтр
+            setFilters([], "replace");
+          } else {
+            setFilters([{ $or: filters }], "replace");
+          }
+        }}
+        style={{ width: "100%" }}
+      />
+
+      {/* <Select
+        title="Выберите тип тов"
+        placeholder="Выберите пункт назначения"
+        options={branch?.data?.map((branch: any) => ({
+          label: branch.name,
+          value: branch.id,
+        }))}
+        allowClear
+        mode="multiple"
+        onChange={(value) => {
+          setFilters(
+            value.map((item: any) => ({ destination_id: { $eq: item } })),
+            "replace"
+          );
+        }}
+        style={{ width: "100%" }}
+      /> */}
+    </Card>
+  );
+
   const datePickerContent = (
     <DatePicker.RangePicker
       style={{ width: "280px" }}
@@ -142,7 +242,7 @@ export const GoogsProcessingList = () => {
   );
 
   const sortContent = (
-    <Card style={{ width: 200, padding: "0px" }}>
+    <Card style={{ width: 200, padding: "0px !important" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <div
           style={{
@@ -154,48 +254,66 @@ export const GoogsProcessingList = () => {
         >
           Сортировать по
         </div>
+
         <Button
           type="text"
           style={{
             textAlign: "left",
-            fontWeight: sortField === "id" ? "bold" : "normal",
+            fontWeight: sortField === "created_at" ? "bold" : "normal",
           }}
           onClick={() => {
-            setSortField("id");
+            setSortField("created_at");
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
           Дате создания{" "}
-          {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
+          {sortField === "created_at" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
+
         <Button
           type="text"
           style={{
             textAlign: "left",
-            fontWeight: sortField === "counterparty.name" ? "bold" : "normal",
+            fontWeight: sortField === "sender.clientCode" ? "bold" : "normal",
           }}
           onClick={() => {
-            setSortField("counterparty.name");
+            setSortField("sender.clientCode");
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
-          По фио{" "}
-          {sortField === "counterparty.name" &&
+          По коду отправителя{" "}
+          {sortField === "sender.clientCode" &&
             (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
+
         <Button
           type="text"
           style={{
             textAlign: "left",
-            fontWeight: sortField === "operation_id" ? "bold" : "normal",
+            fontWeight: sortField === "sender.name" ? "bold" : "normal",
           }}
           onClick={() => {
-            setSortField("operation_id");
+            setSortField("sender.name");
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
-          По статусу оплаты{" "}
-          {sortField === "operation_id" &&
+          По фио отправителя{" "}
+          {sortField === "sender.name" && (sortDirection === "ASC" ? "↑" : "↓")}
+        </Button>
+
+        <Button
+          type="text"
+          style={{
+            textAlign: "left",
+            fontWeight: sortField === "destination.name" ? "bold" : "normal",
+          }}
+          onClick={() => {
+            setSortField("destination.name");
+            setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
+          }}
+        >
+          По пункту назначения{" "}
+          {sortField === "destination.name" &&
             (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
       </div>
@@ -341,6 +459,19 @@ export const GoogsProcessingList = () => {
                     )
                   }
                 ></Button>
+              </Dropdown>
+            </CustomTooltip>
+            <CustomTooltip title="Фильтры">
+              <Dropdown
+                overlay={filterContent}
+                trigger={["click"]}
+                placement="bottomLeft"
+                open={filterVisible}
+                onOpenChange={(visible) => {
+                  setFilterVisible(visible);
+                }}
+              >
+                <Button icon={<FilterOutlined />} />
               </Dropdown>
             </CustomTooltip>
             <CustomTooltip title="Настройки">
@@ -508,7 +639,6 @@ export const GoogsProcessingList = () => {
             } руб`
           }
         />
-        <Table.Column dataIndex="payment_method" title="Способ оплаты" />
         {operationStatus()}
         <Table.Column
           dataIndex="employee"
