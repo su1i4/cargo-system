@@ -195,14 +195,22 @@ export const GoodsCreate = () => {
   };
 
   const addNewItem = () => {
-    const senderPrefix =
-      typeof senderData?.label === "string"
-        ? senderData.label.split(",")[0]
-        : "";
+    const recieverId = formProps.form?.getFieldValue("recipient_id");
+    const reciver = counterpartySelectPropsReceiver.options?.find(
+      (item: any) => item.value === recieverId
+    );
+    const branchId = formProps.form?.getFieldValue("destination_id");
+    const branch = branchSelectProps.options?.find(
+      (item: any) => item.value === branchId
+    );
     const newItem: GoodItem = {
       id: nextId,
       barcode: generateBarcode(),
-      bag_number: senderPrefix ? `${senderPrefix}/${services.length + 1}` : "",
+      //@ts-ignore
+      bag_number: `${reciver?.label?.split(",")[0]}/${branch?.label?.slice(
+        0,
+        1
+      )}`,
     };
     setServices([...services, newItem]);
     setNextId(nextId + 1);
@@ -217,30 +225,12 @@ export const GoodsCreate = () => {
     const selectedItems = services.filter((item) =>
       selectedRowKeys.includes(item.id)
     );
-
-    const senderPrefix =
-      typeof senderData?.label === "string"
-        ? senderData.label.split(",")[0]
-        : "";
     const newItems = selectedItems.map((item) => {
       const newId = nextId + selectedItems.indexOf(item);
-      const newIndex = services.length + selectedItems.indexOf(item) + 1;
-
-      const selectedType = tariffTableProps?.dataSource?.find(
-        (type: any) =>
-          type.branch_id === values?.destination_id &&
-          type.product_type_id === item.type_id
-      );
-
       return {
         ...item,
         id: newId,
         barcode: generateBarcode(),
-        bag_number: senderPrefix
-          ? `${senderPrefix}/${
-              selectedType?.product_type?.name.slice(0, 1) || ""
-            }${newIndex}`
-          : "",
       };
     });
 
@@ -251,27 +241,21 @@ export const GoodsCreate = () => {
     message.success(`Скопировано ${selectedItems.length} товаров`);
   };
 
-  const createItemsByCount = () => {
+  const createItemsByCount = (bag_number: string) => {
     const count = Number(copyCount || 0);
     if (count <= 0) {
       message.warning("Укажите корректное количество для создания");
       return;
     }
 
-    const senderPrefix =
-      typeof senderData?.label === "string"
-        ? senderData.label.split(",")[0]
-        : "";
-
     const newItems = Array.from({ length: count }, (_, i) => {
       const newId = nextId + i;
-      const newIndex = services.length + i + 1;
 
       return {
         id: newId,
         name: "Новый товар",
         barcode: generateBarcode(),
-        bag_number: senderPrefix ? `${senderPrefix}/${newIndex}` : "",
+        bag_number: bag_number,
       };
     });
 
@@ -280,8 +264,20 @@ export const GoodsCreate = () => {
   };
 
   const copyWhileCount = () => {
+    const recieverId = formProps.form?.getFieldValue("recipient_id");
+    const reciver = counterpartySelectPropsReceiver.options?.find(
+      (item: any) => item.value === recieverId
+    );
+    const branchId = formProps.form?.getFieldValue("destination_id");
+    const branch = branchSelectProps.options?.find(
+      (item: any) => item.value === branchId
+    );
     for (let i = 0; i < Number(copyCount || 0); i++) {
-      createItemsByCount();
+      //@ts-ignore
+      createItemsByCount(
+        //@ts-ignore
+        `${reciver?.label?.split(",")[0]}/${branch?.label?.slice(0, 1)}`
+      );
     }
     message.success(`Создано ${copyCount} новых товаров`);
   };
@@ -308,7 +304,12 @@ export const GoodsCreate = () => {
     return weight * tariff;
   };
 
-  const updateItemField = (id: number, field: string, value: any, index?: number) => {
+  const updateItemField = (
+    id: number,
+    field: string,
+    value: any,
+    index?: number
+  ) => {
     setServices(
       services.map((item) => {
         if (item.id === id) {
@@ -321,20 +322,9 @@ export const GoodsCreate = () => {
                 type.product_type_id === value
             );
 
-            const senderPrefix =
-              typeof senderData?.label === "string"
-                ? senderData.label.split(",")[0]
-                : "";
-
-            console.log(selectedType);
-
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
               newItem.price = selectedType.tariff;
-              newItem.bag_number = `${senderPrefix}/${selectedType?.product_type?.name.slice(
-                0,
-                1
-              )}${Number(index) + 1}`;
               if (newItem.weight) {
                 newItem.sum = calculateSum(newItem.weight, selectedType.tariff);
               }
@@ -752,13 +742,13 @@ export const GoodsCreate = () => {
           }
         ).value,
       });
-      console.log(discountSelectProps?.options?.reduce(
-        (max: any, current: any) => {
+      console.log(
+        discountSelectProps?.options?.reduce((max: any, current: any) => {
           return parseFloat(current.discount) < parseFloat(max.discount)
             ? current
             : max;
-        }
-      ).value);
+        }).value
+      );
     }
   }, [values?.sender_id, values?.recipient_id]);
 
@@ -798,7 +788,27 @@ export const GoodsCreate = () => {
               name="destination_id"
             >
               <Select
-                onChange={(val) => {
+                onChange={(val, record: any) => {
+                  const recieverId =
+                    formProps.form?.getFieldValue("recipient_id");
+                  const reciver = counterpartySelectPropsReceiver.options?.find(
+                    (item: any) => item.value === recieverId
+                  );
+                  const newServices = services.map((item) => {
+                    return {
+                      ...item,
+                      bag_number: `${
+                        //@ts-ignore
+                        reciver?.label?.split(",")[0]
+                      }/${record?.label?.slice(0, 1)}`,
+                    };
+                  });
+                  console.log(
+                    newServices,
+                    counterpartySelectPropsReceiver,
+                    recieverId
+                  );
+                  setServices(newServices);
                   formProps.form?.setFieldsValue({
                     sent_back_id: null,
                   });
@@ -823,14 +833,33 @@ export const GoodsCreate = () => {
               label="Получатель"
               name="recipient_id"
             >
-              <Select {...counterpartySelectPropsReceiver} allowClear />
+              <Select
+                onChange={(val, record) => {
+                  const branchId =
+                    formProps.form?.getFieldValue("destination_id");
+                  const branch = branchSelectProps.options?.find(
+                    (item: any) => item.value === branchId
+                  );
+                  const newServices = services.map((item) => {
+                    return {
+                      ...item,
+                      bag_number: `${
+                        //@ts-ignore
+                        record?.label?.split(",")[0]
+                        //@ts-ignore
+                      }/${branch?.label?.slice(0, 1)}`,
+                    };
+                  });
+                  setServices(newServices);
+                  console.log(branch, branchId, newServices);
+                }}
+                {...counterpartySelectPropsReceiver}
+                allowClear
+              />
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item
-              label="Комментарий"
-              name="comment"
-            >
+            <Form.Item label="Комментарий" name="comment">
               <Input />
             </Form.Item>
           </Col>
@@ -1026,16 +1055,25 @@ export const GoodsCreate = () => {
             title="Номер мешка"
             dataIndex="bag_number"
             render={(value, record: any, index: number) => {
-              const senderPrefix =
-                typeof senderData?.label === "string"
-                  ? senderData.label.split(",")[0]
-                  : "";
               return (
                 index < services.length && (
                   <Input
+                    onChange={(e) => {
+                      setServices(
+                        services.map((item: any, serviceIndex: number) => {
+                          if (serviceIndex === index) {
+                            return {
+                              ...item,
+                              bag_number: e.target.value,
+                            };
+                          } else {
+                            return item;
+                          }
+                        })
+                      );
+                    }}
                     style={{ width: 120 }}
-                    value={value || `${senderPrefix}/${index + 1}`}
-                    disabled={true}
+                    value={value}
                   />
                 )
               );

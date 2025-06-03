@@ -430,6 +430,7 @@ const ShipmentEdit = () => {
                 onClick={() => {
                   push(`/shipments/show/${id}/adding`);
                 }}
+                style={{ width: 40 }}
               />
             </Tooltip>
             <Dropdown overlay={sortMenu} trigger={["click"]}>
