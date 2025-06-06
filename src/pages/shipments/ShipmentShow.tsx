@@ -20,13 +20,18 @@ import {
 import { useParams } from "react-router";
 import { translateStatus } from "../../lib/utils";
 import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
 import { ArrowUpOutlined } from "@ant-design/icons";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { SearchOutlined } from "@ant-design/icons";
 import { useState } from "react";
 
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+
 dayjs.extend(utc);
+dayjs.extend(timezone);
+
+dayjs.tz.setDefault("Asia/Bishkek");
 
 const { Title } = Typography;
 
@@ -246,7 +251,7 @@ const ShipmentShow = () => {
           title="Дата приемки"
           dataIndex="good"
           render={(value) =>
-            dayjs.utc(value?.created_at).format("DD.MM.YYYY HH:mm")
+            dayjs(value?.created_at).utc().format("DD.MM.YYYY HH:mm")
           }
         />
         <Table.Column

@@ -37,6 +37,7 @@ export const BranchList = () => {
         <Table.Column dataIndex="id" title="№" width={50} />
         <Table.Column dataIndex="name" title="Название города" />
         <Table.Column dataIndex="phone" title="Телефон" />
+        <Table.Column dataIndex="address" title="Адрес" />
         <Table.Column
           dataIndex="is_sent"
           title="Досыльный город"

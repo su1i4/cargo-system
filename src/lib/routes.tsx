@@ -1,7 +1,5 @@
 import {
-  WalletOutlined,
   SettingOutlined,
-  RobotOutlined,
   OrderedListOutlined,
   AppstoreOutlined,
   ContactsOutlined,

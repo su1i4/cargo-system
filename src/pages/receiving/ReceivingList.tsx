@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { CalendarOutlined, SearchOutlined } from "@ant-design/icons";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { ArrowUpOutlined } from "@ant-design/icons";
-import { CreateButton, List, useTable } from "@refinedev/antd";
+import { List, useTable } from "@refinedev/antd";
 import { useNavigation } from "@refinedev/core";
 import {
   Button,
@@ -14,7 +15,14 @@ import {
   Table,
 } from "antd";
 import dayjs from "dayjs";
-import { useState } from "react";
+
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+dayjs.tz.setDefault("Asia/Bishkek");
 
 const ReceivingList = () => {
   const { tableProps, setFilters, setSorters } = useTable({
@@ -61,7 +69,7 @@ const ReceivingList = () => {
       setFilters([]);
     }
   };
-  
+
   const datePickerContent = (
     <DatePicker.RangePicker
       style={{ width: "280px" }}
@@ -211,7 +219,7 @@ const ReceivingList = () => {
           title="Дата отправки"
           dataIndex="created_at"
           width={50}
-          render={(value) => dayjs(value).format("DD.MM.YYYY HH:mm")}
+          render={(value) => dayjs(value).utc().format("DD.MM.YYYY HH:mm")}
         />
         <Table.Column width={50} title="Номер рейса" dataIndex="truck_number" />
         <Table.Column

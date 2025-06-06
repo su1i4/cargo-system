@@ -1,14 +1,14 @@
+import { useState } from "react";
 import {
   ArrowDownOutlined,
   ArrowLeftOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import { ArrowUpOutlined } from "@ant-design/icons";
-import { CreateButton, List, useTable } from "@refinedev/antd";
+import {  List, useTable } from "@refinedev/antd";
 import { useNavigation } from "@refinedev/core";
 import {
   Button,
-  Col,
   Dropdown,
   Flex,
   Input,
@@ -18,7 +18,14 @@ import {
   Typography,
 } from "antd";
 import dayjs from "dayjs";
-import { useState } from "react";
+
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+dayjs.tz.setDefault("Asia/Bishkek");
 
 const ShipmentHistory = () => {
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
@@ -212,7 +219,7 @@ const ShipmentHistory = () => {
           title="Дата отправки"
           dataIndex="created_at"
           width={50}
-          render={(value) => dayjs(value).format("DD.MM.YYYY HH:mm")}
+          render={(value) => dayjs(value).utc().format("DD.MM.YYYY HH:mm")}
         />
         <Table.Column width={50} title="Номер рейса" dataIndex="truck_number" />
         <Table.Column

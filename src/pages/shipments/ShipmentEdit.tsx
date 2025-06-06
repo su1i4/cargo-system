@@ -66,11 +66,11 @@ const ShipmentEdit = () => {
           operator: "eq",
           value: Number(id),
         },
-        {
-          field: "status",
-          operator: "eq",
-          value: "В пути",
-        },
+        // {
+        //   field: "status",
+        //   operator: "eq",
+        //   value: "В пути",
+        // },
       ],
       initial: searchValue
         ? [
@@ -207,7 +207,7 @@ const ShipmentEdit = () => {
         {
           field: "trackCode",
           operator: "contains",
-          value,
+          value: value,
         },
       ]);
     }
@@ -470,7 +470,22 @@ const ShipmentEdit = () => {
             </Dropdown>
           </Flex>
         </Row>
-        <Table {...tableProps} rowKey="id" rowSelection={rowSelection}>
+        <Table {...tableProps} rowKey="id" rowSelection={rowSelection}
+          onRow={(record) => ({
+            onClick: () => {
+              const id = record.id;
+              const numId = Number(id);
+              if (!numId || isNaN(numId)) return;
+              setSelectedRowKeys((prev) => {
+                if (prev.includes(numId)) {
+                  return prev.filter((key) => key !== numId);
+                } else {
+                  return [...prev, numId];
+                }
+              });
+            },
+          })}
+        >
           <Table.Column
             title="№"
             dataIndex="index"

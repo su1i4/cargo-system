@@ -312,7 +312,10 @@ const ShipmentCreate = () => {
           </Col>
           <Col span={6}>
             <Form.Item label="Пункт назначения" name="branch_id">
-              <Select {...branchSelectProps} />
+              <Select
+                {...branchSelectProps}
+                onChange={(value) => setFilters([{ field: "good.destination_id", operator: "eq", value: value }])}
+              />
             </Form.Item>
           </Col>
           <Col span={18}>
@@ -358,7 +361,21 @@ const ShipmentCreate = () => {
             />
           </Flex>
         </Row>
-        <Table {...tableProps} rowKey="id" rowSelection={rowSelection}>
+        <Table {...tableProps} rowKey="id" rowSelection={rowSelection}
+          onRow={(record) => ({
+            onClick: () => {
+              const id = record.id;
+              if (id === undefined || id === null) return;
+              setSelectedRowKeys((prev) => {
+                if (prev.includes(id)) {
+                  return prev.filter((key) => key !== id);
+                } else {
+                  return [...prev, id];
+                }
+              });
+            },
+          })}
+        >
           <Table.Column
             title="№"
             dataIndex="index"
@@ -380,7 +397,7 @@ const ShipmentCreate = () => {
           />
           <Table.Column title="Номер мешка" dataIndex="bag_number" />
           <Table.Column
-            title="Тип"
+            title="Тип товара"
             dataIndex="product_type"
             render={(value) => value?.name}
           />

@@ -20,7 +20,6 @@ export const GoodsShow: React.FC = () => {
   const { queryResult } = useShow();
   const { data, isLoading } = queryResult;
   const record = data?.data;
-  const { push } = useNavigation();
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
@@ -147,7 +146,9 @@ export const GoodsShow: React.FC = () => {
         </Flex>
         <Flex justify="space-between" align="center">
           <Text>Call-center: +996 509 003 003</Text>
-          <Text>{dayjs(record?.created_at).format("DD.MM.YYYY HH:mm")}</Text>
+          <Text>
+            {dayjs(record?.created_at).utc().format("DD.MM.YYYY HH:mm")}
+          </Text>
         </Flex>
         <Flex vertical style={{ marginBottom: 10 }}>
           <Text style={{ fontSize: 13, color: "#808080" }}>
@@ -385,7 +386,9 @@ export const GoodsShow: React.FC = () => {
             <Text style={{ fontWeight: "bold" }}>{totalQuantity}</Text>
           </Col>
           <Col style={colStyle} span={2}>
-            <Text style={{ fontWeight: "bold" }}>{ String(totalWeight).replace(".", ",").slice(0, 5)}</Text>
+            <Text style={{ fontWeight: "bold" }}>
+              {String(totalWeight).replace(".", ",").slice(0, 5)}
+            </Text>
           </Col>
           <Col style={colStyle} span={4}>
             <Text style={{ fontWeight: "bold" }}>-</Text>

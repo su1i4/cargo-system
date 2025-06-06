@@ -1,10 +1,18 @@
+import { useState } from "react";
 import { ArrowDownOutlined, SearchOutlined } from "@ant-design/icons";
 import { ArrowUpOutlined } from "@ant-design/icons";
 import { CreateButton, List, useTable } from "@refinedev/antd";
 import { useNavigation } from "@refinedev/core";
 import { Button, Col, Dropdown, Flex, Input, Menu, Row, Table } from "antd";
 import dayjs from "dayjs";
-import { useState } from "react";
+
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+dayjs.tz.setDefault("Asia/Bishkek");
 
 const ShipmentList = () => {
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
@@ -27,8 +35,8 @@ const ShipmentList = () => {
     },
     syncWithLocation: false,
     pagination: {
-      pageSize: 100
-    }
+      pageSize: 100,
+    },
   });
 
   const { push, show } = useNavigation();
@@ -181,7 +189,7 @@ const ShipmentList = () => {
           title="Дата отправки"
           dataIndex="created_at"
           width={50}
-          render={(value) => dayjs(value).format("DD.MM.YYYY HH:mm")}
+          render={(value) => dayjs(value).utc().format("DD.MM.YYYY HH:mm")}
         />
         <Table.Column width={50} title="Номер рейса" dataIndex="truck_number" />
         <Table.Column

@@ -15,12 +15,17 @@ import { useParams } from "react-router";
 import { translateStatus } from "../../lib/utils";
 import { useState } from "react";
 import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
 import { SearchOutlined } from "@ant-design/icons";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { ArrowUpOutlined } from "@ant-design/icons";
 
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+
 dayjs.extend(utc);
+dayjs.extend(timezone);
+
+dayjs.tz.setDefault("Asia/Bishkek");
 
 const { Title } = Typography;
 
@@ -274,7 +279,7 @@ const ReceivingShow = () => {
         />
         <Table.Column title="Номер мешка" dataIndex="bag_number" />
         <Table.Column
-          title="Тип"
+          title="Тип товара"
           dataIndex="product_type"
           render={(value) => value?.name}
         />

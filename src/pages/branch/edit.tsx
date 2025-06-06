@@ -32,6 +32,9 @@ export const BranchEdit = () => {
             country={"kg"}
           />
         </Form.Item>
+        <Form.Item label="Адрес" name="address" rules={[{ required: true }]}>
+          <Input />
+        </Form.Item>
         <Form.Item name="is_sent" valuePropName="checked">
           <Checkbox>Досыльный город</Checkbox>
         </Form.Item>

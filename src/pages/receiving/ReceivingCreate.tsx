@@ -1,7 +1,14 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Create, useForm, useTable } from "@refinedev/antd";
 import { useUpdateMany } from "@refinedev/core";
 import { Form, Input, DatePicker, Row, Col, Table } from "antd";
+import dayjs from "dayjs";
+
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const ReceivingCreate = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
@@ -156,7 +163,11 @@ const ReceivingCreate = () => {
                 },
               }}
             >
-              <Table.Column dataIndex="receptionDate" title="Дата" />
+              <Table.Column
+                dataIndex="receptionDate"
+                title="Дата"
+                render={(value) => dayjs(value).utc().format("DD.MM.YYYY")}
+              />
               <Table.Column dataIndex="cargoType" title="ТПН" />
               <Table.Column dataIndex="trackCode" title="Треккод" />
               <Table.Column dataIndex="weight" title="Код Клиента" />
