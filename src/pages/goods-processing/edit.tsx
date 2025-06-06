@@ -12,6 +12,7 @@ import {
   Space,
   message,
   Input,
+  Tooltip,
 } from "antd";
 import dayjs from "dayjs";
 
@@ -43,6 +44,7 @@ interface GoodItem {
   barcode: string;
   updated?: boolean; // Флаг, указывающий, что услуга была изменена
   is_created?: boolean; // Флаг, указывающий, что услуга была создана
+  bag_number?: string;
 }
 
 interface TypeProduct {
@@ -107,6 +109,7 @@ export const GoodsEdit = () => {
   const [deletedServices, setDeletedServices] = useState<GoodItem[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [tariffs, setTariffs] = useState<TariffItem[]>([]);
+  const [copyCount, setCopyCount] = useState(0);
 
   const values: any = Form.useWatch([], form);
   const record = queryResult?.data?.data;
@@ -130,11 +133,11 @@ export const GoodsEdit = () => {
 
   const findTariff = (branchId: number, productTypeId: number): number => {
     const foundTariff = tariffs.find(
-      (tariff) => 
-        tariff.branch_id === branchId && 
+      (tariff) =>
+        tariff.branch_id === branchId &&
         tariff.product_type_id === productTypeId
     );
-    
+
     return foundTariff ? parseFloat(foundTariff.tariff) : 0;
   };
 
@@ -337,14 +340,16 @@ export const GoodsEdit = () => {
             const selectedType = typeProducts.find((type) => type.id === value);
             const branchId = Number(values?.destination_id);
             const productTypeId = Number(value);
-            
+
             if (selectedType && branchId) {
               // Найти соответствующий тариф на основе филиала и типа товара
               const tariffValue = findTariff(branchId, productTypeId);
-              
+
               newItem.type_name = selectedType.name;
-              newItem.tariff = tariffValue > 0 ? tariffValue : selectedType.tariff;
-              newItem.price = tariffValue > 0 ? tariffValue : selectedType.tariff;
+              newItem.tariff =
+                tariffValue > 0 ? tariffValue : selectedType.tariff;
+              newItem.price =
+                tariffValue > 0 ? tariffValue : selectedType.tariff;
 
               // Пересчитываем сумму на основе веса и нового тарифа
               if (newItem.weight) {
@@ -372,22 +377,22 @@ export const GoodsEdit = () => {
     if (values?.destination_id && services.length > 0) {
       // Обновляем тарифы для всех сервисов при изменении филиала
       const branchId = Number(values.destination_id);
-      
+
       setServices(
         services.map((item) => {
           if (item.type_id) {
             const productTypeId = Number(item.type_id);
             const tariffValue = findTariff(branchId, productTypeId);
-            
+
             if (tariffValue > 0) {
               const newItem = { ...item, updated: true };
               newItem.tariff = tariffValue;
               newItem.price = tariffValue;
-              
+
               if (newItem.weight) {
                 newItem.sum = calculateSum(newItem.weight, tariffValue);
               }
-              
+
               return newItem;
             }
           }
@@ -696,13 +701,81 @@ export const GoodsEdit = () => {
     `}</style>
   );
 
+  // Добавляю селект для досыльных городов (как в create.tsx)
+  const { selectProps: branchSelectPropsIsSent } = useSelect({
+    resource: "sent-the-city",
+    optionLabel: (record: any) => `${record?.sent_city?.name}`,
+    filters: [
+      {
+        field: "city_id",
+        operator: "eq",
+        value: values?.destination_id,
+      },
+    ],
+    onSearch: (value) => [
+      {
+        field: "name",
+        operator: "contains",
+        value,
+      },
+    ],
+    queryOptions: {
+      enabled: !!values?.destination_id,
+    },
+  });
+
+  const getLabelSafe = (option: any) => {
+    if (!option) return '';
+    if (Array.isArray(option)) return '';
+    if (typeof option === 'object' && typeof option.label === 'string') return option.label;
+    return '';
+  };
+
+  const createItemsByCount = (bag_number: string) => {
+    const count = Number(copyCount || 0);
+    if (count <= 0) {
+      message.warning("Укажите корректное количество для создания");
+      return;
+    }
+
+    const newItems = Array.from({ length: count }, (_, i) => {
+      const newId = nextId + i;
+      return {
+        id: newId,
+        name: "Новый товар",
+        barcode: generateBarcode(),
+        bag_number: bag_number,
+      };
+    });
+
+    setServices([...services, ...newItems]);
+    setNextId(nextId + count);
+  };
+
+  const copyWhileCount = () => {
+    const recieverId = formProps.form?.getFieldValue("recipient_id");
+    const reciver = counterpartySelectPropsReceiver.options?.find(
+      (item) => item.value === recieverId
+    );
+    const branchId = formProps.form?.getFieldValue("destination_id");
+    const branch = branchSelectProps.options?.find(
+      (item) => item.value === branchId
+    );
+    createItemsByCount(
+      (getLabelSafe(reciver) && getLabelSafe(branch))
+        ? `${getLabelSafe(reciver).split(",")[0]}/${getLabelSafe(branch).slice(0, 1)}`
+        : ""
+    );
+    message.success(`Создано ${copyCount} новых товаров`);
+  };
+
   return (
-    <Edit saveButtonProps={saveButtonProps}>
+    <Edit headerButtons={() => null} saveButtonProps={saveButtonProps}>
       {styleBlock}
       <Form {...formProps} layout="vertical" onFinish={handleFormSubmit}>
         <Title level={5}>Реквизиты</Title>
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item
               rules={[
                 { required: true, message: "Город назначения обязателен" },
@@ -710,10 +783,31 @@ export const GoodsEdit = () => {
               label="Город назначения"
               name="destination_id"
             >
-              <Select {...branchSelectProps} allowClear />
+              <Select
+                onChange={(val, record) => {
+                  const recieverId = formProps.form?.getFieldValue("recipient_id");
+                  const reciver = counterpartySelectPropsReceiver.options?.find(
+                    (item) => item.value === recieverId
+                  );
+                  const newServices = services.map((item) => {
+                    const reciverLabel = getLabelSafe(reciver);
+                    const recordLabel = getLabelSafe(record);
+                    return {
+                      ...item,
+                      bag_number: reciverLabel && recordLabel ? `${reciverLabel.split(",")[0]}/${recordLabel.slice(0, 1)}` : '',
+                    };
+                  });
+                  setServices(newServices);
+                  formProps.form?.setFieldsValue({
+                    sent_back_id: null,
+                  });
+                }}
+                {...branchSelectProps}
+                allowClear
+              />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item
               rules={[{ required: true, message: "Отправитель обязателен" }]}
               label="Отправитель"
@@ -722,18 +816,41 @@ export const GoodsEdit = () => {
               <Select {...counterpartySelectPropsSender} allowClear />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item
               rules={[{ required: true, message: "Получатель обязателен" }]}
               label="Получатель"
               name="recipient_id"
             >
-              <Select {...counterpartySelectPropsReceiver} allowClear />
+              <Select
+                onChange={(val, record) => {
+                  const branchId = formProps.form?.getFieldValue("destination_id");
+                  const branch = branchSelectProps.options?.find(
+                    (item) => item.value === branchId
+                  );
+                  const recordLabel = getLabelSafe(record);
+                  const branchLabel = getLabelSafe(branch);
+                  const newServices = services.map((item) => {
+                    return {
+                      ...item,
+                      bag_number: recordLabel && branchLabel ? `${recordLabel.split(",")[0]}/${branchLabel.slice(0, 1)}` : '',
+                    };
+                  });
+                  setServices(newServices);
+                }}
+                {...counterpartySelectPropsReceiver}
+                allowClear
+              />
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item label="Досыльные города" name="sent_back">
-              <Input style={{ width: "100%" }} />
+            <Form.Item label="Комментарий" name="comment">
+              <Input />
+            </Form.Item>
+          </Col>
+          <Col span={6}>
+            <Form.Item label="Досыльные города" name="sent_back_id">
+              <Select {...branchSelectPropsIsSent} allowClear />
             </Form.Item>
           </Col>
           <Col span={6}>
@@ -741,13 +858,21 @@ export const GoodsEdit = () => {
               rules={[{ required: true, message: "Оплачивает" }]}
               label="Оплачивает"
               name="pays"
+              initialValue="recipient"
             >
               <Select
+                showSearch
+                allowClear
+                placeholder="Выберите"
                 options={[
                   { label: "Получатель", value: "recipient" },
                   { label: "Отправитель", value: "sender" },
                 ]}
-                allowClear
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
               />
             </Form.Item>
           </Col>
@@ -756,22 +881,27 @@ export const GoodsEdit = () => {
               rules={[{ required: true, message: "Способ оплаты обязателен" }]}
               label="Способ оплаты"
               name="payment_method"
+              initialValue="Наличные"
             >
               <Select
+                showSearch
+                allowClear
+                placeholder="Выберите способ оплаты"
                 options={[
                   { label: "Наличные", value: "Наличные" },
                   { label: "Безналичные", value: "Безналичные" },
                   { label: "Перечислением", value: "Перечислением" },
                 ]}
-                allowClear
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
               />
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item
-              label="Скидка"
-              name="discount_id"
-            >
+            <Form.Item label="Скидка" name="discount_id">
               <Select {...discountSelectProps} allowClear />
             </Form.Item>
           </Col>
@@ -780,8 +910,40 @@ export const GoodsEdit = () => {
         <Row gutter={16} style={{ marginBottom: 10 }}>
           <Col>
             <Space>
-              <Button onClick={addNewItem} icon={<FileAddOutlined />}>
-                Добавить товар
+              <Tooltip
+                color="red"
+                title={
+                  !values?.destination_id
+                    ? "Сначала выберите город назначения"
+                    : ""
+                }
+              >
+                <Button
+                  disabled={!values?.destination_id}
+                  onClick={addNewItem}
+                  icon={<FileAddOutlined />}
+                >
+                  Добавить товар
+                </Button>
+              </Tooltip>
+              <Input
+                style={{ width: 100 }}
+                min={0}
+                type="number"
+                value={copyCount}
+                onChange={(e) => setCopyCount(Number(e.target.value))}
+              />
+              <Button
+                disabled={
+                  Number(copyCount || 0) === 0 ||
+                  values?.destination_id === undefined ||
+                  values?.sender_id === undefined ||
+                  values?.recipient_id === undefined
+                }
+                onClick={copyWhileCount}
+                icon={<CopyOutlined />}
+              >
+                Копировать: ({copyCount}) кол-во
               </Button>
               <Button
                 onClick={copySelectedItems}
@@ -807,11 +969,6 @@ export const GoodsEdit = () => {
           rowKey="id"
           pagination={false}
           rowSelection={rowSelection}
-          rowClassName={(record: any) => {
-            if (record.is_created) return "created-row";
-            if (record.updated) return "updated-row";
-            return "";
-          }}
         >
           <Table.Column
             title="№"
@@ -849,6 +1006,14 @@ export const GoodsEdit = () => {
                   value={value}
                   onChange={(val) => updateItemField(record.id, "country", val)}
                   allowClear
+                  showSearch
+                  onSearch={(val) => [
+                    {
+                      field: "name",
+                      operator: "contains",
+                      value: val,
+                    },
+                  ]}
                 />
               )
             }
@@ -859,19 +1024,44 @@ export const GoodsEdit = () => {
             render={(value, record: any, index: number) =>
               index < services.length && (
                 <Select
-                  style={{
-                    width: 200,
-                    borderColor: !value ? "#ff4d4f" : undefined,
-                  }}
+                  style={{ width: 200 }}
                   {...typeProductSelectProps}
                   value={value}
-                  onChange={(val) => updateItemField(record.id, "type_id", val)}
+                  onChange={(val) => {
+                    updateItemField(record.id, "type_id", val);
+                  }}
                   allowClear
-                  placeholder="Обязательно"
-                  status={!value ? "error" : undefined}
                 />
               )
             }
+          />
+          <Table.Column
+            title="Номер мешка"
+            dataIndex="bag_number"
+            render={(value, record: any, index: number) => {
+              return (
+                index < services.length && (
+                  <Input
+                    onChange={(e) => {
+                      setServices(
+                        services.map((item: any, serviceIndex: number) => {
+                          if (serviceIndex === index) {
+                            return {
+                              ...item,
+                              bag_number: e.target.value,
+                            };
+                          } else {
+                            return item;
+                          }
+                        })
+                      );
+                    }}
+                    style={{ width: 120 }}
+                    value={value}
+                  />
+                )
+              );
+            }}
           />
           <Table.Column
             title="Количество"
@@ -891,24 +1081,12 @@ export const GoodsEdit = () => {
             dataIndex="weight"
             render={(value, record: any, index: number) => (
               <InputNumber
-                style={{
-                  width: 100,
-                  borderColor:
-                    (!value || value <= 0) && index < services.length
-                      ? "#ff4d4f"
-                      : undefined,
-                }}
+                style={{ width: 100 }}
                 min={0}
                 precision={2}
                 value={value}
                 disabled={index >= services.length}
                 onChange={(val) => updateItemField(record.id, "weight", val)}
-                placeholder="Обязательно"
-                status={
-                  (!value || value <= 0) && index < services.length
-                    ? "error"
-                    : undefined
-                }
               />
             )}
           />
@@ -959,7 +1137,7 @@ export const GoodsEdit = () => {
                     type="text"
                     danger
                     icon={<DeleteOutlined />}
-                    onClick={() => removeItem(record)}
+                    onClick={() => removeItem(record.id)}
                   />
                 </Space>
               )
@@ -974,12 +1152,6 @@ export const GoodsEdit = () => {
           style={{ marginTop: 10 }}
           rowKey="id"
           pagination={false}
-          rowSelection={productRowSelection}
-          rowClassName={(record: any) => {
-            if (record.is_created) return "created-row";
-            if (record.updated) return "updated-row";
-            return "";
-          }}
         >
           <Table.Column
             title="№"
@@ -1021,7 +1193,7 @@ export const GoodsEdit = () => {
                   min={0}
                   precision={2}
                   value={value}
-                  disabled={index >= products.length}
+                  disabled
                 />
               )
             }
@@ -1101,11 +1273,6 @@ export const GoodsEdit = () => {
                 mode="multiple"
                 allowClear
               />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="Досыл" name="sent_back">
-              <Input style={{ width: "100%" }} />
             </Form.Item>
           </Col>
         </Row>

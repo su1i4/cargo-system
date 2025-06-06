@@ -1,19 +1,6 @@
-import {
-  DateField,
-  DeleteButton,
-  EditButton,
-  List,
-  ShowButton,
-  useSelect,
-  useTable,
-} from "@refinedev/antd";
-import {
-  type BaseRecord,
-  useMany,
-  useNavigation,
-  useCustom,
-} from "@refinedev/core";
-import { Button, Space, Table, Flex, Typography, Input } from "antd";
+import { List } from "@refinedev/antd";
+import { useNavigation, useCustom } from "@refinedev/core";
+import { Button, Table, Flex, Input } from "antd";
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
@@ -21,7 +8,6 @@ import {
 } from "@ant-design/icons";
 import { useState, useEffect } from "react";
 import { API_URL } from "../../App";
-import dayjs from "dayjs";
 import { useSearchParams } from "react-router";
 import { translateStatus } from "../../lib/utils";
 
@@ -165,8 +151,12 @@ export const ReceivingHistory = () => {
           title={"Место погрузки"}
           render={(value) => value?.branch?.name}
         />
-        <Table.Column dataIndex="count" title={"Количество посылок"} />
-        <Table.Column dataIndex="weight" title={"Вес"} />
+        <Table.Column dataIndex="totalService" title={"Количество мест"} />
+        <Table.Column
+          dataIndex="weight"
+          title="Вес"
+          render={(value) => String(value).replace(".", ",").slice(0, 5)}
+        />
         <Table.Column
           dataIndex="Dimensions"
           title={"Размеры (Д × Ш × В)"}

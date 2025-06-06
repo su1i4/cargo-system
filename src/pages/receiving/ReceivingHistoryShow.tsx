@@ -1,24 +1,14 @@
-import React, { useState } from "react";
-import {
-  DeleteButton,
-  EditButton,
-  Show,
-  TextField,
-  useTable,
-} from "@refinedev/antd";
-import { useUpdateMany, useParsed, useShow, useNavigation} from "@refinedev/core";
-import { Typography, Row, Col, Table, Button, Space } from "antd";
-import dayjs from "dayjs";
+import { DeleteButton, EditButton, Show, TextField } from "@refinedev/antd";
+import { useShow, useNavigation } from "@refinedev/core";
+import { Typography, Row, Col, Button } from "antd";
 import { useParams } from "react-router";
 import { translateStatus } from "../../lib/utils";
 
 const { Title } = Typography;
 
 export const ReceivingHistoryShow = () => {
-  // Получаем ID из URL (например, /shipments/show/123)
   const { id } = useParams();
 
-  // Запрашиваем данные о конкретном рейсе (shipment) по ID
   const { queryResult } = useShow({
     resource: "shipments",
     id,
@@ -26,74 +16,15 @@ export const ReceivingHistoryShow = () => {
   const { data, isLoading } = queryResult;
   const record = data?.data;
 
-  // Получаем список товаров (goods-processing),
-  // отфильтрованных по текущему shipment_id
-  const { tableProps } = useTable({
-    resource: "goods-processing",
-    syncWithLocation: false,
-    initialSorter: [
-      {
-        field: "id",
-        order: "desc",
-      },
-    ],
-    filters: {
-      permanent: [
-        {
-          field: "shipment_id",
-          operator: "eq",
-          value: Number(id),
-        },
-        {
-          field: "status",
-          operator: "eq",
-          value: "В пути",
-        },
-      ],
-    },
-  });
-
-  // -----------------------
-  // 1. Состояние для выделенных строк
-  // -----------------------
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-
-  // Настройка антовского rowSelection
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (newSelectedKeys: React.Key[]) => {
-      setSelectedRowKeys(newSelectedKeys);
-    },
-  };
-
-  // -----------------------
-  // 2. Массовое обновление
-  // -----------------------
-  const { mutate, isLoading: isUpdating } = useUpdateMany();
-
-  const handleSetReadyToIssue = () => {
-    mutate(
-      {
-        resource: "goods-processing",
-        // @ts-ignore
-        ids: selectedRowKeys,
-        values: { status: "Готов к выдаче" },
-      },
-      {
-        onSuccess: () => {
-          setSelectedRowKeys([]);
-        },
-      }
-    );
-  };
-
-  const {push} = useNavigation()
+  const { push } = useNavigation();
 
   return (
     <Show
       headerButtons={({ deleteButtonProps, editButtonProps }) => (
         <>
-          <Button onClick={() => push(`/receiving/show/${id}/received`)} >Выгруженные товары</Button>
+          <Button onClick={() => push(`/receiving/show/${id}/received`)}>
+            Выгруженные товары
+          </Button>
           {editButtonProps && (
             <EditButton {...editButtonProps} meta={{ foo: "bar" }} />
           )}
@@ -104,7 +35,6 @@ export const ReceivingHistoryShow = () => {
       )}
       isLoading={isLoading}
     >
-      {/* Данные о текущем рейсе */}
       <Row gutter={[16, 16]}>
         <Col xs={24} md={6}>
           <Title level={5}>Номер рейса</Title>
@@ -136,7 +66,9 @@ export const ReceivingHistoryShow = () => {
         </Col>
         <Col xs={24} md={6}>
           <Title level={5}>Вес</Title>
-          <TextField value={record?.weight} />
+          <TextField
+            value={String(record?.weight).replace(".", ",").slice(0, 5)}
+          />
         </Col>
         <Col xs={24} md={6}>
           <Title level={5}>Размеры (Д × Ш × В)</Title>
@@ -154,8 +86,8 @@ export const ReceivingHistoryShow = () => {
           <TextField value={record?.density} />
         </Col>
         <Col xs={24} md={6}>
-          <Title level={5}>Количество посылок</Title>
-          <TextField value={record?.count} />
+          <Title level={5}>Количество мест</Title>
+          <TextField value={record?.totalService} />
         </Col>
         <Col xs={24} md={6}>
           <Title level={5}>Дата</Title>
@@ -175,37 +107,9 @@ export const ReceivingHistoryShow = () => {
         </Col>
         <Col xs={24} md={6}>
           <Title level={5}>Статус</Title>
-          <TextField
-            value={translateStatus(record?.status)}
-          />
+          <TextField value={translateStatus(record?.status)} />
         </Col>
       </Row>
-
-      {/* <Title level={4} style={{ marginTop: 24 }}>
-        Товары в этом рейсе
-      </Title> */}
-
-      {/* Кнопки массового изменения статуса */}
-      {/* <Space style={{ marginBottom: 16 }}>
-        <Button
-          onClick={handleSetReadyToIssue}
-          disabled={selectedRowKeys.length === 0 || isUpdating}
-        >
-          Принять
-        </Button>
-      </Space> */}
-
-      {/* Таблица со списком товаров и чекбоксами */}
-      {/* <Table {...tableProps} rowKey="id" rowSelection={rowSelection}>
-        <Table.Column dataIndex="receptionDate" title="Дата" />
-        <Table.Column dataIndex="cargoType" title="Тип груза" />
-        <Table.Column dataIndex="trackCode" title="Треккод" />
-        <Table.Column dataIndex="clientCode" title="Код Клиента" />
-        <Table.Column dataIndex="recipient" title="Получатель" />
-        <Table.Column dataIndex="city" title="Город" />
-        <Table.Column dataIndex="weight" title="Вес" />
-        <Table.Column dataIndex="status" title="Статус" />
-      </Table> */}
     </Show>
   );
 };

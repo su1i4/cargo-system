@@ -82,6 +82,9 @@ const ShipmentEdit = () => {
           ]
         : [],
     },
+    pagination: {
+      pageSize: 100,
+    },
   });
 
   const { data: shipmentData, isLoading: isLoadingShipment } = useOne({
@@ -501,7 +504,11 @@ const ShipmentEdit = () => {
             }
           />
           <Table.Column title="Количество" dataIndex="quantity" />
-          <Table.Column title="Вес" dataIndex="weight" />
+          <Table.Column
+            title="Вес"
+            dataIndex="weight"
+            render={(value) => String(value).replace(".", ",").slice(0, 5)}
+          />
           <Table.Column title="Статус" dataIndex="status" />
           <Table.Column
             title="Пункт назначения"

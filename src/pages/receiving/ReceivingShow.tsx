@@ -188,12 +188,12 @@ const ReceivingShow = () => {
 
         <Col xs={24} md={6}>
           <Title level={5}>Количество мест</Title>
-          <TextField value={record?.count ?? "-"} />
+          <TextField value={record?.totalService ?? "-"} />
         </Col>
 
         <Col xs={24} md={6}>
           <Title level={5}>Вес</Title>
-          <TextField value={Number(record?.weight) || 0} />
+          <TextField value={String(record?.weight).replace(".", ",").slice(0, 5) || 0} />
         </Col>
 
         <Col xs={24} md={6}>
@@ -254,42 +254,50 @@ const ReceivingShow = () => {
         style={{ marginTop: 20 }}
       >
         <Table.Column
-            title="№"
-            dataIndex="index"
-            render={(value, record, index) => index + 1}
-          />
-          <Table.Column
-            title="Дата приемки"
-            dataIndex="good"
-            render={(value) =>
-              dayjs.utc(value?.created_at).format("DD.MM.YYYY HH:mm")
-            }
-          />
-          <Table.Column
-            title="Отправитель"
-            dataIndex="good"
-            render={(value) =>
-              `${value?.sender?.clientPrefix}-${value?.sender?.clientCode} ${value?.sender?.name}`
-            }
-          />
-          <Table.Column title="Номер мешка" dataIndex="bag_number" />
-          <Table.Column title="Тип" dataIndex="product_type" render={(value) => value?.name} />
-          <Table.Column
-            title="Получатель"
-            dataIndex="good"
-            render={(value) =>
-              `${value?.recipient?.clientPrefix}-${value?.recipient?.clientCode} ${value?.recipient?.name}`
-            }
-          />
-          <Table.Column title="Количество" dataIndex="quantity" />
-          <Table.Column title="Вес" dataIndex="weight" />
-          <Table.Column title="Статус" dataIndex="status" />
-          <Table.Column
-            title="Пункт назначения"
-            dataIndex="good"
-            render={(value) => value?.destination?.name}
-          />
-          <Table.Column title="Штрихкод" dataIndex="barcode" />
+          title="№"
+          dataIndex="index"
+          render={(value, record, index) => index + 1}
+        />
+        <Table.Column
+          title="Дата приемки"
+          dataIndex="good"
+          render={(value) =>
+            dayjs.utc(value?.created_at).format("DD.MM.YYYY HH:mm")
+          }
+        />
+        <Table.Column
+          title="Отправитель"
+          dataIndex="good"
+          render={(value) =>
+            `${value?.sender?.clientPrefix}-${value?.sender?.clientCode} ${value?.sender?.name}`
+          }
+        />
+        <Table.Column title="Номер мешка" dataIndex="bag_number" />
+        <Table.Column
+          title="Тип"
+          dataIndex="product_type"
+          render={(value) => value?.name}
+        />
+        <Table.Column
+          title="Получатель"
+          dataIndex="good"
+          render={(value) =>
+            `${value?.recipient?.clientPrefix}-${value?.recipient?.clientCode} ${value?.recipient?.name}`
+          }
+        />
+        <Table.Column title="Количество" dataIndex="quantity" />
+        <Table.Column
+          title="Вес"
+          dataIndex="weight"
+          render={(value) => String(value).replace(".", ",").slice(0, 5)}
+        />
+        <Table.Column title="Статус" dataIndex="status" />
+        <Table.Column
+          title="Пункт назначения"
+          dataIndex="good"
+          render={(value) => value?.destination?.name}
+        />
+        <Table.Column title="Штрихкод" dataIndex="barcode" />
       </Table>
     </Show>
   );

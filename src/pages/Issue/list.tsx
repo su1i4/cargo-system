@@ -530,7 +530,8 @@ export const IssueProcessingList = () => {
           </Typography.Text>
           |
           <Typography.Text>
-            Общий вес: <strong>{totalWeight.toFixed(3)} кг</strong>
+            Общий вес:{" "}
+            <strong>{String(totalWeight).replace(".", ",").slice(0, 5)} кг</strong>
           </Typography.Text>
           |
           <Typography.Text>
@@ -603,7 +604,9 @@ export const IssueProcessingList = () => {
         <Table.Column
           dataIndex="totalServiceWeight"
           title="Вес"
-          render={(value) => value + " кг"}
+          render={(value) =>
+            String(value).replace(".", ",").slice(0, 5) + " кг"
+          }
         />
         <Table.Column
           dataIndex="services"

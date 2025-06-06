@@ -26,6 +26,9 @@ const ShipmentList = () => {
       initial: [{ field: "created_at", order: "desc" }],
     },
     syncWithLocation: false,
+    pagination: {
+      pageSize: 100
+    }
   });
 
   const { push, show } = useNavigation();
@@ -91,7 +94,7 @@ const ShipmentList = () => {
   ];
 
   const getSortFieldLabel = () => {
-    const field = sortFields.find(f => f.key === sortField);
+    const field = sortFields.find((f) => f.key === sortField);
     return field ? field.label : "Дата отправки";
   };
 
@@ -99,13 +102,13 @@ const ShipmentList = () => {
     <Menu>
       {sortFields.map((field) => (
         <Menu.SubMenu key={field.key} title={field.label}>
-          <Menu.Item 
+          <Menu.Item
             key={`${field.key}-asc`}
             onClick={() => handleSort(field.key, "ASC")}
           >
             <ArrowUpOutlined /> По возрастанию
           </Menu.Item>
-          <Menu.Item 
+          <Menu.Item
             key={`${field.key}-desc`}
             onClick={() => handleSort(field.key, "DESC")}
           >
@@ -133,7 +136,7 @@ const ShipmentList = () => {
     >
       <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
         <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10}>
-          <Dropdown overlay={sortMenu} trigger={['click']}>
+          <Dropdown overlay={sortMenu} trigger={["click"]}>
             <Button
               icon={
                 sortDirection === "ASC" ? (
@@ -192,7 +195,12 @@ const ShipmentList = () => {
           title="Количество мест"
           dataIndex="totalService"
         />
-        <Table.Column width={50} title="Вес" dataIndex="totalServiceWeight" />
+        <Table.Column
+          width={50}
+          title="Вес"
+          dataIndex="totalServiceWeight"
+          render={(value) => String(value).replace(".", ",").slice(0, 5)}
+        />
         <Table.Column
           width={50}
           title="Пункт назначения"

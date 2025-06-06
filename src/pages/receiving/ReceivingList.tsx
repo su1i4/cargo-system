@@ -3,7 +3,16 @@ import { ArrowDownOutlined } from "@ant-design/icons";
 import { ArrowUpOutlined } from "@ant-design/icons";
 import { CreateButton, List, useTable } from "@refinedev/antd";
 import { useNavigation } from "@refinedev/core";
-import { Button, DatePicker, Dropdown, Flex, Input, Menu, Row, Table } from "antd";
+import {
+  Button,
+  DatePicker,
+  Dropdown,
+  Flex,
+  Input,
+  Menu,
+  Row,
+  Table,
+} from "antd";
 import dayjs from "dayjs";
 import { useState } from "react";
 
@@ -27,6 +36,9 @@ const ReceivingList = () => {
         },
       ],
     },
+    pagination: {
+      pageSize: 100
+    }
   });
 
   const { show } = useNavigation();
@@ -49,19 +61,7 @@ const ReceivingList = () => {
       setFilters([]);
     }
   };
-
-  const handleSortChange = (
-    field: "id" | "counterparty.name",
-    direction: "asc" | "desc"
-  ) => {
-    setSorters([
-      {
-        field,
-        order: direction,
-      },
-    ]);
-  };
-
+  
   const datePickerContent = (
     <DatePicker.RangePicker
       style={{ width: "280px" }}
@@ -130,7 +130,7 @@ const ReceivingList = () => {
   ];
 
   const getSortFieldLabel = () => {
-    const field = sortFields.find(f => f.key === sortField);
+    const field = sortFields.find((f) => f.key === sortField);
     return field ? field.label : "Дата отправки";
   };
 
@@ -138,13 +138,13 @@ const ReceivingList = () => {
     <Menu>
       {sortFields.map((field) => (
         <Menu.SubMenu key={field.key} title={field.label}>
-          <Menu.Item 
+          <Menu.Item
             key={`${field.key}-asc`}
             onClick={() => handleSort(field.key, "ASC")}
           >
             <ArrowUpOutlined /> По возрастанию
           </Menu.Item>
-          <Menu.Item 
+          <Menu.Item
             key={`${field.key}-desc`}
             onClick={() => handleSort(field.key, "DESC")}
           >
@@ -180,17 +180,14 @@ const ReceivingList = () => {
             allowClear
           />
           <Dropdown
-              overlay={datePickerContent}
-              trigger={["click"]}
-              placement="bottomRight"
-            >
-              <Button
-                icon={<CalendarOutlined />}
-                className="date-picker-button"
-              >
-                Дата
-              </Button>
-            </Dropdown>
+            overlay={datePickerContent}
+            trigger={["click"]}
+            placement="bottomRight"
+          >
+            <Button icon={<CalendarOutlined />} className="date-picker-button">
+              Дата
+            </Button>
+          </Dropdown>
         </Flex>
       </Row>
       <Table
@@ -228,7 +225,12 @@ const ReceivingList = () => {
           title="Количество мест"
           dataIndex="totalService"
         />
-        <Table.Column width={50} title="Вес" dataIndex="totalServiceWeight" />
+        <Table.Column
+          width={50}
+          title="Вес"
+          dataIndex="totalServiceWeight"
+          render={(value) => String(value).replace(".", ",").slice(0, 5)}
+        />
         <Table.Column
           width={50}
           title="Пункт назначения"

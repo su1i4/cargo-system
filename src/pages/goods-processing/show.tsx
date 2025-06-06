@@ -141,7 +141,7 @@ export const GoodsShow: React.FC = () => {
             style={{ width: 100, height: 60, objectFit: "contain" }}
             alt="photo"
           />
-          <Title style={{ fontSize: 12, fontWeight: 600 }} level={5}>
+          <Title style={{ fontSize: 15, fontWeight: 600 }} level={5}>
             Накладная №: {record?.invoice_number}
           </Title>
         </Flex>
@@ -150,10 +150,10 @@ export const GoodsShow: React.FC = () => {
           <Text>{dayjs(record?.created_at).format("DD.MM.YYYY HH:mm")}</Text>
         </Flex>
         <Flex vertical style={{ marginBottom: 10 }}>
-          <Text style={{ fontSize: 10, color: "#808080" }}>
+          <Text style={{ fontSize: 13, color: "#808080" }}>
             Досыл, услуги грузчиков и адресная доставка оплачивается отдельно
           </Text>
-          <Text style={{ fontSize: 10, color: "#808080" }}>
+          <Text style={{ fontSize: 13, color: "#808080" }}>
             Адрес склада:{" "}
             {
               tableProps?.dataSource?.find(
@@ -347,7 +347,7 @@ export const GoodsShow: React.FC = () => {
                 <Text>{service.bag_number}</Text>
               </Col>
               <Col style={colStyle} span={4}>
-                <Text style={{ fontSize: 12, lineHeight: "10px" }}>
+                <Text style={{ fontSize: 15, lineHeight: "10px" }}>
                   Грузоперевозка{" "}
                   {`${record?.employee?.branch?.name} - ${record?.destination?.name}`}
                 </Text>
@@ -362,7 +362,9 @@ export const GoodsShow: React.FC = () => {
                 <Text>{service.quantity || 0}</Text>
               </Col>
               <Col style={colStyle} span={2}>
-                <Text>{service.weight || 0}</Text>
+                <Text>
+                  {String(service.weight).replace(".", ",").slice(0, 5) || 0}
+                </Text>
               </Col>
               <Col style={colStyle} span={4}>
                 <Text>{service.tariff || 0}</Text>
@@ -383,7 +385,7 @@ export const GoodsShow: React.FC = () => {
             <Text style={{ fontWeight: "bold" }}>{totalQuantity}</Text>
           </Col>
           <Col style={colStyle} span={2}>
-            <Text style={{ fontWeight: "bold" }}>{totalWeight}</Text>
+            <Text style={{ fontWeight: "bold" }}>{ String(totalWeight).replace(".", ",").slice(0, 5)}</Text>
           </Col>
           <Col style={colStyle} span={4}>
             <Text style={{ fontWeight: "bold" }}>-</Text>
@@ -448,26 +450,26 @@ export const GoodsShow: React.FC = () => {
           ""
         )}
         <Flex justify="space-between" align="center" style={{ marginTop: 10 }}>
-          <Text style={{ fontWeight: "bold", fontSize: 10 }}>Сумма заказа</Text>
+          <Text style={{ fontWeight: "bold", fontSize: 13 }}>Сумма заказа</Text>
           <Flex vertical align="flex-end" style={{ width: "300px" }}>
             <Text
               style={{
                 fontWeight: "bold",
-                fontSize: 12,
+                fontSize: 15,
                 borderBottom: "1px solid black",
               }}
             >
               Итого к оплате: {totalSum + totalProdSum} RUB
             </Text>
-            <Text style={{ fontWeight: "bold", fontSize: 12 }}>
+            <Text style={{ fontWeight: "bold", fontSize: 15 }}>
               {((totalSum + totalProdSum) * Number(som?.rate)).toFixed(0)} KGS
             </Text>
           </Flex>
         </Flex>
         <Flex gap={12} style={{ marginTop: 5 }}>
-          <Flex vertical style={{ width: "50%", fontSize: 12 }}>
+          <Flex vertical style={{ width: "50%", fontSize: 13 }}>
             <Text>Условия перевозок:</Text>
-            <Text style={{ fontSize: 10 }}>
+            <Text style={{ fontSize: 12 }}>
               1. Клиент / представитель Клиента гарантирует, что отправляемый
               груз не содержит предметов, запрещенных к перевозке, в
               соответствии с правилами компании, указанными на сайте
@@ -475,20 +477,20 @@ export const GoodsShow: React.FC = () => {
               полную ответственность за достоверность предоставляемой
               информации.
             </Text>
-            <Text style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+            <Text style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
               2. В случае пропажи или порчи товара, или пожара Клиенту
               возмещается стоимость 1 кг груза по следующим тарифам: а) товары
               производства Кыргызстана - по 600 руб., б) товары производства
               Турции - по 1000 руб., в) товары производства Китая и других стран
               - по 750 руб. Гарантия не распространяется на досылы
             </Text>
-            <Text style={{ fontSize: 10, marginBottom: 4 }}>
+            <Text style={{ fontSize: 12, marginBottom: 4 }}>
               3. При сдаче и перевозки груза Росс Карго несет ответственность
               только на массу груза, за количество ответственности не несет.
             </Text>
           </Flex>
           <Flex vertical style={{ width: "50%", fontSize: 12 }}>
-            <Text style={{ fontSize: 10, marginBottom: 4 }}>
+            <Text style={{ fontSize: 12, marginBottom: 4 }}>
               4. Стоимость доставки указана только до конечных городов: Москва,
               Новосибирск, Екатеринбург. За досыл в другие города взимается
               дополнительная плата в соответствии с тарифами местных
@@ -497,7 +499,7 @@ export const GoodsShow: React.FC = () => {
               хранение и другое в соответствии с требованиями администрации
               (склада, рынка, пункта перегрузки) на местах.
             </Text>
-            <Text style={{ fontSize: 10 }}>
+            <Text style={{ fontSize: 12 }}>
               5. Предоставляя свои персональные данные, Клиент / представитель
               Клиента дает полное и безусловное согласие на их хранение и
               обработку. 6. Подписанием данного документа Клиент / представитель

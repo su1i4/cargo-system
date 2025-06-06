@@ -171,7 +171,9 @@ const ShipmentHistoryShow = () => {
 
         <Col xs={24} md={6}>
           <Title level={5}>Вес</Title>
-          <TextField value={Number(record?.weight) || 0} />
+          <TextField
+            value={String(record?.weight).replace(".", ",").slice(0, 5) || 0}
+          />
         </Col>
 
         <Col xs={24} md={6}>
@@ -231,7 +233,11 @@ const ShipmentHistoryShow = () => {
         <Table.Column title="Номер мешка" dataIndex="bag_number" />
         <Table.Column title="Город" dataIndex="country" />
         <Table.Column title="Количество" dataIndex="quantity" />
-        <Table.Column title="Вес" dataIndex="weight" />
+        <Table.Column
+          title="Вес"
+          dataIndex="weight"
+          render={(value) => String(value).replace(".", ",").slice(0, 5)}
+        />
         <Table.Column title="Статус" dataIndex="status" />
         <Table.Column
           title="Город назначения"

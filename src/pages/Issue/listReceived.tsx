@@ -43,7 +43,7 @@ export const IssueProcessingListReceived = () => {
     };
   };
 
-  const { data, isLoading, refetch } = useCustom<any>({
+  const { data, isLoading } = useCustom<any>({
     url: `${API_URL}/goods-processing`,
     method: "get",
     config: {
@@ -57,7 +57,6 @@ export const IssueProcessingListReceived = () => {
     setCurrentPage(pagination.current);
     setPageSize(pagination.pageSize);
 
-    // Обрабатываем сортировку, если она пришла из таблицы
     if (sorter && sorter.field) {
       setSortField(
         sorter.field === "counterparty.name" ? "counterparty.name" : "id"
@@ -133,10 +132,8 @@ export const IssueProcessingListReceived = () => {
     />
   );
 
-  // Получаем актуальные данные из хука useCustom
   const dataSource = data?.data?.data || [];
 
-  // Формируем пропсы для таблицы из данных useCustom
   const tableProps = {
     dataSource: dataSource,
     loading: isLoading,
@@ -261,7 +258,9 @@ export const IssueProcessingListReceived = () => {
         <Table.Column
           dataIndex="totalServiceWeight"
           title="Вес"
-          render={(value) => value + " кг"}
+          render={(value) =>
+            String(value).replace(".", ",").slice(0, 5) + " кг"
+          }
         />
         <Table.Column
           dataIndex="services"

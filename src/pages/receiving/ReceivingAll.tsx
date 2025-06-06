@@ -1,20 +1,12 @@
 import React, { useState } from "react";
-import {
-  Show,
-  TextField,
-  List,
-  ShowButton,
-  DeleteButton,
-} from "@refinedev/antd";
+import { List } from "@refinedev/antd";
 import {
   useUpdateMany,
-  useShow,
   useCustom,
   useNavigation,
   BaseRecord,
 } from "@refinedev/core";
 import {
-  Typography,
   Row,
   Col,
   Table,
@@ -26,14 +18,13 @@ import {
   Input,
   Modal,
 } from "antd";
-import { data, useParams, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { API_URL } from "../../App";
 import { catchDateTable, translateStatus } from "../../lib/utils";
 import {
   ArrowDownOutlined,
   ArrowLeftOutlined,
   ArrowUpOutlined,
-  CheckOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import { CustomTooltip } from "../../shared/custom-tooltip";
@@ -239,7 +230,6 @@ const ReceivingAll = () => {
     pagination: {
       current: currentPage,
       pageSize: pageSize,
-      //   total: ReceivingAll || 0,
     },
     onChange: handleTableChange,
   };
@@ -318,7 +308,7 @@ const ReceivingAll = () => {
             </CustomTooltip>
             <Form.Item name="trackCode">
               <Input
-                style={{ width: 600 }} // Fixed width issue
+                style={{ width: 600 }}
                 placeholder="Поиск по трек-коду, ФИО получателя или по коду получателя"
                 prefix={<SearchOutlined />}
                 onChange={(e) => {
@@ -343,9 +333,7 @@ const ReceivingAll = () => {
         </Col>
       </Row>
 
-      {/* Таблица со списком товаров и чекбоксами */}
       <Table
-        // pagination={{ showSizeChanger: true }}
         {...tableProps}
         rowKey="id"
         rowSelection={rowSelection}
@@ -398,7 +386,11 @@ const ReceivingAll = () => {
           )}
           title="Пункт назначения, Пвз"
         />
-        <Table.Column dataIndex="weight" title="Вес" />
+        <Table.Column
+          dataIndex="weight"
+          title="Вес"
+          render={(value) => String(value).replace(".", ",").slice(0, 5)}
+        />
         <Table.Column
           dataIndex="status"
           title="Статус"

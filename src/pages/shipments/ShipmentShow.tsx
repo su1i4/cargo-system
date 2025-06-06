@@ -188,7 +188,9 @@ const ShipmentShow = () => {
 
         <Col xs={24} md={6}>
           <Title level={5}>Вес</Title>
-          <TextField value={Number(record?.weight) || 0} />
+          <TextField
+            value={String(record?.weight).replace(".", ",").slice(0, 5) || 0}
+          />
         </Col>
 
         <Col xs={24} md={6}>
@@ -259,7 +261,11 @@ const ShipmentShow = () => {
           render={(value) => `${value?.recipient?.name}`}
         />
         <Table.Column title="Количество" dataIndex="quantity" />
-        <Table.Column title="Вес" dataIndex="weight" />
+        <Table.Column
+          title="Вес"
+          dataIndex="weight"
+          render={(value) => String(value).replace(".", ",").slice(0, 5)}
+        />
         <Table.Column title="Статус" dataIndex="status" />
         <Table.Column
           title="Пункт назначения"

@@ -39,7 +39,7 @@ const ShipmentAdd = () => {
   const { tableProps, setFilters, setSorters } = useTable({
     resource: "service",
     pagination: {
-      pageSize: 10,
+      pageSize: 100,
     },
     sorters: {
       initial: [
@@ -389,7 +389,11 @@ const ShipmentAdd = () => {
             }
           />
           <Table.Column title="Количество" dataIndex="quantity" />
-          <Table.Column title="Вес" dataIndex="weight" />
+          <Table.Column
+            title="Вес"
+            dataIndex="weight"
+            render={(value) => String(value).replace(".", ",").slice(0, 5)}
+          />
           <Table.Column title="Статус" dataIndex="status" />
           <Table.Column
             title="Пункт назначения"
