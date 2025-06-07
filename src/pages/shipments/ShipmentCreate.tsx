@@ -155,46 +155,85 @@ const ShipmentCreate = () => {
   const [searchValue, setSearchValue] = useState("");
   const [sortField, setSortField] = useState("created_at");
 
-  const handleSort = (field: string, direction: "ASC" | "DESC") => {
+  const sortFields = [
+    { key: "good.created_at", label: "Дата приемки" },
+    { key: "bag_number", label: "Номер мешка" },
+  ] as const;
+
+  type SortFieldKey = (typeof sortFields)[number]["key"];
+  type SortDirection = "ASC" | "DESC";
+
+  const handleSort = (field: SortFieldKey, direction: SortDirection) => {
     setSortField(field);
     setSortDirection(direction);
     setSorters([
       {
         field,
-        order: direction.toLowerCase() as "asc" | "desc",
+        //@ts-ignore
+        order: direction.toLowerCase() as "ascend" | "descend",
       },
     ]);
   };
 
-  const sortFields = [
-    { key: "good.created_at", label: "Дата" },
-    { key: "bag_number", label: "Номер мешка" },
-  ];
-
-  const getSortFieldLabel = () => {
+  const getSortFieldLabel = (): string => {
     const field = sortFields.find((f) => f.key === sortField);
     return field ? field.label : "Дата приемки";
   };
 
   const sortMenu = (
-    <Menu>
-      {sortFields.map((field) => (
-        <Menu.SubMenu key={field.key} title={field.label}>
-          <Menu.Item
-            key={`${field.key}-asc`}
-            onClick={() => handleSort(field.key, "ASC")}
-          >
-            <ArrowUpOutlined /> По возрастанию
-          </Menu.Item>
-          <Menu.Item
-            key={`${field.key}-desc`}
-            onClick={() => handleSort(field.key, "DESC")}
-          >
-            <ArrowDownOutlined /> По убыванию
-          </Menu.Item>
-        </Menu.SubMenu>
-      ))}
-    </Menu>
+    <Menu
+      items={sortFields.map((field) => ({
+        key: field.key,
+        label: field.label,
+        children: [
+          {
+            key: `${field.key}-asc`,
+            label: (
+              <>
+                <ArrowUpOutlined /> По возрастанию
+              </>
+            ),
+            onClick: () => handleSort(field.key, "ASC"),
+          },
+          {
+            key: `${field.key}-desc`,
+            label: (
+              <>
+                <ArrowDownOutlined /> По убыванию
+              </>
+            ),
+            onClick: () => handleSort(field.key, "DESC"),
+          },
+        ],
+      }))}
+    />
+  );
+
+  const sortedData = [...(tableProps?.dataSource ?? [])].sort(
+    (a: any, b: any) => {
+      if (sortField === "bag_number") {
+        const extractNumber = (val: string) => {
+          const parts = val.split("|");
+          return parseInt(parts[1]?.trim() ?? "0", 10);
+        };
+
+        const aVal = extractNumber(a.bag_number);
+        const bVal = extractNumber(b.bag_number);
+
+        return sortDirection === "ASC" ? aVal - bVal : bVal - aVal;
+      }
+
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+
+      return sortDirection === "ASC"
+        ? aVal > bVal
+          ? 1
+          : -1
+        : aVal < bVal
+        ? 1
+        : -1;
+    }
   );
 
   const handleSearch = (value: string) => {
@@ -383,6 +422,7 @@ const ShipmentCreate = () => {
         </Row>
         <Table
           {...tableProps}
+          dataSource={sortedData}
           rowKey="id"
           rowSelection={rowSelection}
           onRow={(record) => ({

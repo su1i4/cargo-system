@@ -210,7 +210,7 @@ export const GoodsCreate = () => {
       bag_number: `${reciver?.label?.split(",")[0]}/${branch?.label?.slice(
         0,
         1
-      )}`,
+      )}|`,
     };
     setServices([...services, newItem]);
     setNextId(nextId + 1);
@@ -276,7 +276,7 @@ export const GoodsCreate = () => {
       //@ts-ignore
       createItemsByCount(
         //@ts-ignore
-        `${reciver?.label?.split(",")[0]}/${branch?.label?.slice(0, 1)}`
+        `${reciver?.label?.split(",")[0]}/${branch?.label?.slice(0, 1)}|`
       );
     }
     message.success(`Создано ${copyCount} новых товаров`);
