@@ -64,7 +64,9 @@ const ShipmentShow = () => {
         },
       ],
     },
-    queryOptions: {},
+    pagination: {
+      pageSize: 100
+    }
   });
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");

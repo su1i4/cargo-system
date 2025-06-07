@@ -46,8 +46,9 @@ const ShipmentEdit = () => {
   const { push, list } = useNavigation();
 
   const [searchValue, setSearchValue] = useState<string>("");
-
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
+  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
+  const [sortField, setSortField] = useState("created_at");
 
   const { tableProps, setFilters, setSorters } = useTable({
     resource: "service",
@@ -66,11 +67,6 @@ const ShipmentEdit = () => {
           operator: "eq",
           value: Number(id),
         },
-        // {
-        //   field: "status",
-        //   operator: "eq",
-        //   value: "В пути",
-        // },
       ],
       initial: searchValue
         ? [
@@ -97,6 +93,10 @@ const ShipmentEdit = () => {
 
   const { mutate: updateManyGoods } = useUpdateMany({
     resource: "goods-processing",
+  });
+
+  const { mutate: updateServices } = useUpdateMany({
+    resource: "service",
   });
 
   const { selectProps: employeeSelectProps } = useSelect({
@@ -134,68 +134,174 @@ const ShipmentEdit = () => {
     resource: "shipments",
     action: "edit",
     id,
-    redirect: "list",
+    redirect: false, // Изменено на false, чтобы контролировать редирект вручную
     onMutationSuccess: async (updatedShipment) => {
-      const shipmentId = updatedShipment.data.id;
-
-      const currentAssignedGoods =
-        tableProps?.dataSource
-          ?.filter((item: any) => item.shipment_id === parseInt(id as string))
-          .map((item: any) => item.id) || [];
-
-      const unassignedGoods = currentAssignedGoods.filter(
-        (goodId: number) => !selectedRowKeys.includes(goodId)
-      );
-
-      if (unassignedGoods.length > 0) {
-        updateManyGoods({
-          ids: unassignedGoods,
-          values: {
-            shipment_id: null,
-            status: "В складе",
-          },
-        });
-      }
-
-      if (selectedRowKeys.length > 0) {
-        updateManyGoods({
-          ids: selectedRowKeys,
-          values: {
-            shipment_id: shipmentId,
-            status: "В пути",
-          },
-        });
-      }
+      console.log("Form mutation success:", updatedShipment);
+      // Убираем дублирующую логику отсюда, так как она будет в handleFinish
     },
   });
 
-  const saveButtonProps = {
-    ...originalSaveButtonProps,
-    onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (originalSaveButtonProps.onClick) {
-        originalSaveButtonProps.onClick(e);
+  const { queryResult } = useShow({
+    resource: "shipments",
+    id,
+  });
+  const record = queryResult.data?.data;
+
+  // Обработчик завершения отправки формы
+  const handleFinish = async (values: any) => {
+    console.log("handleFinish called with values:", values);
+    console.log("selectedRowKeys:", selectedRowKeys);
+    console.log("tableProps.dataSource:", tableProps?.dataSource);
+
+    try {
+      // Получаем все сервисы из таблицы
+      const allServices = tableProps?.dataSource || [];
+      
+      // Разделяем на выбранные и невыбранные
+      const selectedServices = allServices.filter((item: any) => 
+        selectedRowKeys.includes(item.id)
+      );
+      const unselectedServices = allServices.filter((item: any) => 
+        !selectedRowKeys.includes(item.id)
+      );
+
+      console.log('Selected services:', selectedServices.map(s => s.id));
+      console.log('Unselected services:', unselectedServices.map(s => s.id));
+
+      // Создаем массив промисов для обновления
+      const updatePromises = [];
+
+      // Обновляем невыбранные сервисы (убираем из отправки)
+      if (unselectedServices.length > 0) {
+        const unselectedPromise = new Promise((resolve, reject) => {
+          updateServices(
+            {
+              ids: unselectedServices.map((item: any) => item.id),
+              values: {
+                shipment_id: null,
+                status: "На складе",
+              },
+            },
+            {
+              onSuccess: (data) => {
+                console.log("Unselected services updated successfully:", data);
+                resolve(data);
+              },
+              onError: (error) => {
+                console.error("Error updating unselected services:", error);
+                reject(error);
+              },
+            }
+          );
+        });
+        updatePromises.push(unselectedPromise);
       }
-    },
-    disabled: !!tableProps.loading,
+
+      // Обновляем выбранные сервисы (добавляем в отправку)
+      if (selectedServices.length > 0) {
+        const selectedPromise = new Promise((resolve, reject) => {
+          updateServices(
+            {
+              ids: selectedServices.map((item: any) => item.id),
+              values: {
+                shipment_id: Number(id),
+                status: "В пути",
+              },
+            },
+            {
+              onSuccess: (data) => {
+                console.log("Selected services updated successfully:", data);
+                resolve(data);
+              },
+              onError: (error) => {
+                console.error("Error updating selected services:", error);
+                reject(error);
+              },
+            }
+          );
+        });
+        updatePromises.push(selectedPromise);
+      }
+
+      // Ждем завершения всех обновлений
+      if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
+        // message.success('Отправка успешно обновлена');
+        list("shipments");
+      } else {
+        message.info('Нет изменений для сохранения');
+        list("shipments");
+      }
+    } catch (error) {
+      console.error('Error in handleFinish:', error);
+      message.error("Ошибка при обновлении сервисов: " + (error));
+    }
   };
 
+  // Кастомный обработчик кнопки сохранения
+  const saveButtonProps = {
+    ...originalSaveButtonProps,
+    onClick: async (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      
+      try {
+        console.log("Save button clicked");
+        
+        // Валидируем форму
+        const values = await form.validateFields();
+        console.log("Form validation passed:", values);
+        
+        // Отправляем основную форму
+        form.submit();
+        
+        // Небольшая задержка, чтобы дать время форме отправиться
+        setTimeout(() => {
+          handleFinish(values);
+        }, 500);
+        
+      } catch (error) {
+        console.error('Form validation failed:', error);
+        message.error('Проверьте заполнение полей формы');
+      }
+    },
+    disabled: formLoading || !!tableProps.loading,
+  };
+
+  // Установка выбранных строк при загрузке данных
   useEffect(() => {
     if (tableProps?.dataSource && id) {
       const assignedGoods = tableProps.dataSource
         .filter((item: any) => item.shipment_id === parseInt(id as string))
         .map((item: any) => item.id);
 
+      console.log("Setting selected row keys:", assignedGoods);
       setSelectedRowKeys(assignedGoods);
     }
   }, [tableProps.dataSource, id]);
 
+  // Установка данных формы при загрузке
   useEffect(() => {
     if (shipmentData?.data && form) {
+      console.log("Setting form values:", shipmentData.data);
       form.setFieldsValue({
         ...shipmentData.data,
       });
     }
   }, [shipmentData, form]);
+
+  useEffect(() => {
+    if (record) {
+      form.setFieldsValue({
+        flight: record.flight,
+        number: record.number,
+        employee: record.employee,
+        driver: record.driver,
+        type: record.type,
+        destination: record.destination,
+        comment: record.comment,
+      });
+    }
+  }, [record, form]);
 
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
@@ -213,65 +319,12 @@ const ShipmentEdit = () => {
     }
   };
 
-  const { queryResult } = useShow({
-    resource: "shipments",
-    id,
-  });
-  const record = queryResult.data?.data;
-
-  useEffect(() => {
-    if (record) {
-      form.setFieldsValue({
-        flight: record.flight,
-        number: record.number,
-        employee: record.employee,
-        driver: record.driver,
-        type: record.type,
-        destination: record.destination,
-        comment: record.comment,
-      });
-    }
-  }, [record, form]);
-
-  const { mutate: updateServices } = useUpdateMany({
-    resource: "service",
-  });
-
   const rowSelection = {
     selectedRowKeys,
     onChange: (keys: React.Key[]) => {
+      console.log("Row selection changed:", keys);
       setSelectedRowKeys(keys as number[]);
     },
-  };
-
-  const handleFinish = (values: any) => {
-    const unselectedServices = tableProps?.dataSource?.filter(
-      (item: any) => !selectedRowKeys.includes(item.id)
-    );
-    updateServices({
-      ids: unselectedServices?.map((item: any) => item.id),
-      values: {
-        shipment_id: null,
-        status: "На складе",
-      },
-    });
-    updateServices(
-      {
-        ids: unselectedServices?.map((item: any) => item.id),
-        values: {
-          shipment_id: Number(id),
-          status: "В пути",
-        },
-      },
-      {
-        onSuccess: () => {
-          list("shipments");
-        },
-        onError: (error) => {
-          message.error("Ошибка при обновлении сервисов: " + error);
-        },
-      }
-    );
   };
 
   const handleDateRangeChange = (dates: any, dateStrings: [string, string]) => {
@@ -300,9 +353,6 @@ const ShipmentEdit = () => {
       onChange={handleDateRangeChange}
     />
   );
-
-  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
-  const [sortField, setSortField] = useState("created_at");
 
   const handleSort = (field: string, direction: "ASC" | "DESC") => {
     setSortField(field);
@@ -382,17 +432,11 @@ const ShipmentEdit = () => {
 
   return (
     <Edit
-      saveButtonProps={{
-        ...saveButtonProps,
-        onClick: () => {
-          form.submit();
-          handleFinish(form.getFieldsValue());
-        },
-      }}
+      saveButtonProps={saveButtonProps}
       headerButtons={() => null}
       isLoading={formLoading || isLoadingShipment}
     >
-      <Form form={form} layout="vertical">
+      <Form {...formProps} form={form} layout="vertical">
         <Row gutter={[16, 0]}>
           <Col span={6}>
             <Form.Item label="Номер рейса" name="truck_number">
@@ -470,7 +514,10 @@ const ShipmentEdit = () => {
             </Dropdown>
           </Flex>
         </Row>
-        <Table {...tableProps} rowKey="id" rowSelection={rowSelection}
+        <Table 
+          {...tableProps} 
+          rowKey="id" 
+          rowSelection={rowSelection}
           onRow={(record) => ({
             onClick: () => {
               const id = record.id;
