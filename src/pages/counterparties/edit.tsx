@@ -7,22 +7,6 @@ import PhoneInput from "react-phone-input-2";
 export const CounterpartyEdit: React.FC = () => {
   const { formProps, saveButtonProps, formLoading, queryResult } = useForm();
 
-  const { tableProps } = useTable({
-    resource: "under-branch",
-    pagination: {
-      mode: "off",
-    },
-  });
-
-  // const { selectProps: underBranchSelectProps } = useSelect({
-  //   resource: "under-branch",
-  //   optionLabel: "address",
-  //   defaultValue: formProps.initialValues?.under_branch_id,
-  //   pagination: {
-  //     mode: "off",
-  //   },
-  // });
-
   return (
     <Edit
       headerButtons={() => false}
@@ -34,26 +18,6 @@ export const CounterpartyEdit: React.FC = () => {
         layout="vertical"
         initialValues={queryResult?.data?.data}
       >
-        <Form.Item
-          style={{ width: "100%" }}
-          name="under_branch_id"
-          label="Пвз"
-          rules={[{ required: true, message: "Введите пвз" }]}
-        >
-          <Select
-            options={tableProps?.dataSource
-              ?.filter(
-                (option) =>
-                  option.branch_id === formProps.initialValues?.branch_id
-              )
-              ?.map((option) => ({
-                label: option.address,
-                value: option.id,
-              }))}
-            style={{ width: "100%" }}
-          />
-        </Form.Item>
-
         <Form.Item
           label="Имя"
           name="name"

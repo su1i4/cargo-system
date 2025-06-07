@@ -10,9 +10,11 @@ import {
 import {
   Button,
   Card,
+  Checkbox,
   Col,
   DatePicker,
   Dropdown,
+  Flex,
   Form,
   Input,
   Row,
@@ -33,7 +35,7 @@ import { API_URL } from "../../App";
 import TextArea from "antd/lib/input/TextArea";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-import { useNavigate } from "react-router";
+import { redirect, useNavigate } from "react-router";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -42,7 +44,7 @@ export enum CurrencyType {
   Usd = "Доллар",
   Rub = "Рубль",
   Som = "Сом",
-  Cny = "Юань",
+  // Cny = "Юань",
 }
 
 export const CashDeskCreate: React.FC = () => {
@@ -137,11 +139,6 @@ export const CashDeskCreate: React.FC = () => {
                 $eq: selectedType,
               },
             },
-            {
-              operation_id: {
-                $eq: null,
-              },
-            },
             ...filters,
           ],
         }),
@@ -156,7 +153,9 @@ export const CashDeskCreate: React.FC = () => {
   const { selectProps: senderSelectProps } = useSelect({
     resource: "counterparty",
     optionLabel: (item) =>
-      `${item.name} ${item.clientPrefix}-${item.clientCode}/${item.type}`,
+      `${item.name} ${item.clientPrefix}-${item.clientCode}/${
+        item.type === "sender" ? "." : ","
+      }`,
     filters: [
       {
         operator: "or",
@@ -220,7 +219,14 @@ export const CashDeskCreate: React.FC = () => {
         );
         const totalAmount = totalProductAmount + totalServiceAmount;
         const transformAmount = rate > 0 ? rate * totalAmount : totalAmount;
-        formProps.form.setFieldsValue({ amount: transformAmount });
+        formProps.form.setFieldsValue({
+          amount: transformAmount - selectedRows[0]?.paid_sum || 0,
+        });
+        if (selectedRows?.length) {
+          formProps.form.setFieldsValue({
+            paid_sum: transformAmount - selectedRows[0]?.paid_sum || 0,
+          });
+        }
       } else {
         const currentValues: any = formProps.form.getFieldsValue();
 
@@ -295,7 +301,9 @@ export const CashDeskCreate: React.FC = () => {
   }, [currency.data, currencyLoading]);
 
   const handleSenderChange = (value: any, record: any) => {
-    setSelectedType(record.label.split("/")[1]);
+    setSelectedType(
+      record.label.split("/")[1] === "." ? "sender" : "recipient"
+    );
     setSelectedRows([]);
     setChange(change + 1);
   };
@@ -323,6 +331,7 @@ export const CashDeskCreate: React.FC = () => {
   const dataSource = data?.data?.data;
 
   const tableProps = {
+    type: "radio" as const,
     dataSource: dataSource,
     loading: isLoading,
     pagination: {
@@ -331,15 +340,11 @@ export const CashDeskCreate: React.FC = () => {
       total: data?.data?.total || 0,
     },
     onChange: handleTableChange,
-  };
-
-  const handleRowSelectionChange = (
-    selectedRowKeys: Key[],
-    selectedRows: BaseRecord[],
-    info: { type: "all" | "none" | "invert" | "single" | "multiple" }
-  ) => {
-    setSelectedRowKeys(selectedRowKeys as number[]);
-    setSelectedRows(selectedRows);
+    rowClassName: (record: any) => {
+      return selectedRowKeys.includes(record.id)
+        ? "ant-table-row-selected"
+        : "";
+    },
   };
 
   const datePickerContent = (
@@ -407,6 +412,13 @@ export const CashDeskCreate: React.FC = () => {
     </Card>
   );
 
+  const handleRowSelect = (record: any) => {
+    setSelectedRowKeys([record.id]);
+    setSelectedRows([record]);
+  };
+
+  console.log(selectedRows);
+
   return (
     <Create
       saveButtonProps={{
@@ -430,7 +442,13 @@ export const CashDeskCreate: React.FC = () => {
           const finalValues = {
             ...values,
             type: "income",
+            counterparty_id: formProps?.form?.getFieldValue("sender_id")
           };
+
+          if (isAgent) {
+            //@ts-ignore
+            finalValues.good_id = selectedRows[0]?.id;
+          }
 
           formProps.onFinish && formProps.onFinish(finalValues);
         }}
@@ -603,22 +621,33 @@ export const CashDeskCreate: React.FC = () => {
               />
             </Form.Item>
           </Col>
-          <Col span={isAgent ? 7 : 12}>
+          <Col span={isAgent ? 4 : 12}>
             <Form.Item
-              label="Сумма"
+              label="Сумма для прихода"
               name="amount"
               rules={[{ required: true, message: "Укажите сумму" }]}
               style={{ marginBottom: 5 }}
             >
               <Input
                 type="number"
-                disabled={isAgent}
+                // disabled={isAgent}
                 min={0}
                 placeholder="Введите сумму прихода"
                 style={{ width: "100%" }}
               />
             </Form.Item>
           </Col>
+          {isAgent && (
+            <Col span={isAgent ? 3 : 12}>
+              <Form.Item
+                label="Сумма к оплате"
+                name="paid_sum"
+                style={{ marginBottom: 5 }}
+              >
+                <Input type="number" disabled style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+          )}
           <Col span={12}>
             <Form.Item
               label="Комментарий"
@@ -751,13 +780,23 @@ export const CashDeskCreate: React.FC = () => {
           {...tableProps}
           rowKey="id"
           scroll={{ x: "max-content" }}
-          rowSelection={{
-            type: "checkbox",
-            selectedRowKeys,
-            preserveSelectedRowKeys: true,
-            onChange: handleRowSelectionChange,
-          }}
+          onRow={(record) => ({
+            onClick: () => {
+              handleRowSelect(record);
+            },
+            style: { cursor: "pointer" },
+          })}
         >
+          <Table.Column
+            title=""
+            dataIndex="id"
+            render={(value) => (
+              <Checkbox
+                type="radio"
+                checked={selectedRowKeys.includes(value)}
+              />
+            )}
+          />
           <Table.Column
             title="№"
             render={(_: any, __: any, index: number) => {
@@ -827,6 +866,11 @@ export const CashDeskCreate: React.FC = () => {
                 Number(record.totalProductAmountSum)
               } руб`
             }
+          />
+          <Table.Column
+            dataIndex="paid_sum"
+            title="Оплачено"
+            render={(value) => `${value} руб`}
           />
           <Table.Column
             dataIndex="employee"

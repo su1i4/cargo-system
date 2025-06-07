@@ -119,36 +119,6 @@ export const CounterpartyList: React.FC = () => {
         <Table.Column dataIndex="name" title="Фио" />
         <Table.Column dataIndex="phoneNumber" title="Номер телефона" />
         <Table.Column
-          dataIndex="goods"
-          title="Общий вес кг"
-          render={(value) => {
-            const totalWeight = value
-              .reduce((acc: number, curr: any) => acc + Number(curr.weight), 0)
-              .toFixed(2);
-            return (
-              <CustomTooltip title={`Общий вес всех грузов: ${totalWeight} кг`}>
-                <span>{`${totalWeight} кг`}</span>
-              </CustomTooltip>
-            );
-          }}
-        />
-        <Table.Column
-          dataIndex="goods"
-          title="Общая сумма RUB"
-          render={(value) => {
-            const totalAmount = value
-              .reduce((acc: number, curr: any) => acc + Number(curr.amount), 0)
-              .toFixed(2);
-            return (
-              <CustomTooltip
-                title={`Общая сумма всех грузов: ${totalAmount} руб`}
-              >
-                <span>{`${totalAmount} руб`}</span>
-              </CustomTooltip>
-            );
-          }}
-        />
-        <Table.Column
           dataIndex="comment"
           title="Комментарий"
           render={(value) => {

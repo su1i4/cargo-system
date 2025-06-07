@@ -290,19 +290,6 @@ const ShipmentCreate = () => {
           label: branch.name,
           value: branch.id,
         }))}
-        allowClear
-        onChange={(value) => {
-          setFilters(
-            [
-              {
-                field: "good.destination_id",
-                operator: "eq",
-                value: value,
-              },
-            ],
-            "replace"
-          );
-        }}
         style={{ width: "100%", marginBottom: 20 }}
       />
       <Select

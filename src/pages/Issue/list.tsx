@@ -517,19 +517,6 @@ export const IssueProcessingList = () => {
           }}
         >
           <Typography.Text>
-            Доллар:{" "}
-            <strong>{Number(sumData?.Доллар || 0)?.toFixed(2)} $</strong>
-          </Typography.Text>
-          |
-          <Typography.Text>
-            Сом: <strong>{Number(sumData?.Сом || 0)?.toFixed(2)} сом</strong>
-          </Typography.Text>
-          |
-          <Typography.Text>
-            Рубль: <strong>{Number(sumData?.Рубль || 0)?.toFixed(2)} р</strong>
-          </Typography.Text>
-          |
-          <Typography.Text>
             Общий вес:{" "}
             <strong>
               {String(totalWeight).replace(".", ",").slice(0, 5)} кг

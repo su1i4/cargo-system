@@ -70,21 +70,12 @@ export const CounterpartyShow: React.FC = () => {
 
           <Title level={5}>Код клиента</Title>
           <TextField
-            value={`${record?.clientPrefix}-${String(
-              record?.clientCode
-            ).padStart(4, "0")}`}
+            value={`${record?.clientPrefix}-${String(record?.clientCode)}`}
           />
 
           <Title level={5}>ФИО</Title>
           <TextField value={record?.name} />
-
-          <Title level={5}>Пвз</Title>
-          <TextField
-            value={`${record?.branch?.name}-${
-              record?.under_branch?.address|| ""
-            }`}
-          />
-
+          
           <Title level={5}>Номер телефона</Title>
           <TextField value={record?.phoneNumber} />
 
@@ -94,14 +85,6 @@ export const CounterpartyShow: React.FC = () => {
 
         {/* Правая колонка */}
         <Col xs={24} sm={12}>
-          <Title level={5}>Тариф клиента</Title>
-          <TextField
-            value={`${
-              Number(record?.branch?.tarif) -
-              Number(record?.discount?.discount || 0)
-            }$`}
-          />
-
           <Title level={5}>Скидка</Title>
           <TextField value={record?.discount?.discount || "0$"} />
 

@@ -10,13 +10,13 @@ import { CurrencyType } from "../create";
 export const MyCreateModalOutcome: React.FC<{
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void
+  onSuccess: () => void;
 }> = ({ open, onClose, onSuccess }) => {
   const { modalProps, formProps, submit } = useModalForm({
     resource: "cash-desk",
     action: "create",
     onMutationSuccess: () => {
-      onSuccess()
+      onSuccess();
       onClose(); // Закрываем модальное окно после успешного создания
     },
   });
@@ -95,7 +95,7 @@ export const MyCreateModalOutcome: React.FC<{
 
   // Custom styles for form with reduced gap
   const formItemStyle = {
-    marginBottom: 8 // Reduced margin between form items
+    marginBottom: 8, // Reduced margin between form items
   };
 
   return (
@@ -108,10 +108,10 @@ export const MyCreateModalOutcome: React.FC<{
       cancelButtonProps={{ style: { display: "none" } }}
       width={483}
       okText="Добавить"
-      bodyStyle={{ 
-        height: "auto", 
+      bodyStyle={{
+        height: "auto",
         overflow: "visible",
-        paddingRight: 0
+        paddingRight: 0,
       }}
     >
       <Form
@@ -155,6 +155,7 @@ export const MyCreateModalOutcome: React.FC<{
             filterOption={(input, option) =>
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
+            placeholder="Выберите валюту"
             options={Object.values(CurrencyType).map((item: any) => ({
               label: `${item}`,
               value: item,
@@ -221,7 +222,7 @@ export const MyCreateModalOutcome: React.FC<{
         >
           <Input placeholder="Комментарий" style={{ width: "100%" }} />
         </Form.Item>
-        
+
         <Form.Item label="Чек" style={formItemStyle}>
           <Form.Item name="photo" noStyle>
             <Upload.Dragger

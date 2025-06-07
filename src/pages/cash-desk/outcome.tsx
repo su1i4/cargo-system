@@ -263,7 +263,7 @@ export const CashDeskOutcomeList: React.FC = () => {
           render={(value) => typeOperationMap[value] || value}
         />
 
-        <Table.Column dataIndex="id" title="Трек-код" />
+        {/* <Table.Column dataIndex="id" title="Трек-код" /> */}
 
         <Table.Column dataIndex="amount" title="Сумма" />
 

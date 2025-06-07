@@ -14,14 +14,20 @@ export const CustomTooltip = ({
 export const operationStatus = () => {
   return (
     <Table.Column
-      dataIndex="operation_id"
       title="Статус оплаты"
-      render={(value) => {
-        if (value === null) {
+      render={(_, record) => {
+        const amount = Number(record.amount);
+        const paidSum = Number(record.paid_sum);
+
+        if (!paidSum) {
           return <p style={{ color: "red" }}>Не оплачено</p>;
-        } else {
-          return <p style={{ color: "green" }}>Оплачено</p>;
         }
+
+        if (paidSum <= amount) {
+          return <p style={{ color: "orange" }}>Частично оплачено</p>;
+        }
+
+        return <p style={{ color: "green" }}>Оплачено</p>;
       }}
     />
   );

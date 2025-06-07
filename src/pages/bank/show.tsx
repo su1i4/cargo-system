@@ -11,7 +11,6 @@ import {
   DatePicker,
   Input,
 } from "antd";
-import { useSelect } from "@refinedev/antd";
 import {
   CalendarOutlined,
   ArrowUpOutlined,
@@ -25,35 +24,29 @@ import { API_URL } from "../../App";
 const { Title } = Typography;
 const { Column } = Table;
 
-// Словарь для "type_operation"
 export const typeOperationMap: Record<string, string> = {
   supplier_payment: "Оплата поставщику",
   repair_payment: "Оплата за ремонт",
   salary_payment: "Выплата заработной платы",
   advance_payment: "Выдача подотчет",
   cash: "Наличные",
-  "1": "Приход (1)", // если у вас встречаются "1" или иные значения
-  // ... добавляйте при необходимости
+  "1": "Приход (1)",
 };
 
 export const BankShow = () => {
   const { queryResult } = useShow();
   const { data: showData, isLoading: showLoading } = queryResult;
 
-  // Состояние для сортировки и фильтрации
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
-  const [sortField, setSortField] = useState<"id" | "type">("id");
+  const [sortField, setSortField] = useState<any>("good.created_at");
   const [searchFilters, setSearchFilters] = useState<any[]>([]);
   const [sorterVisible, setSorterVisible] = useState(false);
 
-  // Состояние для поиска (заменяем два поля на одно)
   const [searchText, setSearchText] = useState<string>("");
 
-  // Данные банка
   const record = showData?.data;
   const bankId = record?.id;
 
-  // Функция для построения параметров запроса
   const buildQueryParams = () => {
     return {
       s:
@@ -332,24 +325,18 @@ export const BankShow = () => {
             return (
               <p>{`${
                 counterparties.find((item: any) => item.id === value)
-                  ?.clientPrefix || ''
+                  ?.clientPrefix || ""
               }-${
                 counterparties.find((item: any) => item.id === value)
-                  ?.clientCode || ''
+                  ?.clientCode || ""
               }`}</p>
             );
           }}
         />
         <Column
-          title="Трек-код"
-          dataIndex="id"
-          render={(value) => (
-            <Button
-              onClick={() => push(`/income/show/${value}?page=1&size=100`)}
-            >
-              Посмотреть
-            </Button>
-          )}
+          title="Номер накладной"
+          dataIndex="good"
+          render={(value) => value?.invoice_number || "-"}
         />
         <Column
           title="Валюта"

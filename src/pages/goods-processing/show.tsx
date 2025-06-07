@@ -161,7 +161,13 @@ export const GoodsShow: React.FC = () => {
                 (item: any) => item.id === record?.destination_id
               )?.name
             }
-            , Тел. Whatsapp:{" "}
+            ,
+            {
+              tableProps?.dataSource?.find(
+                (item: any) => item.id === record?.destination_id
+              )?.address
+            }{' '}
+            Тел. Whatsapp:{" "}
             {
               tableProps?.dataSource?.find(
                 (item: any) => item.id === record?.destination_id

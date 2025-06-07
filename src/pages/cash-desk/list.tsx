@@ -325,6 +325,12 @@ export const CashDeskList: React.FC = () => {
           render={(counterparty) => (counterparty ? counterparty.name : "")}
         />
 
+        <Table.Column
+          title="Номер накладной"
+          dataIndex="good"
+          render={(value) => value?.invoice_number || "-"}
+        />
+
         <Table.Column dataIndex="amount" title="Сумма" />
 
         <Table.Column dataIndex="type_currency" title="валюта" />
@@ -375,6 +381,11 @@ export const CashDeskList: React.FC = () => {
               "Нет"
             );
           }}
+        />
+        <Table.Column
+          title="Сотрудник"
+          dataIndex="user"
+          render={(value) => `${value?.firstName} ${value?.lastName}` || "-"}
         />
       </Table>
     </List>
