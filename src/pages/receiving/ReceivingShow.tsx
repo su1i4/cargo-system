@@ -65,6 +65,7 @@ const ReceivingShow = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const rowSelection = {
+    selectedRowKeys,
     onChange: (selectedRowKeys: React.Key[], selectedRows: any[]) => {
       setSelectedRows(selectedRows);
       setSelectedRowKeys(selectedRowKeys);
@@ -198,7 +199,9 @@ const ReceivingShow = () => {
 
         <Col xs={24} md={6}>
           <Title level={5}>Вес</Title>
-          <TextField value={String(record?.weight).replace(".", ",").slice(0, 5) || 0} />
+          <TextField
+            value={String(record?.weight).replace(".", ",").slice(0, 5) || 0}
+          />
         </Col>
 
         <Col xs={24} md={6}>
@@ -257,6 +260,19 @@ const ReceivingShow = () => {
         rowKey="id"
         loading={isLoading}
         style={{ marginTop: 20 }}
+        onRow={(record) => ({
+          onClick: () => {
+            const id = record.id;
+            if (id === undefined || id === null) return;
+            setSelectedRowKeys((prev) => {
+              if (prev.includes(id)) {
+                return prev.filter((key) => key !== id);
+              } else {
+                return [...prev, id];
+              }
+            });
+          },
+        })}
       >
         <Table.Column
           title="№"

@@ -86,6 +86,18 @@ const ShipmentCreate = () => {
           ]
         : [];
     },
+    filters: [
+      {
+        field: "name",
+        operator: "ne",
+        value: "Бишкек",
+      },
+      {
+        field: "is_sent",
+        operator: "eq",
+        value: false,
+      },
+    ],
   });
 
   const { mutate: createShipment } = useCreate();
@@ -256,7 +268,7 @@ const ShipmentCreate = () => {
       />
       <Select
         title="Выберите тип тов"
-        placeholder="Выберите пункт назначения"
+        placeholder="Выберите тип товара"
         options={typeProduct?.data?.map((branch: any) => ({
           label: branch.name,
           value: branch.id,
@@ -314,7 +326,15 @@ const ShipmentCreate = () => {
             <Form.Item label="Пункт назначения" name="branch_id">
               <Select
                 {...branchSelectProps}
-                onChange={(value) => setFilters([{ field: "good.destination_id", operator: "eq", value: value }])}
+                onChange={(value) =>
+                  setFilters([
+                    {
+                      field: "good.destination_id",
+                      operator: "eq",
+                      value: value,
+                    },
+                  ])
+                }
               />
             </Form.Item>
           </Col>
@@ -361,7 +381,10 @@ const ShipmentCreate = () => {
             />
           </Flex>
         </Row>
-        <Table {...tableProps} rowKey="id" rowSelection={rowSelection}
+        <Table
+          {...tableProps}
+          rowKey="id"
+          rowSelection={rowSelection}
           onRow={(record) => ({
             onClick: () => {
               const id = record.id;
@@ -385,7 +408,7 @@ const ShipmentCreate = () => {
             title="Дата приемки"
             dataIndex="good"
             render={(value) =>
-              dayjs.utc(value?.created_at).format("DD.MM.YYYY HH:mm")
+              dayjs(value?.created_at).utc().format("DD.MM.YYYY HH:mm")
             }
           />
           <Table.Column

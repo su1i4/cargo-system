@@ -844,7 +844,7 @@ export const GoodsEdit = () => {
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item label="Комментарий" name="comment">
+            <Form.Item label="Комментарий" name="comments">
               <Input />
             </Form.Item>
           </Col>

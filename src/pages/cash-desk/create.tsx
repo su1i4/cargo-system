@@ -33,7 +33,6 @@ import { API_URL } from "../../App";
 import TextArea from "antd/lib/input/TextArea";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-import { translateStatus } from "../../lib/utils";
 import { useNavigate } from "react-router";
 
 dayjs.extend(utc);
@@ -95,7 +94,7 @@ export const CashDeskCreate: React.FC = () => {
   const [pageSize, setPageSize] = useState(100);
   const [change, setChange] = useState(0);
 
-  const { data: currency = { data: [] } } = useCustom<any>({
+  const { data: currency = { data: [] }, isLoading: currencyLoading } = useCustom<any>({
     url: `${API_URL}/currency`,
     method: "get",
   });
@@ -180,6 +179,7 @@ export const CashDeskCreate: React.FC = () => {
     }
   }, [form]);
 
+  // Fixed useEffect for handling agent/non-agent mode changes
   useEffect(() => {
     console.log("change");
     if (formProps.form) {
@@ -220,11 +220,16 @@ export const CashDeskCreate: React.FC = () => {
 
         const resetValues = Object.keys(currentValues).reduce(
           (acc: any, key: any) => {
+            // Preserve these fields when switching from agent to non-agent mode
             if (
               key === "income" ||
               key === "type_operation" ||
               key === "date" ||
-              key === "type"
+              key === "type" ||
+              key === "type_currency" || // Keep currency selection
+              key === "bank_id" ||       // Keep bank selection
+              key === "method_payment" || // Keep payment method
+              key === "comment"          // Keep comment
             ) {
               acc[key] = currentValues[key];
             } else {
@@ -276,6 +281,12 @@ export const CashDeskCreate: React.FC = () => {
       });
     }
   }, []);
+
+  // Debug currency data
+  useEffect(() => {
+    console.log('Currency data:', currency.data);
+    console.log('Currency loading:', currencyLoading);
+  }, [currency.data, currencyLoading]);
 
   const handleSenderChange = (value: any) => {
     setSelectedSenderId(value);
@@ -400,7 +411,7 @@ export const CashDeskCreate: React.FC = () => {
           saveButtonProps.onClick && saveButtonProps.onClick();
         },
       }}
-      title={<h3 style={{ margin: 0 }}>Добавить приход</h3>}
+      title={<h4 style={{ margin: 0 }}>Добавить приход</h4>}
     >
       <Form
         {...formProps}
@@ -493,7 +504,7 @@ export const CashDeskCreate: React.FC = () => {
                   label: enumValue,
                   value: enumValue,
                 }))}
-                placeholder="Выберите вид прихода"
+                placeholder="Выберите метод оплаты"
                 style={{ width: "100%" }}
               />
             </Form.Item>
@@ -529,9 +540,13 @@ export const CashDeskCreate: React.FC = () => {
               name="type_currency"
               label="Валюта"
               rules={[{ required: true, message: "Выберите Валюту" }]}
+              style={{ marginBottom: 5 }}
             >
               <Select
                 showSearch
+                loading={currencyLoading}
+                disabled={currencyLoading}
+                placeholder="Выберите валюту"
                 filterOption={(input, option) =>
                   (option?.label ?? "")
                     .toLowerCase()
@@ -546,15 +561,31 @@ export const CashDeskCreate: React.FC = () => {
                         currency.data?.find((item: any) => item.name === value)
                           ?.rate || 0;
                     }
-                    const totalAmount = selectedRows.reduce(
-                      (acc, row) => acc + Number(row.amount),
+                    const totalServiceAmount = selectedRows.reduce(
+                      (total: number, item: any) => {
+                        const localAmount = item.services.reduce(
+                          (acc: number, service: any) => acc + Number(service.sum || 0),
+                          0
+                        );
+                        return total + localAmount;
+                      },
                       0
                     );
-                    const transformAmount =
-                      rate > 0 ? rate * totalAmount : totalAmount;
-                    //@ts-ignore
-                    formProps.form.setFieldsValue({ amount: transformAmount });
+                    const totalProductAmount = selectedRows.reduce(
+                      (total: number, item: any) => {
+                        const localAmount = item.products.reduce(
+                          (acc: number, service: any) => acc + Number(service.sum || 0),
+                          0
+                        );
+                        return total + localAmount;
+                      },
+                      0
+                    );
+                    const totalAmount = totalProductAmount + totalServiceAmount;
+                    const transformAmount = rate > 0 ? rate * totalAmount : totalAmount;
+                    formProps.form?.setFieldsValue({ amount: transformAmount });
                   }
+                  // For non-agent mode, currency selection works normally without amount calculation
                 }}
                 options={Object.values(CurrencyType).map((item: any) => ({
                   label: `${item}`,

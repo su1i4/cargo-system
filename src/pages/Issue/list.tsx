@@ -531,7 +531,9 @@ export const IssueProcessingList = () => {
           |
           <Typography.Text>
             Общий вес:{" "}
-            <strong>{String(totalWeight).replace(".", ",").slice(0, 5)} кг</strong>
+            <strong>
+              {String(totalWeight).replace(".", ",").slice(0, 5)} кг
+            </strong>
           </Typography.Text>
           |
           <Typography.Text>
@@ -550,6 +552,19 @@ export const IssueProcessingList = () => {
           onChange: handleRowSelectionChange,
         }}
         scroll={{ x: 1000 }}
+        onRow={(record) => ({
+          onClick: () => {
+            const id = record.id;
+            if (id === undefined || id === null) return;
+            setSelectedRowKeys((prev) => {
+              if (prev.includes(id)) {
+                return prev.filter((key) => key !== id);
+              } else {
+                return [...prev, id];
+              }
+            });
+          },
+        })}
       >
         <Table.Column
           title="№"
