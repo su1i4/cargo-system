@@ -471,6 +471,11 @@ const ShipmentCreate = () => {
             render={(value) => value?.destination?.name}
           />
           <Table.Column title="Штрихкод" dataIndex="barcode" />
+          <Table.Column
+            title="Номенклатура"
+            dataIndex="nomenclature"
+            render={(value) => value?.name}
+          />
         </Table>
       </Form>
     </Create>

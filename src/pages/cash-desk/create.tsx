@@ -424,9 +424,11 @@ export const CashDeskCreate: React.FC = () => {
       saveButtonProps={{
         ...saveButtonProps,
         onClick: () => {
-          // Ensure type field is set before submitting
-          form.setFieldValue("type", "income");
-          saveButtonProps.onClick && saveButtonProps.onClick();
+          const confirmed = window.confirm("Вы уверены, что хотите сохранить?");
+          if (confirmed) {
+            form.setFieldValue("type", "income");
+            saveButtonProps.onClick && saveButtonProps.onClick();
+          }
         },
       }}
       title={<h4 style={{ margin: 0 }}>Добавить приход</h4>}
@@ -442,7 +444,7 @@ export const CashDeskCreate: React.FC = () => {
           const finalValues = {
             ...values,
             type: "income",
-            counterparty_id: formProps?.form?.getFieldValue("sender_id")
+            counterparty_id: formProps?.form?.getFieldValue("sender_id"),
           };
 
           if (isAgent) {
@@ -850,7 +852,7 @@ export const CashDeskCreate: React.FC = () => {
           <Table.Column
             dataIndex="totalServiceWeight"
             title="Вес"
-            render={(value) => value + " кг"}
+            render={(value) => value.toFixed(2) + " кг"}
           />
           <Table.Column
             dataIndex="services"
@@ -870,7 +872,7 @@ export const CashDeskCreate: React.FC = () => {
           <Table.Column
             dataIndex="paid_sum"
             title="Оплачено"
-            render={(value) => `${value} руб`}
+            render={(value) => `${value || 0} руб`}
           />
           <Table.Column
             dataIndex="employee"

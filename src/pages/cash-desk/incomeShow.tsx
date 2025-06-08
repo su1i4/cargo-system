@@ -1,35 +1,18 @@
-import { Show, TextField, DateField } from "@refinedev/antd";
-import { useCustom, useOne } from "@refinedev/core";
-import {
-  Button,
-  Card,
-  Col,
-  DatePicker,
-  Dropdown,
-  Image,
-  Input,
-  Row,
-  Space,
-  Table,
-  Typography,
-} from "antd";
-import { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "react-router";
-import { API_URL } from "../../App";
-import {
-  ArrowDownOutlined,
-  ArrowUpOutlined,
-  CalendarOutlined,
-  DownloadOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
-import { CustomTooltip } from "../../shared/custom-tooltip";
+import { useRef } from "react";
+import { Show, TextField } from "@refinedev/antd";
+import { useOne } from "@refinedev/core";
+import { Button, Col, Flex, Row, Table, Typography } from "antd";
+import { useParams } from "react-router";
+import { PrinterOutlined } from "@ant-design/icons";
+import { operationStatus } from "../../shared/custom-tooltip";
+import { useReactToPrint } from "react-to-print";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Bishkek");
 
 const { Title } = Typography;
 
@@ -42,203 +25,136 @@ export const IncomeShow: React.FC = () => {
 
   const record = incomeData?.data;
 
-  const [searchparams, setSearchParams] = useSearchParams();
-  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
-  const [sortField, setSortField] = useState<
-    "id" | "counterparty.name" | "operation_id"
-  >("id");
-  const [searchFilters, setSearchFilters] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
+  const printRef = useRef<HTMLDivElement>(null);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(100);
-
-  const buildQueryParams = () => {
-    return {
-      s: JSON.stringify({
-        $and: [...searchFilters, { operation_id: { $eq: id } }],
-      }),
-      sort: `${sortField},${sortDirection}`,
-    };
-  };
-
-  const { data, isLoading, refetch } = useCustom<any>({
-    url: `${API_URL}/goods-processing`,
-    method: "get",
-    config: {
-      query: buildQueryParams(),
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Накладная ${dayjs().format("DD.MM.YYYY HH:mm")}`,
+    onBeforePrint: async () => {
+      const el = printRef.current;
+      if (el) {
+        el.style.backgroundColor = "white";
+      }
     },
+    onAfterPrint: () => {
+      const el = printRef.current;
+      if (el) {
+        el.style.backgroundColor = "gainsboro";
+      }
+    },
+    onPrintError: (error) => console.error("Print Error:", error),
   });
 
-  const [sorterVisible, setSorterVisible] = useState(false);
-
-  const setFilters = (
-    filters: any[],
-    mode: "replace" | "append" = "append"
-  ) => {
-    if (mode === "replace") {
-      setSearchFilters(filters);
-    } else {
-      setSearchFilters((prevFilters) => [...prevFilters, ...filters]);
-    }
-  };
-
-  useEffect(() => {
-    if (!searchparams.get("page") && !searchparams.get("size")) {
-      searchparams.set("page", String(currentPage));
-      searchparams.set("size", String(pageSize));
-      setSearchParams(searchparams);
-    } else {
-      const page = searchparams.get("page");
-      const size = searchparams.get("size");
-      setCurrentPage(Number(page));
-      setPageSize(Number(size));
-    }
-    refetch();
-  }, [searchFilters, sortDirection, currentPage, pageSize]);
-
-  useEffect(() => {
-    const value = searchparams.get("value");
-    if (value) {
-      setFilters(
-        [
-          {
-            $or: [
-              { trackCode: { $contL: value } },
-              { "counterparty.clientCode": { $contL: value } },
-              { "counterparty.name": { $contL: value } },
-            ],
-          },
-        ],
-        "replace"
-      );
-    }
-    setSearch(value || "");
-  }, []);
-
-  const datePickerContent = (
-    <DatePicker.RangePicker
-      style={{ width: "280px" }}
-      placeholder={["Начальная дата", "Конечная дата"]}
-      onChange={(dates, dateStrings) => {
-        if (dates && dateStrings[0] && dateStrings[1]) {
-          setFilters(
-            [
-              {
-                created_at: {
-                  $gte: dateStrings[0],
-                  $lte: dateStrings[1],
-                },
-              },
-            ],
-            "replace"
-          );
-        }
-      }}
-    />
-  );
-
-  const sortContent = (
-    <Card style={{ width: 200, padding: "0px" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <div
-          style={{
-            marginBottom: "8px",
-            color: "#666",
-            fontSize: "14px",
-            textAlign: "center",
-          }}
-        >
-          Сортировать по
-        </div>
-        {/* Сортировка по дате создания */}
-        <Button
-          type="text"
-          style={{
-            textAlign: "left",
-            fontWeight: sortField === "id" ? "bold" : "normal",
-          }}
-          onClick={() => {
-            setSortField("id");
-            setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
-          }}
-        >
-          Дате создания{" "}
-          {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
-        </Button>
-        <Button
-          type="text"
-          style={{
-            textAlign: "left",
-            fontWeight: sortField === "counterparty.name" ? "bold" : "normal",
-          }}
-          onClick={() => {
-            setSortField("counterparty.name");
-            setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
-          }}
-        >
-          По фио{" "}
-          {sortField === "counterparty.name" &&
-            (sortDirection === "ASC" ? "↑" : "↓")}
-        </Button>
-        <Button
-          type="text"
-          style={{
-            textAlign: "left",
-            fontWeight: sortField === "operation_id" ? "bold" : "normal",
-          }}
-          onClick={() => {
-            setSortField("operation_id");
-            setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
-          }}
-        >
-          По статусу оплаты{" "}
-          {sortField === "operation_id" &&
-            (sortDirection === "ASC" ? "↑" : "↓")}
-        </Button>
-      </div>
-    </Card>
-  );
-
-  const handleDownloadPhoto = async () => {
-    if (record?.photo) {
-      try {
-        const photoUrl = `${API_URL}/${record.check_file}`;
-
-        // Fetch the image as a blob
-        const response = await fetch(photoUrl);
-        const blob = await response.blob();
-
-        // Create object URL from blob
-        const objectUrl = URL.createObjectURL(blob);
-
-        // Create a link element
-        const link = document.createElement("a");
-        link.href = objectUrl;
-
-        // Extract filename from path
-        const filename = record.photo.split("/").pop() || "photo.jpg";
-        link.download = filename;
-
-        // Append to the document, click and then remove
-        document.body.appendChild(link);
-        link.click();
-
-        // Clean up
-        setTimeout(() => {
-          document.body.removeChild(link);
-          URL.revokeObjectURL(objectUrl);
-        }, 100);
-      } catch (error) {
-        console.error("Error downloading photo:", error);
-        // You could add notification here if desired
-      }
-    }
-  };
-
   return (
-    <Show headerButtons={() => false} isLoading={incomeLoading}>
-      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+    <Show
+      headerButtons={() => (
+        <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>
+          Распечатать
+        </Button>
+      )}
+      isLoading={incomeLoading}
+    >
+      <div
+        ref={printRef}
+        style={{
+          width: "105mm",
+          height: "148mm",
+          backgroundColor: "gainsboro",
+          padding: "5px 10px",
+        }}
+      >
+        <div style={{ transform: "scale(0.95)" }}>
+          <p
+            style={{
+              width: "80%",
+              textAlign: "center",
+              borderBottom: "1px solid black",
+            }}
+          >
+            ОсОО "Росс Карго"
+          </p>
+          <p
+            style={{
+              textAlign: "center",
+            }}
+          >
+            организация
+          </p>
+          <p style={{ textAlign: "center", fontSize: 18, fontWeight: "bold" }}>
+            Квитанция
+          </p>
+          <Flex justify="space-between">
+            <p>ПКО №</p>
+            <p
+              style={{
+                borderBottom: "1px solid black",
+              }}
+            >
+              {record?.good?.invoice_number || "-"}
+            </p>
+            <p></p>
+          </Flex>
+          <Flex justify="space-between">
+            <p></p>
+            <p
+              style={{
+                borderBottom: "1px solid black",
+              }}
+            >
+              от {dayjs().format("DD.MM.YYYY")}
+            </p>
+            <p></p>
+          </Flex>
+          <p>Принято от</p>
+          <p
+            style={{
+              borderBottom: "1px solid black",
+            }}
+          >
+            Сулайман сагыналиевич
+          </p>
+          <p>основание</p>
+          <p
+            style={{
+              borderBottom: "1px solid black",
+            }}
+          >
+            Оплата за доставку
+          </p>
+          <Flex justify="space-between">
+            <p>Cумма RUB</p>
+            <p
+              style={{
+                borderBottom: "1px solid black",
+                width: "90px",
+              }}
+            >
+              {record?.amount}
+            </p>
+            <p></p>
+          </Flex>
+          <p
+            style={{
+              borderTop: "1px solid black",
+            }}
+          >
+            Оплачено: {record?.amount} RUB
+          </p>
+          <Flex justify="center">
+            <p
+              style={{
+                borderBottom: "1px solid black",
+              }}
+            >
+              {dayjs(record?.created_at).utc().format("DD.MM.YYYY HH:mm")}
+            </p>
+          </Flex>
+          <p>
+            {record?.user?.firstName} {record?.user?.lastName}
+          </p>
+        </div>
+      </div>
+      <Row gutter={[16, 16]} style={{ margin: "20px 0px" }}>
         <Col span={4}>
           <Title level={5}>Дата прихода</Title>
           <TextField
@@ -263,203 +179,91 @@ export const IncomeShow: React.FC = () => {
           <Title level={5}>Сумма оплаты</Title>
           <TextField value={`${record?.amount}-${record?.type_currency}`} />
         </Col>
-        <Col xs={24} md={24}>
-          <Title level={5}>Фото</Title>
-          {record?.check_file ? (
-            <Space direction="vertical" size="middle">
-              {record.check_file.endsWith(".pdf") ? (
-                <a
-                  href={`${API_URL}/${record.check_file}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  📄 Открыть PDF
-                </a>
-              ) : (
-                <>
-                  <Image
-                    style={{ objectFit: "cover" }}
-                    width={300}
-                    height={300}
-                    src={`${API_URL}/${record.check_file}`}
-                  />
-                  <Button
-                    type="primary"
-                    icon={<DownloadOutlined />}
-                    onClick={handleDownloadPhoto}
-                  >
-                    Скачать фото
-                  </Button>
-                </>
-              )}
-            </Space>
-          ) : (
-            <TextField value="Нет фото" />
-          )}
-        </Col>
       </Row>
-      <Row
-        gutter={[16, 16]}
-        align="middle"
-        style={{ marginBottom: 16, position: "sticky", top: 80, zIndex: 10 }}
-      >
-        <Col>
-          <Space size="middle">
-            <CustomTooltip title="Сортировка">
-              <Dropdown
-                overlay={sortContent}
-                trigger={["click"]}
-                placement="bottomLeft"
-                open={sorterVisible}
-                onOpenChange={(visible) => {
-                  setSorterVisible(visible);
-                }}
-              >
-                <Button
-                  icon={
-                    sortDirection === "ASC" ? (
-                      <ArrowUpOutlined />
-                    ) : (
-                      <ArrowDownOutlined />
-                    )
-                  }
-                ></Button>
-              </Dropdown>
-            </CustomTooltip>
-          </Space>
-        </Col>
-        <Col flex="auto">
-          <Input
-            placeholder="Поиск по трек-коду, фио получателя или по коду получателя"
-            prefix={<SearchOutlined />}
-            value={search}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (!value) {
-                setFilters([{ trackCode: { $contL: "" } }], "replace");
-                setSearch("");
-                searchparams.set("value", "");
-                setSearchParams(searchparams);
-                return;
-              }
-
-              searchparams.set("page", "1");
-              searchparams.set("size", String(pageSize));
-              searchparams.set("value", value);
-              setSearchParams(searchparams);
-              setSearch(value);
-              setFilters(
-                [
-                  {
-                    $or: [
-                      { trackCode: { $contL: value } },
-                      { "counterparty.clientCode": { $contL: value } },
-                      { "counterparty.name": { $contL: value } },
-                    ],
-                  },
-                ],
-                "replace"
-              );
+      {record?.type_operation === "Контрагент" && (
+        <Table
+          dataSource={[record?.good]}
+          pagination={false}
+          rowKey="id"
+          scroll={{ x: 1200 }}
+        >
+          <Table.Column
+            dataIndex="created_at"
+            title="Дата приемки"
+            render={(value) =>
+              value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
+            }
+          />
+          <Table.Column dataIndex="invoice_number" title="№ накладной" />
+          <Table.Column
+            dataIndex="employee"
+            title="Пункт приема"
+            render={(value) =>
+              `${value?.branch?.name}, ${value?.under_branch?.address || ""}`
+            }
+          />
+          <Table.Column
+            dataIndex="sender"
+            title="Код отправителя"
+            render={(value) => {
+              return value?.clientPrefix + "-" + value?.clientCode;
             }}
           />
-        </Col>
-        <Col>
-          <Dropdown
-            overlay={datePickerContent}
-            trigger={["click"]}
-            placement="bottomRight"
-          >
-            <Button icon={<CalendarOutlined />} className="date-picker-button">
-              Дата
-            </Button>
-          </Dropdown>
-        </Col>
-      </Row>
-      <Table
-        dataSource={data?.data}
-        pagination={false}
-        rowKey="id"
-        scroll={{ x: 1200 }}
-      >
-        <Table.Column
-          title="№"
-          render={(_: any, __: any, index: number) => {
-            return (data?.data?.page - 1) * pageSize + index + 1;
-          }}
-        />
-        <Table.Column
-          dataIndex="created_at"
-          title="Дата приемки"
-          render={(value) =>
-            value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
-          }
-        />
-        <Table.Column dataIndex="invoice_number" title="№ накладной" />
-        <Table.Column
-          dataIndex="employee"
-          title="Пункт приема"
-          render={(value) =>
-            `${value?.branch?.name}, ${value?.under_branch?.address || ""}`
-          }
-        />
-        <Table.Column
-          dataIndex="sender"
-          title="Код отправителя"
-          render={(value) => {
-            return value?.clientPrefix + "-" + value?.clientCode;
-          }}
-        />
-        <Table.Column
-          dataIndex="sender"
-          title="Фио отправителя"
-          render={(value) => value?.name}
-        />
-        <Table.Column
-          dataIndex="recipient"
-          title="Код получателя"
-          render={(value) => {
-            return value?.clientPrefix + "-" + value?.clientCode;
-          }}
-        />
-        <Table.Column
-          dataIndex="recipient"
-          title="Фио получателя"
-          render={(value) => value?.name}
-        />
-        <Table.Column
-          dataIndex="destination"
-          render={(value) => value?.name}
-          title="Пункт назначения"
-        />
-        <Table.Column
-          dataIndex="totalServiceWeight"
-          title="Вес"
-          render={(value) => value + " кг"}
-        />
-        <Table.Column
-          dataIndex="services"
-          title="Кол-во мешков"
-          render={(value) => value?.length + " шт"}
-        />
-        <Table.Column
+          <Table.Column
+            dataIndex="sender"
+            title="Фио отправителя"
+            render={(value) => value?.name}
+          />
+          <Table.Column
+            dataIndex="recipient"
+            title="Код получателя"
+            render={(value) => {
+              return value?.clientPrefix + "-" + value?.clientCode;
+            }}
+          />
+          <Table.Column
+            dataIndex="recipient"
+            title="Фио получателя"
+            render={(value) => value?.name}
+          />
+          <Table.Column
+            dataIndex="destination"
+            render={(value) => value?.name}
+            title="Пункт назначения"
+          />
+          <Table.Column
+            dataIndex="totalServiceWeight"
+            title="Вес"
+            render={(value) =>
+              String(value).replace(".", ",").slice(0, 5) + " кг"
+            }
+          />
+          <Table.Column
+            dataIndex="services"
+            title="Кол-во мешков"
+            render={(value) => value?.length + " шт"}
+          />
+          {/* <Table.Column
           dataIndex="totalServiceAmountSum"
           title="Сумма"
           render={(_, record: any) =>
             `${
-              Number(record.totalServiceAmountSum) +
-              Number(record.totalProductAmountSum)
+              Number(record?.totalServiceAmountSum || 0) +
+              Number(record?.totalProductAmountSum || 0)
             } руб`
           }
-        />
-        <Table.Column
-          dataIndex="employee"
-          title="Сотрудник"
-          render={(value) => {
-            return `${value?.firstName}-${value?.lastName}`;
-          }}
-        />
-        <Table.Column dataIndex="comments" title="Комментарий" />
-      </Table>
+        /> */}
+          {operationStatus()}
+          <Table.Column
+            dataIndex="employee"
+            title="Сотрудник"
+            render={(value) => {
+              return `${value?.firstName}-${value?.lastName}`;
+            }}
+          />
+          <Table.Column dataIndex="comments" title="Комментарий" />
+        </Table>
+      )}
     </Show>
   );
 };
