@@ -316,28 +316,23 @@ export const GoodsCreate = () => {
         if (item.id === id) {
           const newItem = { ...item, [field]: value };
 
-          if (field === "type_id") {
+          if (field === "type_id" || field === "weight") {
             const selectedType = tariffTableProps?.dataSource?.find(
               (type: any) =>
                 type.branch_id === values?.destination_id &&
-                type.product_type_id === value
+                type.product_type_id ===
+                  (field === "weight" ? Number(item.type_id) : value)
             );
 
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
-              newItem.price = selectedType.tariff;
+              newItem.price = Number(selectedType.tariff) - discount;
               if (newItem.weight) {
                 newItem.sum = calculateSum(
                   newItem.weight,
                   Number(selectedType.tariff - discount)
                 );
               }
-            }
-          }
-
-          if (field === "weight") {
-            if (newItem.tariff) {
-              newItem.sum = calculateSum(value, newItem.tariff);
             }
           }
 
