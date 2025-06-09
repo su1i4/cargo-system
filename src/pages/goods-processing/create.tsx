@@ -104,6 +104,7 @@ export const GoodsCreate = () => {
 
   const [services, setServices] = useState<GoodItem[]>([]);
   const [nextId, setNextId] = useState(1);
+  const [discount, setDiscount] = useState(0);
   const [typeProducts, setTypeProducts] = useState<TypeProduct[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
@@ -326,7 +327,10 @@ export const GoodsCreate = () => {
               newItem.tariff = selectedType.tariff;
               newItem.price = selectedType.tariff;
               if (newItem.weight) {
-                newItem.sum = calculateSum(newItem.weight, selectedType.tariff);
+                newItem.sum = calculateSum(
+                  newItem.weight,
+                  Number(selectedType.tariff - discount)
+                );
               }
             }
           }
@@ -582,16 +586,15 @@ export const GoodsCreate = () => {
   const { selectProps: discountSelectProps }: any = useSelect({
     resource: "counterparty",
     optionLabel: (record: any) => {
-      return `${record?.clientPrefix}-${record?.clientCode}, ${record?.name}, ${record?.discount.discount} руб`;
-    },
-    optionValue: (record: any) => {
-      return record?.id;
+      return `${record?.clientPrefix ?? ""}-${record?.clientCode ?? ""}, ${
+        record?.name ?? ""
+      }, '${record?.discount?.discount ?? 0}' руб`;
     },
     filters: [
       {
         field: "id",
         operator: "in",
-        value: [values?.sender_id, values?.recipient_id],
+        value: [values?.sender_id, values?.recipient_id].filter(Boolean),
       },
     ],
     queryOptions: {
@@ -731,26 +734,40 @@ export const GoodsCreate = () => {
     ],
   });
 
+  // useEffect(() => {
+  //   if (discountSelectProps?.options?.length > 0) {
+  //     formProps.form?.setFieldsValue({
+  //       discount_id: discountSelectProps?.options?.reduce(
+  //         (max: any, current: any) => {
+  //           return parseFloat(current.discount) < parseFloat(max.discount)
+  //             ? current
+  //             : max;
+  //         }
+  //       ).value,
+  //     });
+  //   }
+  // }, [values?.sender_id, values?.recipient_id]);
+
   useEffect(() => {
-    if (discountSelectProps?.options?.length > 0) {
-      formProps.form?.setFieldsValue({
-        discount_id: discountSelectProps?.options?.reduce(
-          (max: any, current: any) => {
-            return parseFloat(current.discount) < parseFloat(max.discount)
-              ? current
-              : max;
-          }
-        ).value,
+    if (services?.length > 0) {
+      const newServices = services.map((item) => {
+        const selectedType = tariffTableProps?.dataSource?.find(
+          (type: any) =>
+            type.branch_id === values?.destination_id &&
+            type.product_type_id === Number(item.type_id)
+        );
+        return {
+          ...item,
+          price: Number(selectedType?.tariff) - discount,
+          sum: calculateSum(
+            Number(item.weight),
+            Number(Number(selectedType?.tariff) - discount)
+          ),
+        };
       });
-      console.log(
-        discountSelectProps?.options?.reduce((max: any, current: any) => {
-          return parseFloat(current.discount) < parseFloat(max.discount)
-            ? current
-            : max;
-        }).value
-      );
+      setServices(newServices);
     }
-  }, [values?.sender_id, values?.recipient_id]);
+  }, [discount, values?.destination_id]);
 
   const lastGoods = [
     {
@@ -773,6 +790,8 @@ export const GoodsCreate = () => {
       sum: products.reduce((acc, item) => acc + Number(item.sum || 0), 0),
     },
   ];
+
+  console.log(services, "mainSev");
 
   return (
     <Create saveButtonProps={saveButtonProps}>
@@ -803,11 +822,7 @@ export const GoodsCreate = () => {
                       }/${record?.label?.slice(0, 1)}`,
                     };
                   });
-                  console.log(
-                    newServices,
-                    counterpartySelectPropsReceiver,
-                    recieverId
-                  );
+                  console.log(newServices);
                   setServices(newServices);
                   formProps.form?.setFieldsValue({
                     sent_back_id: null,
@@ -851,7 +866,6 @@ export const GoodsCreate = () => {
                     };
                   });
                   setServices(newServices);
-                  console.log(branch, branchId, newServices);
                 }}
                 {...counterpartySelectPropsReceiver}
                 allowClear
@@ -917,7 +931,13 @@ export const GoodsCreate = () => {
           </Col>
           <Col span={6}>
             <Form.Item label="Скидка" name="discount_id">
-              <Select {...discountSelectProps} allowClear />
+              <Select
+                onChange={(_, record: { label: string; value: number }) =>
+                  setDiscount(Number(record?.label?.split("'")[1]))
+                }
+                {...discountSelectProps}
+                allowClear
+              />
             </Form.Item>
           </Col>
         </Row>
@@ -1043,7 +1063,6 @@ export const GoodsCreate = () => {
                   {...typeProductSelectProps}
                   value={value}
                   onChange={(val) => {
-                    console.log(val);
                     updateItemField(record.id, "type_id", val, index);
                   }}
                   allowClear
