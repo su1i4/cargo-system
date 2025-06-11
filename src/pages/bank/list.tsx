@@ -1,8 +1,7 @@
-import React from "react";
 import { List, useTable } from "@refinedev/antd";
 import { Card, Row, Col, Button, Flex } from "antd";
 import { type BaseRecord, useNavigation } from "@refinedev/core";
-import { EditOutlined, MoneyCollectOutlined } from "@ant-design/icons";
+import { EditOutlined } from "@ant-design/icons";
 import Title from "antd/lib/typography/Title";
 
 interface IBank extends BaseRecord {
@@ -66,15 +65,6 @@ export const BankList = () => {
                 />
                 <strong>USD:</strong> {bank.balance_usd}
               </p>
-              <p>
-                <img
-                  style={{ width: 20, marginRight: 5, marginBottom: 5 }}
-                  src="/balance_yen.png"
-                  alt="logo"
-                />
-                <strong>Юань:</strong> {bank.balance_cny}
-              </p>
-
               <Button
                 type="primary"
                 onClick={() => show("bank", bank.id as number)}
