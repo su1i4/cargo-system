@@ -222,9 +222,9 @@ export const GoogsProcessingList = () => {
     <DatePicker.RangePicker
       style={{ width: "280px" }}
       placeholder={["Начальная дата", "Конечная дата"]}
+      showTime={{ format: "HH:mm" }}
       onChange={(dates, dateStrings) => {
         if (dates && dateStrings[0] && dateStrings[1]) {
-          // Fixed: Use consistent filter format
           setFilters(
             [
               {

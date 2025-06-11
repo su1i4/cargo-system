@@ -136,8 +136,6 @@ const ShipmentEdit = () => {
     id,
     redirect: false, // Изменено на false, чтобы контролировать редирект вручную
     onMutationSuccess: async (updatedShipment) => {
-      console.log("Form mutation success:", updatedShipment);
-      // Убираем дублирующую логику отсюда, так как она будет в handleFinish
     },
   });
 
@@ -149,9 +147,6 @@ const ShipmentEdit = () => {
 
   // Обработчик завершения отправки формы
   const handleFinish = async (values: any) => {
-    console.log("handleFinish called with values:", values);
-    console.log("selectedRowKeys:", selectedRowKeys);
-    console.log("tableProps.dataSource:", tableProps?.dataSource);
 
     try {
       // Получаем все сервисы из таблицы
@@ -165,13 +160,8 @@ const ShipmentEdit = () => {
         !selectedRowKeys.includes(item.id)
       );
 
-      console.log('Selected services:', selectedServices.map(s => s.id));
-      console.log('Unselected services:', unselectedServices.map(s => s.id));
-
-      // Создаем массив промисов для обновления
       const updatePromises = [];
 
-      // Обновляем невыбранные сервисы (убираем из отправки)
       if (unselectedServices.length > 0) {
         const unselectedPromise = new Promise((resolve, reject) => {
           updateServices(
@@ -184,11 +174,9 @@ const ShipmentEdit = () => {
             },
             {
               onSuccess: (data) => {
-                console.log("Unselected services updated successfully:", data);
                 resolve(data);
               },
               onError: (error) => {
-                console.error("Error updating unselected services:", error);
                 reject(error);
               },
             }

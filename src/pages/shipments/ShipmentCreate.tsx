@@ -350,18 +350,7 @@ const ShipmentCreate = () => {
           </Col>
           <Col span={6}>
             <Form.Item label="Пункт назначения" name="branch_id">
-              <Select
-                {...branchSelectProps}
-                onChange={(value) =>
-                  setFilters([
-                    {
-                      field: "good.destination_id",
-                      operator: "eq",
-                      value: value,
-                    },
-                  ])
-                }
-              />
+              <Select {...branchSelectProps} />
             </Form.Item>
           </Col>
           <Col span={18}>

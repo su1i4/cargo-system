@@ -60,22 +60,6 @@ import {
   UnderBranchList,
   UnderBranchShow,
 } from "./pages/under-branch";
-import {
-  ReportCreate,
-  ReportEdit,
-  ReportList,
-  ReportShow,
-  CargoReceivedReport,
-  CashBookReport,
-  CargoTypesReport,
-  IncomeReport,
-  ExpenseReport,
-  EmployeesReport,
-  BranchesReport,
-  CashOperationsReport,
-  IncomingFundsReport,
-  ExpenseFinanceReport,
-} from "./pages/reports";
 import ReceivingShowReceived from "./pages/receiving/ReceivingShowReceived";
 import { DiscountList } from "./pages/discount/list";
 import { DiscountCreate } from "./pages/discount/create";
@@ -102,8 +86,6 @@ import { NotificationsCreate } from "./pages/notifications/create";
 import { ScrollRestoration } from "./components/save-scroll";
 import ReceivingAll from "./pages/receiving/ReceivingAll";
 import { IncomeShow } from "./pages/cash-desk/incomeShow";
-import { IncomeShowReport } from "./pages/reports/income-report/show";
-import { RepresentativeReport } from "./pages/reports/representative";
 import { NomenklaturaList } from "./pages/nomenklatura/list";
 import { BrandList } from "./pages/brand/list";
 import { ProductsList } from "./pages/products/list";
@@ -113,6 +95,10 @@ import { TariffList } from "./pages/tarif/list";
 import { TrackList } from "./pages/track/list";
 import { CustomLayout } from "./components/layout";
 import { SentTheCityList } from "./pages/sent-the-city";
+import { ReportList } from "./pages/reports/list";
+import { CargoReceivedReport } from "./pages/reports/cargo-received";
+import { IncomeReport } from "./pages/reports/income";
+import { CargoTypesReport } from "./pages/reports/cargo-types";
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
 function App() {
@@ -335,40 +321,13 @@ function App() {
 
                   <Route path="/reports">
                     <Route index element={<ReportList />} />
-                    <Route path="create" element={<ReportCreate />} />
-                    <Route path="show/:id" element={<ReportShow />} />
-                    <Route path="edit/:id" element={<ReportEdit />} />
 
                     <Route
                       path="cargo-received"
                       element={<CargoReceivedReport />}
                     />
-                    <Route path="cash-book" element={<CashBookReport />} />
-                    <Route path="cargo-types" element={<CargoTypesReport />} />
-                    <Route path="income" element={<IncomeReport />} />
-                    <Route path="expense" element={<ExpenseReport />} />
-                    <Route path="employees" element={<EmployeesReport />} />
-                    <Route path="branches" element={<BranchesReport />} />
-                    <Route
-                      path="cash-operations"
-                      element={<CashOperationsReport />}
-                    />
-                    <Route
-                      path="incoming-funds"
-                      element={<IncomingFundsReport />}
-                    />
-                    <Route
-                      path="incoming-funds/:id"
-                      element={<IncomeShowReport />}
-                    />
-                    <Route
-                      path="expense-finance"
-                      element={<ExpenseFinanceReport />}
-                    />
-                    <Route
-                      path="expense-representative"
-                      element={<RepresentativeReport />}
-                    />
+                    <Route path="nomenclature" element={<CargoTypesReport />} />
+                    <Route path="borrow" element={<IncomeReport />} />
                   </Route>
 
                   <Route path="/notification">

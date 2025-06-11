@@ -1,334 +1,454 @@
-import { List } from "@refinedev/antd";
+import { useEffect, useState } from "react";
+import { List, useTable } from "@refinedev/antd";
 import {
   Table,
   Button,
-  DatePicker,
-  Dropdown,
-  Card,
   Space,
+  Row,
+  Flex,
+  Dropdown,
+  Input,
+  Menu,
+  Radio,
+  Divider,
   message,
 } from "antd";
 import {
-  CalendarOutlined,
+  ArrowDownOutlined,
+  ArrowUpOutlined,
   FileExcelOutlined,
-  GoogleOutlined,
   FileOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
-import { useEffect, useState } from "react";
-import { useCustom, useNavigation } from "@refinedev/core";
+
 import dayjs from "dayjs";
-import { API_URL } from "../../../App";
-import * as XLSX from "xlsx";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Bishkek");
+
+interface GroupedNomenclature {
+  id: number;
+  name: string;
+  quantity: number;
+  count: number;
+  totalWeight: number;
+}
 
 export const CargoTypesReport = () => {
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
-  const [sortField, setSortField] = useState<"id" | "counterparty.name">("id");
-  const [searchFilters, setSearchFilters] = useState<any[]>([]);
+  const [searchValue, setSearchValue] = useState("");
+  const [sortField, setSortField] = useState("created_at");
+  const [selectedKey, setSelectedKey] = useState(0);
+  const [nomenclatures, setNomenclatures] = useState<GroupedNomenclature[]>([]);
+  const [selectedShipment, setSelectedShipment] = useState<any>([]);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10000);
-
-  const buildQueryParams = () => {
-    return {
-      s: JSON.stringify({
-        $and: [...searchFilters, { status: { $eq: "В пути" } }],
-      }),
-      sort: `${sortField},${sortDirection}`,
-      limit: pageSize,
-      page: currentPage,
-      offset: (currentPage - 1) * pageSize,
-    };
-  };
-
-  const { data, isLoading, refetch } = useCustom<any>({
-    url: `${API_URL}/goods-processing`,
-    method: "get",
-    config: {
-      query: buildQueryParams(),
+  const { tableProps, setSorters, setFilters } = useTable({
+    resource: "shipments",
+    sorters: {
+      initial: [{ field: "created_at", order: "desc" }],
+    },
+    syncWithLocation: false,
+    pagination: {
+      mode: "off",
     },
   });
 
-  // Fixed: Update filters function that properly formats filters
-  const setFilters = (
-    filters: any[],
-    mode: "replace" | "append" = "append"
-  ) => {
-    if (mode === "replace") {
-      setSearchFilters(filters);
-    } else {
-      setSearchFilters((prevFilters) => [...prevFilters, ...filters]);
-    }
+  const { tableProps: serviceTableProps } = useTable({
+    resource: "service",
+    syncWithLocation: false,
+    initialSorter: [
+      {
+        field: "id",
+        order: "desc",
+      },
+    ],
+    filters: {
+      permanent: [
+        {
+          field: "shipment_id",
+          operator: "eq",
+          value: Number(selectedKey),
+        },
+      ],
+    },
+    pagination: {
+      mode: "off",
+    },
+  });
 
-    // We'll refetch in useEffect after state updates
-  };
-
-  // Fixed: Add effect to trigger refetch when filters or sorting changes
   useEffect(() => {
-    refetch();
-  }, [searchFilters, sortDirection, currentPage, pageSize]);
+    if (selectedKey > 0) {
+    }
+  }, [selectedKey]);
 
-  const datePickerContent = (
-    <DatePicker.RangePicker
-      style={{ width: "350px" }}
-      placeholder={["Начальная дата", "Конечная дата"]}
-      showTime={{ format: "HH:mm" }}
-      format="YYYY-MM-DD HH:mm"
-      onChange={(dates, dateStrings) => {
-        if (dates && dateStrings[0] && dateStrings[1]) {
-          // Fixed: Use consistent filter format
-          setFilters(
-            [
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+
+    if (value.trim() === "") {
+      setFilters([], "replace");
+    } else {
+      setFilters(
+        [
+          {
+            operator: "or",
+            value: [
               {
-                created_at: {
-                  $gte: dateStrings[0],
-                  $lte: dateStrings[1],
-                },
+                field: "truck_number",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "employee.firstName",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "employee.lastName",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "branch.name",
+                operator: "contains",
+                value: value.trim(),
               },
             ],
-            "replace"
-          );
-        } else {
-          setFilters([], "replace");
-        }
-      }}
-    />
-  );
-
-  const dataSource = data?.data?.data || [];
-
-  const { show } = useNavigation();
-
-  // Создаем функции для пагинации, которые обычно предоставляет tableProps
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
-    setCurrentPage(pagination.current);
-    setPageSize(pagination.pageSize);
-
-    // Обрабатываем сортировку, если она пришла из таблицы
-    if (sorter && sorter.field) {
-      setSortField(
-        sorter.field === "counterparty.name" ? "counterparty.name" : "id"
+          },
+        ],
+        "replace"
       );
-      setSortDirection(sorter.order === "ascend" ? "ASC" : "DESC");
     }
   };
 
-  // Формируем пропсы для таблицы из данных useCustom
-  const tableProps = {
-    dataSource: dataSource,
-    loading: isLoading,
-    pagination: {
-      current: currentPage,
-      pageSize: pageSize,
-      total: data?.data?.total || 0,
-    },
-    onChange: handleTableChange,
-  };
-
-  // Функция для экспорта данных в Excel
-  const exportToExcel = () => {
-    if (!dataSource || dataSource.length === 0) {
-      message.error("Нет данных для экспорта");
+  // Функция для скачивания CSV
+  const downloadCSV = () => {
+    if (nomenclatures.length === 0) {
+      message.warning("Нет данных для экспорта");
       return;
     }
 
-    // Преобразование данных для экспорта
-    const exportData = dataSource.map((item: any) => ({
-      "Дата приемки": item.created_at
-        ? dayjs(item.created_at).format("DD.MM.YYYY HH:MM")
-        : "",
-      "Трек-код": item.trackCode,
-      "Тип груза": item.cargoType,
-      "Код получателя": item.counterparty
-        ? `${item.counterparty.clientPrefix}-${item.counterparty.clientCode}`
-        : "",
-      "ФИО получателя": item.counterparty ? item.counterparty.name : "",
-      "Пункт назначения, Пвз": item.counterparty
-        ? `${item.counterparty.branch?.name},${
-            item.counterparty.under_branch?.address || ""
-          }`
-        : "",
-      Вес: item.weight,
-      Сумма: item.amount,
-      Скидка: item.discount,
-      Сотрудник: item.employee
-        ? `${item.employee.firstName}-${item.employee.lastName}`
-        : "",
-      Комментарий: item.comments,
-    }));
+    const headers = [
+      "№",
+      "Наименование товара, артикул, состав, размер",
+      "Количество",
+      "Вес",
+      "Количество мест, коробки, мешки",
+    ];
 
-    // Создание Excel файла
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheet,
-      "Отчет по принятым грузам"
+    const csvContent = [
+      headers.join(";"),
+      ...nomenclatures.map((item, index) =>
+        [
+          `${index + 1}`,
+          `"${item.name}"`,
+          item.quantity,
+          item.totalWeight,
+          item.count,
+        ].join(";")
+      ),
+    ].join("\n");
+
+    const BOM = "\uFEFF"; // Для корректного отображения кириллицы
+    const blob = new Blob([BOM + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `отчет-упаковочный лист номер рейса-${
+        selectedShipment?.truck_number
+      }-${dayjs().format("DD-MM-YYYY")}.csv`
     );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-    // Сохранение файла
-    XLSX.writeFile(workbook, "cargo_received_report.xlsx");
+    message.success("CSV файл скачан успешно");
   };
 
-  // Функция для экспорта данных в Google Sheets
-  const exportToGoogleSheets = () => {
-    if (!dataSource || dataSource.length === 0) {
-      message.error("Нет данных для экспорта");
+  // Функция для скачивания XLSX
+  const downloadXLSX = async () => {
+    if (nomenclatures.length === 0) {
+      message.warning("Нет данных для экспорта");
       return;
     }
 
     try {
-      // Преобразование данных для экспорта
-      const exportData = dataSource.map((item: any) => ({
-        "Дата приемки": item.created_at
-          ? dayjs(item.created_at).format("DD.MM.YYYY HH:MM")
-          : "",
-        "Трек-код": item.trackCode,
-        "Тип груза": item.cargoType,
-        "Код получателя": item.counterparty
-          ? `${item.counterparty.clientPrefix}-${item.counterparty.clientCode}`
-          : "",
-        "ФИО получателя": item.counterparty ? item.counterparty.name : "",
-        "Пункт назначения, Пвз": item.counterparty
-          ? `${item.counterparty.branch?.name},${
-              item.counterparty.under_branch?.address || ""
-            }`
-          : "",
-        Вес: item.weight,
-        Сумма: item.amount,
-        Скидка: item.discount,
-        Сотрудник: item.employee
-          ? `${item.employee.firstName}-${item.employee.lastName}`
-          : "",
-        Комментарий: item.comments,
-      }));
+      // Динамический импорт библиотеки xlsx
+      const XLSX = await import("xlsx");
 
-      // Создание CSV для Google Sheets
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-      const csv = XLSX.utils.sheet_to_csv(worksheet);
+      const workbook = XLSX.utils.book_new();
 
-      // Создание Blob и ссылки для скачивания
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
+      // Подготовка данных для Excel
+      const worksheetData = [
+        [
+          "№",
+          "Наименование товара, артикул, состав, размер",
+          "Количество",
+          "Вес",
+          "Количество мест, коробки, мешки",
+        ],
+        ...nomenclatures.map((item, index) => [
+          index + 1,
+          item.name,
+          item.quantity,
+          item.totalWeight,
+          item.count,
+        ]),
+      ];
 
-      // Создание элемента для скачивания
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "cargo_received_report.csv");
-      document.body.appendChild(link);
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
-      // Имитация клика для скачивания
-      link.click();
+      // Настройка ширины колонок
+      const columnWidths = [
+        { wch: 50 }, // Наименование
+        { wch: 15 }, // Количество
+        { wch: 15 }, // Вес
+        { wch: 25 }, // Количество мест
+      ];
+      worksheet["!cols"] = columnWidths;
 
-      // Очистка
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Номенклатуры");
 
-      message.success("Файл готов для импорта в Google Sheets");
+      const fileName = `отчет-упаковочный лист номер рейса-${
+        selectedShipment?.truck_number
+      }-${dayjs().format("DD-MM-YYYY")}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
+      message.success("XLSX файл скачан успешно");
     } catch (error) {
-      console.error("Ошибка при экспорте в Google Sheets:", error);
-      message.error("Ошибка при экспорте данных");
+      console.error("Ошибка при создании XLSX файла:", error);
+      message.error("Ошибка при скачивании XLSX файла");
     }
   };
 
+  const sortFields = [
+    { key: "created_at", label: "Дата отправки" },
+    { key: "truck_number", label: "Номер рейса" },
+  ];
+
+  const getSortFieldLabel = () => {
+    const field = sortFields.find((f) => f.key === sortField);
+    return field ? field.label : "Дата отправки";
+  };
+
+  const handleSort = (field: string, direction: "ASC" | "DESC") => {
+    setSortField(field);
+    setSortDirection(direction);
+    setSorters([
+      {
+        field,
+        order: direction.toLowerCase() as "asc" | "desc",
+      },
+    ]);
+  };
+
+  const sortMenu = (
+    <Menu>
+      {sortFields.map((field) => (
+        <Menu.SubMenu key={field.key} title={field.label}>
+          <Menu.Item
+            key={`${field.key}-asc`}
+            onClick={() => handleSort(field.key, "ASC")}
+          >
+            <ArrowUpOutlined /> По возрастанию
+          </Menu.Item>
+          <Menu.Item
+            key={`${field.key}-desc`}
+            onClick={() => handleSort(field.key, "DESC")}
+          >
+            <ArrowDownOutlined /> По убыванию
+          </Menu.Item>
+        </Menu.SubMenu>
+      ))}
+    </Menu>
+  );
+
+  const services = serviceTableProps?.dataSource;
+
+  useEffect(() => {
+    if (services) {
+      const nomenclatureMap = new Map<string, GroupedNomenclature>();
+
+      services.forEach((item: any) => {
+        const id = item.nomenclature.id;
+        const name = item.nomenclature.name;
+        const quantity = item.quantity;
+        const weight = Number(item.weight);
+
+        if (nomenclatureMap.has(id)) {
+          const existing = nomenclatureMap.get(id)!;
+          existing.count += 1;
+          existing.quantity += quantity;
+          existing.totalWeight += weight;
+        } else {
+          nomenclatureMap.set(id, {
+            id,
+            name,
+            quantity,
+            count: 1,
+            totalWeight: weight,
+          });
+        }
+      });
+
+      const nomenclature: GroupedNomenclature[] = Array.from(
+        nomenclatureMap.values()
+      );
+
+      setNomenclatures(nomenclature);
+    }
+  }, [services]);
+
   return (
     <List
-      title="Отчет по полученным товаром"
+      title="Отчет по упаковочному листу"
       headerButtons={() => {
         return (
           <Space>
             <Button
               icon={<FileExcelOutlined />}
-              onClick={exportToExcel}
               type="primary"
               ghost
               style={{
                 backgroundColor: "white",
-                borderColor: "#4285F4",
-                color: "#4285F4",
+                borderColor: "#28a745",
+                color: "#28a745",
               }}
+              onClick={downloadXLSX}
+              loading={false}
             >
               XLSX
             </Button>
             <Button
               icon={<FileOutlined />}
-              onClick={exportToGoogleSheets}
               type="primary"
               ghost
               style={{
                 backgroundColor: "white",
-                borderColor: "#4285F4",
-                color: "#4285F4",
+                borderColor: "#17a2b8",
+                color: "#17a2b8",
               }}
+              onClick={downloadCSV}
             >
               CSV
             </Button>
-            <Dropdown
-              overlay={datePickerContent}
-              trigger={["click"]}
-              placement="bottomRight"
-            >
-              <Button
-                icon={<CalendarOutlined />}
-                className="date-picker-button"
-              >
-                Дата
-              </Button>
-            </Dropdown>
           </Space>
         );
       }}
     >
+      <Table loading={false} dataSource={nomenclatures}>
+        <Table.Column
+          width={10}
+          title="№"
+          dataIndex="number"
+          render={(value, record, index) => index + 1}
+        />
+        <Table.Column
+          dataIndex="name"
+          title="Наименование товара, артикул, состав, размер"
+        />
+        <Table.Column dataIndex="quantity" title="Количество" />
+        <Table.Column dataIndex="totalWeight" title="Вес" />
+        <Table.Column
+          dataIndex="count"
+          title="Количество мест, коробки, мешки"
+        />
+      </Table>
+      <Divider />
+      <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
+        <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10}>
+          <Dropdown overlay={sortMenu} trigger={["click"]}>
+            <Button
+              icon={
+                sortDirection === "ASC" ? (
+                  <ArrowUpOutlined />
+                ) : (
+                  <ArrowDownOutlined />
+                )
+              }
+            >
+              {getSortFieldLabel()}
+            </Button>
+          </Dropdown>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="Поиск по номеру рейса, сотруднику, пункту назначения..."
+            value={searchValue}
+            onChange={(e) => handleSearch(e.target.value)}
+            allowClear
+          />
+        </Flex>
+      </Row>
       <Table
+        onRow={(record) => {
+          return {
+            onClick: () => {
+              setSelectedKey(record.id as number);
+              setSelectedShipment(record as any);
+            },
+          };
+        }}
         {...tableProps}
         rowKey="id"
-        scroll={{ x: "max-content" }}
-        onRow={(record) => ({
-          onDoubleClick: () => {
-            show("goods-processing", record.id as number);
-          },
-        })}
-        pagination={false}
       >
         <Table.Column
+          title=""
+          dataIndex="id"
+          render={(value) => (
+            <Radio type="radio" checked={selectedKey === value} />
+          )}
+          width={10}
+        />
+        <Table.Column
+          width={10}
+          title="№"
+          dataIndex="number"
+          render={(value, record, index) => index + 1}
+        />
+        <Table.Column
+          title="Дата отправки"
           dataIndex="created_at"
-          title="Дата приемки"
-          render={(value) =>
-            value ? dayjs(value).format("DD.MM.YYYY HH:MM") : ""
-          }
+          width={50}
+          render={(value) => dayjs(value).utc().format("DD.MM.YYYY HH:mm")}
         />
-        <Table.Column dataIndex="trackCode" title="Трек-код" />
-        <Table.Column dataIndex="cargoType" title="Тип груза" />
+        <Table.Column width={50} title="Номер рейса" dataIndex="truck_number" />
         <Table.Column
-          dataIndex="counterparty"
-          title="Код получателя"
-          render={(value) => {
-            return value?.clientPrefix + "-" + value?.clientCode;
-          }}
+          width={50}
+          title="Пункт погрузки"
+          dataIndex="employee"
+          render={(value) => value?.branch?.name}
         />
         <Table.Column
-          dataIndex="counterparty"
-          title="ФИО получателя"
+          width={50}
+          title="Количество мест"
+          dataIndex="totalService"
+        />
+        <Table.Column
+          width={50}
+          title="Вес"
+          dataIndex="totalServiceWeight"
+          render={(value) => String(value).replace(".", ",").slice(0, 5)}
+        />
+        <Table.Column
+          width={50}
+          title="Пункт назначения"
+          dataIndex="branch"
           render={(value) => value?.name}
         />
         <Table.Column
-          dataIndex="counterparty"
-          render={(value) =>
-            `${value?.branch?.name},${value?.under_branch?.address || ""}`
-          }
-          title="Пункт назначения, Пвз"
-        />
-        <Table.Column dataIndex="weight" title="Вес" />
-        <Table.Column dataIndex="amount" title="Сумма" />
-        <Table.Column dataIndex="discount" title="Скидка" />
-        {/* <Table.Column dataIndex="paymentMethod" title="Способ оплаты" /> */}
-        <Table.Column
-          dataIndex="employee"
+          width={50}
           title="Сотрудник"
-          render={(value) => {
-            return `${value?.firstName}-${value?.lastName}`;
-          }}
+          dataIndex="employee"
+          render={(value) => `${value?.firstName} ${value?.lastName}`}
         />
-        <Table.Column dataIndex="comments" title="Комментарий" />
+        <Table.Column width={50} title="Статус" dataIndex="status" />
       </Table>
     </List>
   );
