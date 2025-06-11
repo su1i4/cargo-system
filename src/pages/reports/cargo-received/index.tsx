@@ -27,7 +27,7 @@ interface CargoItem {
   totalCount: number;
   productTypes: {
     Пошив?: number;
-    Бренд?: number;
+    Брендированные?: number;
     "К-Привозные"?: number;
     Маркировка?: number;
     [key: string]: number | undefined;
@@ -39,7 +39,7 @@ interface GroupedData {
   totalWeight: number;
   totalCount: number;
   sewing: number; // Пошив
-  brand: number; // Бренд
+  brand: number; // Брендированные
   imported: number; // К-Привозные
   marking: number; // Маркировка
   isGroupHeader: boolean;

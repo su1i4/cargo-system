@@ -9,6 +9,7 @@ import { useReactToPrint } from "react-to-print";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import { aN } from "react-router/dist/development/route-data-B9_30zbP";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -158,7 +159,7 @@ export const IncomeShow: React.FC = () => {
         <Col span={4}>
           <Title level={5}>Дата прихода</Title>
           <TextField
-            value={dayjs(record?.created_at).utc().format("DD.MM.YYYY HH:mm")}
+            value={dayjs(record?.income).utc().format("DD.MM.YYYY HH:mm")}
           />
         </Col>
         <Col span={4}>
@@ -231,13 +232,15 @@ export const IncomeShow: React.FC = () => {
             render={(value) => value?.name}
             title="Пункт назначения"
           />
-          <Table.Column
-            dataIndex="totalServiceWeight"
-            title="Вес"
-            render={(value) =>
-              String(value).replace(".", ",").slice(0, 5) + " кг"
-            }
-          />
+
+<Table.Column
+  dataIndex="services"
+  title="Вес"
+  render={(value: []  ) => {
+    const totalWeight = value.reduce((sum : any, item: any) => sum + (parseFloat(item.weight) || 0), 0);
+    return totalWeight + " кг";
+  }}
+/>
           <Table.Column
             dataIndex="services"
             title="Кол-во мешков"
