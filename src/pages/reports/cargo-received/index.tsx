@@ -187,8 +187,8 @@ export const CargoReceivedReport = () => {
     config: {
       query: {
         pagination: false,
-        startDate: from.replace('T', ' ') + ':00',
-        endDate: to.replace('T', ' ') + ':00',
+        startDate: from.replace("T", " ") + ":00",
+        endDate: to.replace("T", " ") + ":00",
       },
     },
   });
@@ -203,7 +203,7 @@ export const CargoReceivedReport = () => {
     if (data?.data) {
       const grouped: GroupedData[] = [];
 
-      const fromGroups = data.data.routes.reduce((acc: any, item: any) => {
+      const fromGroups = data.data.routes?.reduce((acc: any, item: any) => {
         if (!acc[item.from]) {
           acc[item.from] = [];
         }
@@ -211,29 +211,29 @@ export const CargoReceivedReport = () => {
         return acc;
       }, {} as Record<string, CargoItem[]>);
 
-      for (const [from, items] of Object.entries(fromGroups)) {
+      for (const [from, items] of Object.entries(fromGroups || {})) {
         const itemsT: any = items;
-        const fromTotalCount = itemsT.reduce(
+        const fromTotalCount = itemsT?.reduce(
           (sum: any, i: any) => sum + i.totalCount,
           0
         );
-        const fromTotalWeight = itemsT.reduce(
+        const fromTotalWeight = itemsT?.reduce(
           (sum: any, i: any) => sum + i.totalWeight,
           0
         );
-        const fromSewing = itemsT.reduce(
+        const fromSewing = itemsT?.reduce(
           (sum: any, i: any) => sum + (i.productTypes["Пошив"] || 0),
           0
         );
-        const fromImported = itemsT.reduce(
+        const fromImported = itemsT?.reduce(
           (sum: any, i: any) => sum + (i.productTypes["К-Привозные"] || 0),
           0
         );
-        const fromBrand = itemsT.reduce(
+        const fromBrand = itemsT?.reduce(
           (sum: any, i: any) => sum + (i.productTypes["Брендированные"] || 0),
           0
         );
-        const fromMarking = itemsT.reduce(
+        const fromMarking = itemsT?.reduce(
           (sum: any, i: any) => sum + (i.productTypes["Маркировка"] || 0),
           0
         );
@@ -283,27 +283,27 @@ export const CargoReceivedReport = () => {
         {
           isGroupHeader: true,
           region: "Всего итого",
-          totalCount: cities.reduce(
+          totalCount: cities?.reduce(
             (sum: any, i: any) => sum + i.totalCount,
             0
           ),
-          totalWeight: cities.reduce(
+          totalWeight: cities?.reduce(
             (sum: any, i: any) => sum + i.totalWeight,
             0
           ),
-          sewing: cities.reduce(
+          sewing: cities?.reduce(
             (sum: any, i: any) => sum + (i.productTypes["Пошив"] || 0),
             0
           ),
-          brand: cities.reduce(
+          brand: cities?.reduce(
             (sum: any, i: any) => sum + (i.productTypes["Брендированные"] || 0),
             0
           ),
-          imported: cities.reduce(
+          imported: cities?.reduce(
             (sum: any, i: any) => sum + (i.productTypes["К-Привозные"] || 0),
             0
           ),
-          marking: cities.reduce(
+          marking: cities?.reduce(
             (sum: any, i: any) => sum + (i.productTypes["Маркировка"] || 0),
             0
           ),
