@@ -83,20 +83,19 @@ interface TariffItem {
   };
 }
 
-const countries = [
-  { label: "Китай", value: "Китай" },
-  { label: "Узбекистан", value: "Узбекистан" },
-  { label: "Туркменистан", value: "Туркменистан" },
-  { label: "Кыргызстан", value: "Кыргызстан" },
-  { label: "Турция", value: "Турция" },
-];
-
 export const GoodsEdit = () => {
   const { formProps, saveButtonProps, form, queryResult } = useForm();
   const apiUrl = useApiUrl();
 
   const { tableProps } = useTable({
     resource: "products",
+  });
+
+  const { tableProps: tariffTableProps } = useTable({
+    resource: "tariff",
+    pagination: {
+      mode: "off",
+    },
   });
 
   const [services, setServices] = useState<GoodItem[]>([]);
@@ -110,6 +109,7 @@ export const GoodsEdit = () => {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [tariffs, setTariffs] = useState<TariffItem[]>([]);
   const [copyCount, setCopyCount] = useState(0);
+  const [discount, setDiscount] = useState(0);
 
   const values: any = Form.useWatch([], form);
   const record = queryResult?.data?.data;
@@ -163,6 +163,7 @@ export const GoodsEdit = () => {
         );
         setNextId(maxId + 1);
       }
+
       if (record.packers && Array.isArray(record.packers)) {
         const packerIds = record.packers.map((packer: any) => packer.id);
         formProps.form?.setFieldsValue({
@@ -202,7 +203,7 @@ export const GoodsEdit = () => {
   useEffect(() => {
     if (tableProps.dataSource && record?.products) {
       const formattedProducts = tableProps.dataSource.map((item: any) => {
-        const product = record.products.find((p: any) => p.id === item.id);
+        const product = record.products.find((p: any) => p.name === item.name);
         if (product) {
           return {
             ...item,
@@ -221,6 +222,7 @@ export const GoodsEdit = () => {
           };
         }
       });
+      console.log(formattedProducts, ' updateProductField')
       setProducts(formattedProducts);
     }
   }, [tableProps.dataSource, record?.products]);
@@ -328,40 +330,34 @@ export const GoodsEdit = () => {
     return weight * tariff;
   };
 
-  // Обновление данных товара
-  const updateItemField = (id: number, field: string, value: any) => {
+  const updateItemField = (
+    id: number,
+    field: string,
+    value: any,
+    index?: number
+  ) => {
     setServices(
       services.map((item) => {
         if (item.id === id) {
-          const newItem = { ...item, [field]: value, updated: true };
+          const newItem = { ...item, [field]: value };
 
-          // Если выбран тип товара, получаем тариф
-          if (field === "type_id") {
-            const selectedType = typeProducts.find((type) => type.id === value);
-            const branchId = Number(values?.destination_id);
-            const productTypeId = Number(value);
+          if (field === "type_id" || field === "weight") {
+            const selectedType = tariffTableProps?.dataSource?.find(
+              (type: any) =>
+                type.branch_id === values?.destination_id &&
+                type.product_type_id ===
+                  (field === "weight" ? Number(item.type_id) : value)
+            );
 
-            if (selectedType && branchId) {
-              // Найти соответствующий тариф на основе филиала и типа товара
-              const tariffValue = findTariff(branchId, productTypeId);
-
-              newItem.type_name = selectedType.name;
-              newItem.tariff =
-                tariffValue > 0 ? tariffValue : selectedType.tariff;
-              newItem.price =
-                tariffValue > 0 ? tariffValue : selectedType.tariff;
-
-              // Пересчитываем сумму на основе веса и нового тарифа
+            if (selectedType) {
+              newItem.tariff = selectedType.tariff;
+              newItem.price = Number(selectedType.tariff) - discount;
               if (newItem.weight) {
-                newItem.sum = calculateSum(newItem.weight, newItem.tariff);
+                newItem.sum = calculateSum(
+                  newItem.weight,
+                  Number(selectedType.tariff - discount)
+                );
               }
-            }
-          }
-
-          // Если изменяется вес, пересчитываем сумму
-          if (field === "weight") {
-            if (newItem.tariff) {
-              newItem.sum = calculateSum(value, newItem.tariff);
             }
           }
 
@@ -516,7 +512,7 @@ export const GoodsEdit = () => {
         is_created: service.is_created === true,
       })),
       products: products
-        .filter((product) => Number(product.quantity) > 0)
+        // .filter((product) => Number(product.quantity) > 0)
         .map((product) => ({
           ...product,
           // Добавляем метки для изменений
@@ -580,18 +576,17 @@ export const GoodsEdit = () => {
   });
 
   const { selectProps: discountSelectProps }: any = useSelect({
-    resource: "discount",
+    resource: "counterparty",
     optionLabel: (record: any) => {
-      return `${record?.counter_party?.clientPrefix}-${record?.counter_party?.clientCode}, ${record?.counter_party?.name}, ${record?.discount}%`;
-    },
-    optionValue: (record: any) => {
-      return record?.counter_party?.id;
+      return `${record?.clientPrefix ?? ""}-${record?.clientCode ?? ""}, ${
+        record?.name ?? ""
+      }, '${record?.discount?.discount ?? 0}' руб`;
     },
     filters: [
       {
-        field: "counter_party_id",
+        field: "id",
         operator: "in",
-        value: [values?.sender_id, values?.recipient_id],
+        value: [values?.sender_id, values?.recipient_id].filter(Boolean),
       },
     ],
     queryOptions: {
@@ -646,18 +641,25 @@ export const GoodsEdit = () => {
   });
 
   useEffect(() => {
-    if (discountSelectProps?.options?.length > 0) {
-      formProps.form?.setFieldsValue({
-        discount_id: discountSelectProps?.options?.reduce(
-          (max: any, current: any) => {
-            return parseFloat(current.discount) > parseFloat(max.discount)
-              ? current
-              : max;
-          }
-        ).value,
+    if (services?.length > 0) {
+      const newServices = services.map((item) => {
+        const selectedType = tariffTableProps?.dataSource?.find(
+          (type: any) =>
+            type.branch_id === values?.destination_id &&
+            type.product_type_id === Number(item.type_id)
+        );
+        return {
+          ...item,
+          price: Number(selectedType?.tariff) - discount,
+          sum: calculateSum(
+            Number(item.weight),
+            Number(Number(selectedType?.tariff) - discount)
+          ),
+        };
       });
+      setServices(newServices);
     }
-  }, [discountSelectProps]);
+  }, [discount, values?.destination_id]);
 
   const lastGoods = [
     {
@@ -725,10 +727,11 @@ export const GoodsEdit = () => {
   });
 
   const getLabelSafe = (option: any) => {
-    if (!option) return '';
-    if (Array.isArray(option)) return '';
-    if (typeof option === 'object' && typeof option.label === 'string') return option.label;
-    return '';
+    if (!option) return "";
+    if (Array.isArray(option)) return "";
+    if (typeof option === "object" && typeof option.label === "string")
+      return option.label;
+    return "";
   };
 
   const createItemsByCount = (bag_number: string) => {
@@ -762,8 +765,11 @@ export const GoodsEdit = () => {
       (item) => item.value === branchId
     );
     createItemsByCount(
-      (getLabelSafe(reciver) && getLabelSafe(branch))
-        ? `${getLabelSafe(reciver).split(",")[0]}/${getLabelSafe(branch).slice(0, 1)}`
+      getLabelSafe(reciver) && getLabelSafe(branch)
+        ? `${getLabelSafe(reciver).split(",")[0]}/${getLabelSafe(branch).slice(
+            0,
+            1
+          )}`
         : ""
     );
     message.success(`Создано ${copyCount} новых товаров`);
@@ -784,17 +790,19 @@ export const GoodsEdit = () => {
               name="destination_id"
             >
               <Select
-                onChange={(val, record) => {
-                  const recieverId = formProps.form?.getFieldValue("recipient_id");
+                onChange={(val, record: any) => {
+                  const recieverId =
+                    formProps.form?.getFieldValue("recipient_id");
                   const reciver = counterpartySelectPropsReceiver.options?.find(
-                    (item) => item.value === recieverId
+                    (item: any) => item.value === recieverId
                   );
                   const newServices = services.map((item) => {
-                    const reciverLabel = getLabelSafe(reciver);
-                    const recordLabel = getLabelSafe(record);
                     return {
                       ...item,
-                      bag_number: reciverLabel && recordLabel ? `${reciverLabel.split(",")[0]}/${recordLabel.slice(0, 1)}` : '',
+                      bag_number: `${
+                        //@ts-ignore
+                        reciver?.label?.split(",")[0]
+                      }/${record?.label?.slice(0, 1)}`,
                     };
                   });
                   setServices(newServices);
@@ -824,7 +832,8 @@ export const GoodsEdit = () => {
             >
               <Select
                 onChange={(val, record) => {
-                  const branchId = formProps.form?.getFieldValue("destination_id");
+                  const branchId =
+                    formProps.form?.getFieldValue("destination_id");
                   const branch = branchSelectProps.options?.find(
                     (item) => item.value === branchId
                   );
@@ -833,7 +842,13 @@ export const GoodsEdit = () => {
                   const newServices = services.map((item) => {
                     return {
                       ...item,
-                      bag_number: recordLabel && branchLabel ? `${recordLabel.split(",")[0]}/${branchLabel.slice(0, 1)}` : '',
+                      bag_number:
+                        recordLabel && branchLabel
+                          ? `${recordLabel.split(",")[0]}/${branchLabel.slice(
+                              0,
+                              1
+                            )}`
+                          : "",
                     };
                   });
                   setServices(newServices);
@@ -853,7 +868,7 @@ export const GoodsEdit = () => {
               <Select {...branchSelectPropsIsSent} allowClear />
             </Form.Item>
           </Col>
-          <Col span={6}>
+          {/* <Col span={6}>
             <Form.Item
               rules={[{ required: true, message: "Оплачивает" }]}
               label="Оплачивает"
@@ -875,7 +890,7 @@ export const GoodsEdit = () => {
                 }
               />
             </Form.Item>
-          </Col>
+          </Col> */}
           <Col span={6}>
             <Form.Item
               rules={[{ required: true, message: "Способ оплаты обязателен" }]}
@@ -902,7 +917,13 @@ export const GoodsEdit = () => {
           </Col>
           <Col span={6}>
             <Form.Item label="Скидка" name="discount_id">
-              <Select {...discountSelectProps} allowClear />
+              <Select
+                onChange={(_, record: { label: string; value: number }) =>
+                  setDiscount(Number(record?.label?.split("'")[1]))
+                }
+                {...discountSelectProps}
+                allowClear
+              />
             </Form.Item>
           </Col>
         </Row>
@@ -995,7 +1016,7 @@ export const GoodsEdit = () => {
               )
             }
           />
-          <Table.Column
+          {/* <Table.Column
             title="Страна"
             dataIndex="country"
             render={(value, record: any, index: number) =>
@@ -1017,7 +1038,7 @@ export const GoodsEdit = () => {
                 />
               )
             }
-          />
+          /> */}
           <Table.Column
             title="Тип товара"
             dataIndex="type_id"

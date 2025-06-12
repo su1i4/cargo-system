@@ -37,6 +37,10 @@ export const BranchShow = () => {
       <TextField value={record?.phone} />
       <Title level={5}>Досыльный город</Title>
       <TextField value={record?.is_sent ? "Да" : "Нет"} />
+      <Title level={5}>latitude</Title>
+      <TextField value={record?.latitude || 0} />
+      <Title level={5}>longitude</Title>
+      <TextField value={record?.longitude || 0} />
     </Show>
   );
 };

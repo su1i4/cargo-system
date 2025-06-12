@@ -379,6 +379,18 @@ export const routes = [
     },
   },
   {
+    name: "my-company",
+    list: "/my-company",
+    create: "/my-company/create",
+    edit: "/my-company/:id",
+    show: "/my-company/:id",
+    meta: {
+      canDelete: true,
+      label: "Моя компания",
+      parent: "Автоматизация",
+    },
+  },
+  {
     name: "notification",
     list: "/notification",
     create: "/notification/create",

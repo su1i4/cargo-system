@@ -102,7 +102,8 @@ export const IncomeShow: React.FC = () => {
                 borderBottom: "1px solid black",
               }}
             >
-              от {dayjs().format("DD.MM.YYYY")}
+              от{" "}
+              {dayjs(record?.good?.created_at).utc().format("DD.MM.YYYY HH:mm")}
             </p>
             <p></p>
           </Flex>
@@ -159,13 +160,13 @@ export const IncomeShow: React.FC = () => {
         <Col span={4}>
           <Title level={5}>Дата прихода</Title>
           <TextField
-            value={dayjs(record?.income).utc().format("DD.MM.YYYY HH:mm")}
+            value={dayjs(record?.created_at).utc().format("DD.MM.YYYY HH:mm")}
           />
         </Col>
         <Col span={4}>
           <Title level={5}>Код клиента</Title>
           <TextField
-            value={`${record?.counterparty?.clientCode}-${record?.counterparty?.clientPrefix}`}
+            value={`${record?.counterparty?.clientPrefix}-${record?.counterparty?.clientCode}`}
           />
         </Col>
         <Col span={4}>
@@ -233,14 +234,17 @@ export const IncomeShow: React.FC = () => {
             title="Пункт назначения"
           />
 
-<Table.Column
-  dataIndex="services"
-  title="Вес"
-  render={(value: []  ) => {
-    const totalWeight = value.reduce((sum : any, item: any) => sum + (parseFloat(item.weight) || 0), 0);
-    return totalWeight + " кг";
-  }}
-/>
+          <Table.Column
+            dataIndex="services"
+            title="Вес"
+            render={(value: []) => {
+              const totalWeight = value.reduce(
+                (sum: any, item: any) => sum + (parseFloat(item.weight) || 0),
+                0
+              );
+              return totalWeight + " кг";
+            }}
+          />
           <Table.Column
             dataIndex="services"
             title="Кол-во мешков"

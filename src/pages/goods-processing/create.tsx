@@ -729,20 +729,6 @@ export const GoodsCreate = () => {
     ],
   });
 
-  // useEffect(() => {
-  //   if (discountSelectProps?.options?.length > 0) {
-  //     formProps.form?.setFieldsValue({
-  //       discount_id: discountSelectProps?.options?.reduce(
-  //         (max: any, current: any) => {
-  //           return parseFloat(current.discount) < parseFloat(max.discount)
-  //             ? current
-  //             : max;
-  //         }
-  //       ).value,
-  //     });
-  //   }
-  // }, [values?.sender_id, values?.recipient_id]);
-
   useEffect(() => {
     if (services?.length > 0) {
       const newServices = services.map((item) => {
@@ -877,7 +863,7 @@ export const GoodsCreate = () => {
               <Select {...branchSelectPropsIsSent} allowClear />
             </Form.Item>
           </Col>
-          <Col span={6}>
+          {/* <Col span={6}>
             <Form.Item
               rules={[{ required: true, message: "Оплачивает" }]}
               label="Оплачивает"
@@ -899,7 +885,7 @@ export const GoodsCreate = () => {
                 }
               />
             </Form.Item>
-          </Col>
+          </Col> */}
           <Col span={6}>
             <Form.Item
               rules={[{ required: true, message: "Способ оплаты обязателен" }]}
@@ -1025,7 +1011,7 @@ export const GoodsCreate = () => {
               )
             }
           />
-          <Table.Column
+          {/* <Table.Column
             title="Страна"
             dataIndex="country"
             render={(value, record: any, index: number) =>
@@ -1047,7 +1033,7 @@ export const GoodsCreate = () => {
                 />
               )
             }
-          />
+          /> */}
           <Table.Column
             title="Тип товара"
             dataIndex="type_id"

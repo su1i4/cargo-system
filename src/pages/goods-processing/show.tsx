@@ -140,7 +140,7 @@ export const GoodsShow: React.FC = () => {
             style={{ width: 100, height: 60, objectFit: "contain" }}
             alt="photo"
           />
-          <Title style={{ fontSize: 15, fontWeight: 600 }} level={5}>
+          <Title style={{ fontSize: 16, fontWeight: 600 }} level={5}>
             Накладная №: {record?.invoice_number}
           </Title>
         </Flex>
@@ -151,10 +151,10 @@ export const GoodsShow: React.FC = () => {
           </Text>
         </Flex>
         <Flex vertical style={{ marginBottom: 10 }}>
-          <Text style={{ fontSize: 13, color: "#808080" }}>
+          <Text style={{ fontSize: 14, color: "#808080" }}>
             Досыл, услуги грузчиков и адресная доставка оплачивается отдельно
           </Text>
-          <Text style={{ fontSize: 13, color: "#808080" }}>
+          <Text style={{ fontSize: 14, color: "#808080" }}>
             Адрес склада:{" "}
             {
               tableProps?.dataSource?.find(
@@ -264,7 +264,7 @@ export const GoodsShow: React.FC = () => {
             <Text>Комментарий</Text>
           </Col>
           <Col style={colStyle} span={8}>
-            <Text>{record?.comment || ""}</Text>
+            <Text>{record?.comments || ""}</Text>
           </Col>
           <Col style={colStyle} span={4}>
             <Text>Досыл</Text>
@@ -354,7 +354,7 @@ export const GoodsShow: React.FC = () => {
                 <Text>{service.bag_number}</Text>
               </Col>
               <Col style={colStyle} span={4}>
-                <Text style={{ fontSize: 15, lineHeight: "10px" }}>
+                <Text style={{ fontSize: 13, lineHeight: "10px" }}>
                   Грузоперевозка{" "}
                   {`${record?.employee?.branch?.name} - ${record?.destination?.name}`}
                 </Text>
@@ -459,24 +459,24 @@ export const GoodsShow: React.FC = () => {
           ""
         )}
         <Flex justify="space-between" align="center" style={{ marginTop: 10 }}>
-          <Text style={{ fontWeight: "bold", fontSize: 13 }}>Сумма заказа</Text>
+          <Text style={{ fontWeight: "bold", fontSize: 15 }}>Сумма заказа</Text>
           <Flex vertical align="flex-end" style={{ width: "300px" }}>
             <Text
               style={{
                 fontWeight: "bold",
-                fontSize: 15,
+                fontSize: 16,
                 borderBottom: "1px solid black",
               }}
             >
               Итого к оплате: {totalSum + totalProdSum} RUB
             </Text>
-            <Text style={{ fontWeight: "bold", fontSize: 15 }}>
+            <Text style={{ fontWeight: "bold", fontSize: 16 }}>
               {((totalSum + totalProdSum) * Number(som?.rate)).toFixed(0)} KGS
             </Text>
           </Flex>
         </Flex>
         <Flex gap={12} style={{ marginTop: 5 }}>
-          <Flex vertical style={{ width: "50%", fontSize: 13 }}>
+          <Flex vertical style={{ width: "50%", fontSize: 14 }}>
             <Text>Условия перевозок:</Text>
             <Text style={{ fontSize: 12 }}>
               1. Клиент / представитель Клиента гарантирует, что отправляемый

@@ -314,11 +314,9 @@ export const CargoReceivedReport = () => {
     }
   }, [data]);
 
-  // Function to prepare export data
   const prepareExportData = () => {
     const exportData: any[] = [];
 
-    // Add main table data
     exportData.push({
       Город: "ОТЧЕТ ПО ПРИНЯТЫМ ГРУЗАМ",
       Место: "",

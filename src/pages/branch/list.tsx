@@ -13,12 +13,14 @@ import { Checkbox, Space, Table } from "antd";
 export const BranchList = () => {
   const { tableProps } = useTable({
     syncWithLocation: true,
-    initialSorter: [
-      {
-        field: "id",
-        order: "desc",
-      },
-    ],
+    sorters: {
+      permanent: [
+        {
+          field: "id",
+          order: "asc",
+        },
+      ],
+    },
   });
 
   const { push } = useNavigation();

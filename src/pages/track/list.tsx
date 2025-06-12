@@ -27,6 +27,9 @@ dayjs.extend(utc);
 export const TrackList = () => {
   const { tableProps, tableQueryResult, setFilters } = useTable({
     resource: "shipments",
+    sorters: {
+      permanent: [{ field: "id", order: "desc" }],
+    },
     pagination: {
       mode: "off",
     },
@@ -151,6 +154,13 @@ export const TrackList = () => {
     setFilters(filterValue, "replace");
   }, [filtersState]);
 
+  console.log(
+    selectedShipment?.employee?.branch?.latitude,
+    selectedShipment?.employee?.branch?.latitude,
+    selectedShipment?.branch?.latitude,
+    selectedShipment?.branch?.longitude
+  );
+
   return (
     <Flex
       style={{
@@ -178,7 +188,6 @@ export const TrackList = () => {
           )}
         </Form>
       </Modal>
-
       <Modal {...editModalProps} title="Редактирование истории рейса">
         <Form {...editFormProps} layout="vertical">
           <Form.Item
@@ -190,9 +199,16 @@ export const TrackList = () => {
           </Form.Item>
         </Form>
       </Modal>
-
-      <YandexMap />
-
+      <YandexMap
+        from={{
+          latitude: selectedShipment?.employee?.branch?.latitude || 42.875408,
+          longitude: selectedShipment?.employee?.branch?.longitude || 74.685079,
+        }}
+        to={{
+          latitude: selectedShipment?.branch?.latitude || 42.870063,
+          longitude: selectedShipment?.branch?.longitude || 74.638062,
+        }}
+      />
       <Flex
         style={{
           width: "40%",

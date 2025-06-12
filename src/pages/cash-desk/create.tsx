@@ -134,11 +134,6 @@ export const CashDeskCreate: React.FC = () => {
                 },
               ],
             },
-            {
-              pays: {
-                $eq: selectedType,
-              },
-            },
             ...filters,
           ],
         }),
