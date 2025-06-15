@@ -21,7 +21,6 @@ import {
   ArrowDownOutlined,
   FileAddOutlined,
   SettingOutlined,
-  NodeIndexOutlined,
   FilterOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
@@ -124,7 +123,6 @@ export const GoogsProcessingList = () => {
         [
           {
             $or: [
-              { trackCode: { $contL: value } },
               { "counterparty.clientCode": { $contL: value } },
               { "counterparty.name": { $contL: value } },
             ],

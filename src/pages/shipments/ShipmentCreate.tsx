@@ -41,7 +41,7 @@ const ShipmentCreate = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const { list } = useNavigation();
 
-  const { tableProps, setSorters, setFilters } = useTable({
+  const { tableProps, setFilters, setSorters } = useTable({
     resource: "service",
     filters: {
       permanent: [
@@ -58,9 +58,8 @@ const ShipmentCreate = () => {
       ],
     },
     pagination: {
-      pageSize: 10,
+      pageSize: 100,
     },
-    syncWithLocation: false,
   });
 
   const { mutate: updateServices } = useUpdateMany({
@@ -240,27 +239,60 @@ const ShipmentCreate = () => {
     setSearchValue(value);
 
     if (value.trim() === "") {
-      setFilters([], "replace");
-    } else {
+      // Возвращаем постоянные фильтры при очистке поиска
       setFilters(
         [
           {
             operator: "or",
             value: [
               {
-                field: "bag_number",
-                operator: "contains",
-                value: value.trim(),
+                field: "status",
+                operator: "eq",
+                value: "На складе",
               },
+            ],
+          },
+        ],
+        "replace"
+      );
+    } else {
+      // Комбинируем постоянные фильтры с поисковыми
+      setFilters(
+        [
+          {
+            operator: "and",
+            value: [
+              // Постоянный фильтр по статусу
               {
-                field: "good.sender.name",
-                operator: "contains",
-                value: value.trim(),
+                operator: "or",
+                value: [
+                  {
+                    field: "status",
+                    operator: "eq",
+                    value: "На складе",
+                  },
+                ],
               },
+              // Поисковые фильтры
               {
-                field: "good.recipient.name",
-                operator: "contains",
-                value: value.trim(),
+                operator: "or",
+                value: [
+                  {
+                    field: "bag_number",
+                    operator: "contains",
+                    value: value.trim(),
+                  },
+                  {
+                    field: "good.sender.name",
+                    operator: "contains",
+                    value: value.trim(),
+                  },
+                  {
+                    field: "good.recipient.name",
+                    operator: "contains",
+                    value: value.trim(),
+                  },
+                ],
               },
             ],
           },

@@ -91,10 +91,6 @@ const ShipmentEdit = () => {
     },
   });
 
-  const { mutate: updateManyGoods } = useUpdateMany({
-    resource: "goods-processing",
-  });
-
   const { mutate: updateServices } = useUpdateMany({
     resource: "service",
   });
@@ -287,22 +283,6 @@ const ShipmentEdit = () => {
       });
     }
   }, [record, form]);
-
-  const handleSearchChange = (value: string) => {
-    setSearchValue(value);
-
-    if (!value) {
-      setFilters([]);
-    } else {
-      setFilters([
-        {
-          field: "trackCode",
-          operator: "contains",
-          value: value,
-        },
-      ]);
-    }
-  };
 
   const rowSelection = {
     selectedRowKeys,
