@@ -65,8 +65,8 @@ const ShipmentShow = () => {
       ],
     },
     pagination: {
-      pageSize: 100
-    }
+      pageSize: 100,
+    },
   });
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
@@ -194,9 +194,12 @@ const ShipmentShow = () => {
         </Col>
 
         <Col xs={24} md={6}>
-          <Title level={5}>Вес</Title>
+          <Title level={5}>Вес кг</Title>
           <TextField
-            value={String(record?.weight).replace(".", ",").slice(0, 5) || 0}
+            value={tableProps?.dataSource?.reduce(
+              (sum: any, i: any) => sum + Number(i.weight),
+              0
+            )}
           />
         </Col>
 

@@ -58,7 +58,7 @@ const ShipmentCreate = () => {
       ],
     },
     pagination: {
-      pageSize: 100,
+      pageSize: 10,
     },
     syncWithLocation: false,
   });

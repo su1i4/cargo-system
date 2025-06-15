@@ -135,8 +135,7 @@ const ShipmentEdit = () => {
     action: "edit",
     id,
     redirect: false, // Изменено на false, чтобы контролировать редирект вручную
-    onMutationSuccess: async (updatedShipment) => {
-    },
+    onMutationSuccess: async (updatedShipment) => {},
   });
 
   const { queryResult } = useShow({
@@ -147,17 +146,16 @@ const ShipmentEdit = () => {
 
   // Обработчик завершения отправки формы
   const handleFinish = async (values: any) => {
-
     try {
       // Получаем все сервисы из таблицы
       const allServices = tableProps?.dataSource || [];
-      
+
       // Разделяем на выбранные и невыбранные
-      const selectedServices = allServices.filter((item: any) => 
+      const selectedServices = allServices.filter((item: any) =>
         selectedRowKeys.includes(item.id)
       );
-      const unselectedServices = allServices.filter((item: any) => 
-        !selectedRowKeys.includes(item.id)
+      const unselectedServices = allServices.filter(
+        (item: any) => !selectedRowKeys.includes(item.id)
       );
 
       const updatePromises = [];
@@ -217,12 +215,12 @@ const ShipmentEdit = () => {
         // message.success('Отправка успешно обновлена');
         list("shipments");
       } else {
-        message.info('Нет изменений для сохранения');
+        message.info("Нет изменений для сохранения");
         list("shipments");
       }
     } catch (error) {
-      console.error('Error in handleFinish:', error);
-      message.error("Ошибка при обновлении сервисов: " + (error));
+      console.error("Error in handleFinish:", error);
+      message.error("Ошибка при обновлении сервисов: " + error);
     }
   };
 
@@ -231,25 +229,24 @@ const ShipmentEdit = () => {
     ...originalSaveButtonProps,
     onClick: async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      
+
       try {
         console.log("Save button clicked");
-        
+
         // Валидируем форму
         const values = await form.validateFields();
         console.log("Form validation passed:", values);
-        
+
         // Отправляем основную форму
         form.submit();
-        
+
         // Небольшая задержка, чтобы дать время форме отправиться
         setTimeout(() => {
           handleFinish(values);
         }, 500);
-        
       } catch (error) {
-        console.error('Form validation failed:', error);
-        message.error('Проверьте заполнение полей формы');
+        console.error("Form validation failed:", error);
+        message.error("Проверьте заполнение полей формы");
       }
     },
     disabled: formLoading || !!tableProps.loading,
@@ -384,6 +381,54 @@ const ShipmentEdit = () => {
     </Menu>
   );
 
+  const sortedData = [...(tableProps?.dataSource ?? [])].sort(
+    (a: any, b: any) => {
+      if (sortField === "bag_number") {
+        const extractNumber = (val: string) => {
+          if (!val) return 0;
+          const parts = val.split("|");
+          return parseInt(parts[1]?.trim() ?? "0", 10);
+        };
+
+        const aVal = extractNumber(a.bag_number);
+        const bVal = extractNumber(b.bag_number);
+
+        return sortDirection === "ASC" ? aVal - bVal : bVal - aVal;
+      }
+
+      // Handle date sorting for created_at field
+      if (sortField === "good.created_at") {
+        const aVal = a.good?.created_at;
+        const bVal = b.good?.created_at;
+
+        if (!aVal && !bVal) return 0;
+        if (!aVal) return 1;
+        if (!bVal) return -1;
+
+        const aDate = new Date(aVal).getTime();
+        const bDate = new Date(bVal).getTime();
+
+        return sortDirection === "ASC" ? aDate - bDate : bDate - aDate;
+      }
+
+      // Generic sorting for other fields
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+
+      if (aVal === bVal) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+
+      return sortDirection === "ASC"
+        ? aVal > bVal
+          ? 1
+          : -1
+        : aVal < bVal
+        ? 1
+        : -1;
+    }
+  );
+
   const handleSearch = (value: string) => {
     setSearchValue(value);
 
@@ -416,6 +461,11 @@ const ShipmentEdit = () => {
         "replace"
       );
     }
+  };
+
+  const updatedTableProps = {
+    ...tableProps,
+    dataSource: sortedData,
   };
 
   return (
@@ -502,9 +552,9 @@ const ShipmentEdit = () => {
             </Dropdown>
           </Flex>
         </Row>
-        <Table 
-          {...tableProps} 
-          rowKey="id" 
+        <Table
+          {...updatedTableProps}
+          rowKey="id"
           rowSelection={rowSelection}
           onRow={(record) => ({
             onClick: () => {

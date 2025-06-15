@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Edit, useForm, useSelect, useTable } from "@refinedev/antd";
-import { useApiUrl, useCustom } from "@refinedev/core";
+import { useApiUrl, useCustom, useNavigation } from "@refinedev/core";
 import {
   Button,
   Col,
@@ -84,7 +84,13 @@ interface TariffItem {
 }
 
 export const GoodsEdit = () => {
-  const { formProps, saveButtonProps, form, queryResult } = useForm();
+  const { goBack } = useNavigation();
+  const { formProps, saveButtonProps, form, queryResult } = useForm({
+    redirect: false,
+    onMutationSuccess: () => {
+      goBack();
+    },
+  });
   const apiUrl = useApiUrl();
 
   const { tableProps } = useTable({
@@ -222,7 +228,7 @@ export const GoodsEdit = () => {
           };
         }
       });
-      console.log(formattedProducts, ' updateProductField')
+      console.log(formattedProducts, " updateProductField");
       setProducts(formattedProducts);
     }
   }, [tableProps.dataSource, record?.products]);

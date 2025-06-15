@@ -79,6 +79,14 @@ export const GoogsProcessingList = () => {
     },
   });
 
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "smooth",
+    });
+  }, [currentPage]);
+
   const [sorterVisible, setSorterVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [settingVisible, setSettingVisible] = useState(false);

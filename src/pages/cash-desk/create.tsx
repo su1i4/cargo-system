@@ -1,7 +1,6 @@
-import React, { Key, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Create, useSelect, useForm } from "@refinedev/antd";
 import {
-  BaseRecord,
   useCustom,
   useNavigation,
   useOne,
@@ -14,9 +13,9 @@ import {
   Col,
   DatePicker,
   Dropdown,
-  Flex,
   Form,
   Input,
+  message,
   Row,
   Select,
   Space,
@@ -35,7 +34,7 @@ import { API_URL } from "../../App";
 import TextArea from "antd/lib/input/TextArea";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-import { redirect, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -44,7 +43,6 @@ export enum CurrencyType {
   Usd = "Доллар",
   Rub = "Рубль",
   Som = "Сом",
-  // Cny = "Юань",
 }
 
 export const CashDeskCreate: React.FC = () => {
@@ -95,6 +93,7 @@ export const CashDeskCreate: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(100);
   const [change, setChange] = useState(0);
+  const [bolik, setBolik] = useState(false);
 
   const { data: currency = { data: [] }, isLoading: currencyLoading } =
     useCustom<any>({
@@ -179,9 +178,7 @@ export const CashDeskCreate: React.FC = () => {
     }
   }, [form]);
 
-  // Fixed useEffect for handling agent/non-agent mode changes
   useEffect(() => {
-    console.log("change");
     if (formProps.form) {
       if (isAgent) {
         let rate = 0;
@@ -227,7 +224,6 @@ export const CashDeskCreate: React.FC = () => {
 
         const resetValues = Object.keys(currentValues).reduce(
           (acc: any, key: any) => {
-            // Preserve these fields when switching from agent to non-agent mode
             if (
               key === "income" ||
               key === "type_operation" ||
@@ -309,7 +305,7 @@ export const CashDeskCreate: React.FC = () => {
     "Оплата перечислением",
   ];
 
-  const incomeTypes = ["Извне", "Контрагент"];
+  const incomeTypes = ["Извне", "Контрагент оптом", "Контрагент частично"];
 
   const handleTableChange = (pagination: any, filters: any, sorter: any) => {
     setCurrentPage(pagination.current);
@@ -408,11 +404,28 @@ export const CashDeskCreate: React.FC = () => {
   );
 
   const handleRowSelect = (record: any) => {
-    setSelectedRowKeys([record.id]);
-    setSelectedRows([record]);
+    if (!bolik) {
+      const alreadySelected = selectedRowKeys.includes(record.id);
+
+      if (alreadySelected) {
+        setSelectedRowKeys(selectedRowKeys.filter((id) => id !== record.id));
+        setSelectedRows(selectedRows.filter((row) => row.id !== record.id));
+      } else {
+        setSelectedRowKeys([...selectedRowKeys, record.id]);
+        setSelectedRows([...selectedRows, record]);
+      }
+    } else {
+      setSelectedRowKeys([record.id]);
+      setSelectedRows([record]);
+    }
   };
 
-  console.log(selectedRows);
+  useEffect(() => {
+    setSelectedRowKeys([]);
+    setSelectedRows([]);
+  }, [bolik]);
+
+  console.log();
 
   return (
     <Create
@@ -435,7 +448,12 @@ export const CashDeskCreate: React.FC = () => {
         initialValues={{
           type: "income",
         }}
-        onFinish={(values) => {
+        onFinish={(values: any) => {
+          if (values.amount > values.paid_sum) {
+            message.error("Неравильная сумма");
+            return;
+          }
+          console.log(values)
           const finalValues = {
             ...values,
             type: "income",
@@ -503,7 +521,12 @@ export const CashDeskCreate: React.FC = () => {
                 placeholder="Выберите вид прихода"
                 style={{ width: "100%" }}
                 onChange={(e) => {
-                  setIsAgent(e === "Контрагент" ? true : false);
+                  setIsAgent(
+                    e === "Контрагент оптом" || "Контрагент частично"
+                      ? true
+                      : false
+                  );
+                  setBolik(e === "Контрагент частично" ? true : false);
                 }}
               />
             </Form.Item>
