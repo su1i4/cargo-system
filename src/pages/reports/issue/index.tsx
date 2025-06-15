@@ -22,7 +22,7 @@ import { useEffect, useState } from "react";
 import { useCustom } from "@refinedev/core";
 import { useDocumentTitle } from "@refinedev/react-router";
 import { API_URL } from "../../../App";
-import { CustomTooltip } from "../../../shared/custom-tooltip";
+import { CustomTooltip, operationStatus } from "../../../shared/custom-tooltip";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
@@ -31,7 +31,7 @@ import * as XLSX from "xlsx";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-export const StockReport = () => {
+export const IssueReport = () => {
   const setTitle = useDocumentTitle();
 
   useEffect(() => {
@@ -50,12 +50,10 @@ export const StockReport = () => {
   const [searchFilters, setSearchFilters] = useState<any[]>([]);
   const [search, setSearch] = useState("");
 
-  // Состояния для дат
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
   const [downloadLoading, setDownloadLoading] = useState(false);
 
-  // Стили для инпутов дат
   const inputStyle: React.CSSProperties = {
     padding: "4px 8px",
     border: "1px solid #d9d9d9",
@@ -69,7 +67,6 @@ export const StockReport = () => {
   const buildQueryParams = () => {
     const filters = [...searchFilters];
 
-    // Добавляем фильтр по датам если они заданы
     if (from && to) {
       filters.push({
         created_at: {
@@ -81,7 +78,7 @@ export const StockReport = () => {
 
     return {
       s: JSON.stringify({
-        $and: [...filters, { status: { $eq: "В складе" } }],
+        $and: [...filters, { status: { $eq: "Готов к выдаче" } }],
       }),
       sort: `${sortField},${sortDirection}`,
       page: 1,
@@ -116,7 +113,6 @@ export const StockReport = () => {
     method: "get",
   });
 
-  // Функция для подготовки данных для экспорта
   const prepareExportData = () => {
     const dataSource = data?.data?.data || [];
 
@@ -164,7 +160,6 @@ export const StockReport = () => {
     }));
   };
 
-  // Функция для скачивания XLSX
   const downloadXLSX = async () => {
     try {
       setDownloadLoading(true);
@@ -188,7 +183,6 @@ export const StockReport = () => {
     }
   };
 
-  // Функция для скачивания CSV
   const downloadCSV = async () => {
     try {
       const exportData = prepareExportData();
@@ -229,7 +223,6 @@ export const StockReport = () => {
     }
   };
 
-  // Обновляем данные при изменении дат
   useEffect(() => {
     refetch();
   }, [from, to, refetch]);
@@ -382,7 +375,7 @@ export const StockReport = () => {
   const dataSource = data?.data?.data || [];
 
   return (
-    <List title="Отчет по остаткам на складах" headerButtons={() => false}>
+    <List title="Отчет выданным товарам" headerButtons={() => false}>
       <Flex
         gap={10}
         style={{ marginBottom: 16, position: "sticky", top: 80, zIndex: 10 }}
@@ -539,48 +532,20 @@ export const StockReport = () => {
         scroll={{ x: 1000 }}
       >
         <Table.Column
-          title="№"
-          render={(_: any, __: any, index: number) => {
-            return index + 1;
-          }}
-        />
-        <Table.Column
-          dataIndex="created_at"
-          title="Дата приемки"
-          render={(value) =>
-            value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
-          }
-        />
-        <Table.Column
-          dataIndex="created_at"
-          title="Дата отправки"
-          render={(value) =>
-            value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
-          }
-        />
-        <Table.Column
           dataIndex="created_at"
           title="Дата получения"
           render={(value) =>
             value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
           }
         />
-        <Table.Column
-          dataIndex="tracking_status"
-          title="Дата выдачи"
-          render={(value) => {
-            const issuedStatus = Array.isArray(value)
-              ? value.find((item: any) => item.status === "Выдали")
-              : null;
-
-            return issuedStatus?.createdAt
-              ? dayjs(issuedStatus.createdAt).utc().format("DD.MM.YYYY HH:mm")
-              : "";
-          }}
-        />
-
-        <Table.Column dataIndex="truck_number" title="Номер машины" />
         <Table.Column dataIndex="invoice_number" title="№ накладной" />
+        <Table.Column
+          dataIndex="employee"
+          title="Пункт приема"
+          render={(value) =>
+            `${value?.branch?.name}, ${value?.under_branch?.address || ""}`
+          }
+        />
         <Table.Column
           dataIndex="sender"
           title="Код отправителя"
@@ -606,37 +571,52 @@ export const StockReport = () => {
           render={(value) => value?.name}
         />
         <Table.Column
+          dataIndex="recipient"
+          title="Тел-номер получателя"
+          render={(value) => value?.phoneNumber}
+        />
+        <Table.Column
           dataIndex="destination"
           render={(value) => value?.name}
-          title="Город (с досыслом если есть)"
+          title="Пункт назначения"
         />
         <Table.Column
           dataIndex="totalServiceWeight"
-          title="Вес, кг"
-          render={(value) => String(value).replace(".", ",").slice(0, 5)}
+          title="Вес"
+          render={(value) =>
+            String(value).replace(".", ",").slice(0, 5) + " кг"
+          }
+        />
+        <Table.Column
+          dataIndex="services"
+          title="Номер мешков"
+          render={(value) => value?.map((item: any) => item.bag_number).join(', ')}
         />
         <Table.Column
           dataIndex="services"
           title="Кол-во мешков"
-          render={(value) => value?.length}
+          render={(value) => value?.length + " шт"}
         />
-        <Table.Column dataIndex="totalServiceAmountSum" title="Сумма" />
         <Table.Column
-          dataIndex="totalProductAmountSum"
-          title="Сумма за мешки"
-        />
-        <Table.Column dataIndex="paid_sum" title="Оплачено" />
-        <Table.Column
-          dataIndex="id"
-          title="Долг"
-          render={(_, record) =>
+          dataIndex="totalServiceAmountSum"
+          title="Сумма"
+          render={(_, record: any) =>
             `${
-              Number(record?.totalServiceAmountSum) +
-              Number(record?.totalProductAmountSum) -
-              Number(record?.paid_sum)
-            }`
+              Number(record.totalServiceAmountSum) +
+              Number(record.totalProductAmountSum)
+            } руб`
           }
         />
+        <Table.Column dataIndex="payment_method" title="Способ оплаты" />
+        {operationStatus()}
+        <Table.Column
+          dataIndex="employee"
+          title="Сотрудник"
+          render={(value) => {
+            return `${value?.firstName}-${value?.lastName}`;
+          }}
+        />
+        <Table.Column dataIndex="comments" title="Комментарий" />
       </Table>
     </List>
   );

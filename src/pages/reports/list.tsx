@@ -32,11 +32,11 @@ export const ReportList = () => {
       link: "borrow",
     },
     {
-      id: "",
+      id: "issue",
       title: "Отчет по задолженности представительств",
       description: "Отчёт показывает задолженности представительств",
       icon: <CargoReceivedIcon3 />,
-      link: "",
+      link: "issue",
     },
   ];
 
