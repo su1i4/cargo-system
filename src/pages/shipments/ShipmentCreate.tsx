@@ -262,7 +262,6 @@ const ShipmentCreate = () => {
           {
             operator: "and",
             value: [
-              // Постоянный фильтр по статусу
               {
                 operator: "or",
                 value: [
@@ -273,7 +272,6 @@ const ShipmentCreate = () => {
                   },
                 ],
               },
-              // Поисковые фильтры
               {
                 operator: "or",
                 value: [
@@ -289,6 +287,11 @@ const ShipmentCreate = () => {
                   },
                   {
                     field: "good.recipient.name",
+                    operator: "contains",
+                    value: value.trim(),
+                  },
+                  {
+                    field: "good.invoice_number",
                     operator: "contains",
                     value: value.trim(),
                   },

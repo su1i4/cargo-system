@@ -23,6 +23,7 @@ import { ArrowUpOutlined } from "@ant-design/icons";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { SearchOutlined } from "@ant-design/icons";
 import { useState } from "react";
+import dayjs from "dayjs";
 
 const { Title } = Typography;
 
@@ -54,7 +55,9 @@ const ShipmentHistoryShow = () => {
         },
       ],
     },
-    queryOptions: {},
+    pagination: {
+      pageSize: 100,
+    },
   });
 
   const sortFields = [
@@ -122,6 +125,11 @@ const ShipmentHistoryShow = () => {
               },
               {
                 field: "good.recipient.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.invoice_number",
                 operator: "contains",
                 value: value.trim(),
               },
@@ -226,12 +234,23 @@ const ShipmentHistoryShow = () => {
           render={(value, record, index) => index + 1}
         />
         <Table.Column
-          title="Тип товара"
-          dataIndex="product_type"
-          render={(value) => value?.name}
+          title="Дата приемки"
+          dataIndex="good"
+          render={(value) =>
+            dayjs(value?.created_at).utc().format("DD.MM.YYYY HH:mm")
+          }
+        />
+        <Table.Column
+          title="Отправитель"
+          dataIndex="good"
+          render={(value) => `${value?.sender?.name}`}
         />
         <Table.Column title="Номер мешка" dataIndex="bag_number" />
-        <Table.Column title="Город" dataIndex="country" />
+        <Table.Column
+          title="Получатель"
+          dataIndex="good"
+          render={(value) => `${value?.recipient?.name}`}
+        />
         <Table.Column title="Количество" dataIndex="quantity" />
         <Table.Column
           title="Вес"
@@ -240,7 +259,7 @@ const ShipmentHistoryShow = () => {
         />
         <Table.Column title="Статус" dataIndex="status" />
         <Table.Column
-          title="Город назначения"
+          title="Пункт назначения"
           dataIndex="good"
           render={(value) => value?.destination?.name}
         />

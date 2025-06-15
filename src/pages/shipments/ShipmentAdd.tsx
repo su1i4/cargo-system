@@ -273,6 +273,11 @@ const ShipmentAdd = () => {
                 operator: "contains",
                 value: value.trim(),
               },
+              {
+                field: "good.invoice_number",
+                operator: "contains",
+                value: value.trim(),
+              },
             ],
           },
         ],
