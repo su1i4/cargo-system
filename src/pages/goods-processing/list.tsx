@@ -497,13 +497,13 @@ export const GoogsProcessingList = () => {
         </Col>
         <Col flex="auto">
           <Input
-            placeholder="Поиск по трек-коду, фио получателя или по коду получателя"
+            placeholder="Поиск по номеру накладной, фио получателя или по коду получателя"
             prefix={<SearchOutlined />}
             value={search}
             onChange={(e) => {
               const value = e.target.value;
               if (!value) {
-                setFilters([{ trackCode: { $contL: "" } }], "replace");
+                setFilters([], "replace");
                 setSearch("");
                 searchparams.set("value", "");
                 setSearchParams(searchparams);
@@ -519,9 +519,9 @@ export const GoogsProcessingList = () => {
                 [
                   {
                     $or: [
-                      { trackCode: { $contL: value } },
-                      { "counterparty.clientCode": { $contL: value } },
-                      { "counterparty.name": { $contL: value } },
+                      { invoice_number: { $contL: value } },
+                      { "sender.name": { $contL: value } },
+                      { "recipient.name": { $contL: value } },
                     ],
                   },
                 ],

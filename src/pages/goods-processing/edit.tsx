@@ -212,7 +212,7 @@ export const GoodsEdit = () => {
         const product = record.products.find((p: any) => p.name === item.name);
         if (product) {
           return {
-            ...item,
+            id: product.id,
             name: product.name,
             price: product.price,
             quantity: product.quantity,
@@ -222,7 +222,7 @@ export const GoodsEdit = () => {
           return {
             id: item.id,
             name: item.name,
-            price: Number(item.price) || 0, // Цена берется из бэкенда
+            price: Number(item.price) || 0,
             quantity: 0,
             sum: 0,
           };
@@ -470,21 +470,6 @@ export const GoodsEdit = () => {
     }),
   };
 
-  // Настройки для выбора строк в таблице товаров
-  const productRowSelection = {
-    selectedRowKeys: selectedProductKeys,
-    onChange: (newSelectedRowKeys: React.Key[]) => {
-      setSelectedProductKeys(newSelectedRowKeys);
-    },
-    getCheckboxProps: (record: ProductItem) => ({
-      // Отключаем выбор для итоговой строки
-      disabled: record.id === "total",
-      style: {
-        display: record.id === "total" ? "none" : "",
-      },
-    }),
-  };
-
   const handleFormSubmit = (values: any) => {
     // Проверяем наличие услуг
     if (services.length === 0) {
@@ -517,14 +502,11 @@ export const GoodsEdit = () => {
         is_updated: service.updated === true && !service.is_created,
         is_created: service.is_created === true,
       })),
-      products: products
-        // .filter((product) => Number(product.quantity) > 0)
-        .map((product) => ({
-          ...product,
-          // Добавляем метки для изменений
-          is_updated: product.updated === true && !product.is_created,
-          is_created: product.is_created === true,
-        })),
+      products: products.map((product) => ({
+        ...product,
+        is_updated: product.updated === true && !product.is_created,
+        is_created: product.is_created === true,
+      })),
     };
 
     if (submitValues.created_at) {

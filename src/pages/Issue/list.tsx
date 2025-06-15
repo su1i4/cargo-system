@@ -455,9 +455,9 @@ export const IssueProcessingList = () => {
                     { status: { $eq: "Готов к выдаче" } },
                     {
                       $or: [
-                        { trackCode: { $contL: value } },
-                        { "counterparty.clientCode": { $contL: value } },
-                        { "counterparty.name": { $contL: value } },
+                        { invoice_number: { $contL: value } },
+                        { "sender.name": { $contL: value } },
+                        { "recipient.name": { $contL: value } },
                       ],
                     },
                   ]);
