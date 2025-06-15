@@ -115,28 +115,16 @@ export const IssueReport = () => {
 
   const prepareExportData = () => {
     const dataSource = data?.data?.data || [];
-
+  
     return dataSource.map((record: any, index: number) => ({
       "№": index + 1,
-      "Дата приемки": record.created_at
-        ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
-        : "",
-      "Дата отправки": record.created_at
-        ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
-        : "",
       "Дата получения": record.created_at
         ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
         : "",
-      "Дата выдачи": (() => {
-        const issuedStatus = Array.isArray(record.tracking_status)
-          ? record.tracking_status.find((item: any) => item.status === "Выдали")
-          : null;
-        return issuedStatus?.createdAt
-          ? dayjs(issuedStatus.createdAt).utc().format("DD.MM.YYYY HH:mm")
-          : "";
-      })(),
-      "Номер машины": record.truck_number || "",
       "№ накладной": record.invoice_number || "",
+      "Пункт приема": record.employee?.branch?.name 
+        ? `${record.employee.branch.name}, ${record.employee.under_branch?.address || ""}`
+        : "",
       "Код отправителя": record.sender
         ? `${record.sender.clientPrefix}-${record.sender.clientCode}`
         : "",
@@ -145,18 +133,30 @@ export const IssueReport = () => {
         ? `${record.recipient.clientPrefix}-${record.recipient.clientCode}`
         : "",
       "Фио получателя": record.recipient?.name || "",
-      "Город (с досыслом если есть)": record.destination?.name || "",
-      "Вес, кг": record.totalServiceWeight
-        ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5)
+      "Тел-номер получателя": record.recipient?.phoneNumber || "",
+      "Пункт назначения": record.destination?.name || "",
+      "Вес": record.totalServiceWeight
+        ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5) + " кг"
         : "",
-      "Кол-во мешков": record.services?.length || 0,
-      Сумма: record.totalServiceAmountSum || 0,
-      "Сумма за мешки": record.totalProductAmountSum || 0,
-      Оплачено: record.paid_sum || 0,
-      Долг:
+      "Номер мешков": record.services?.map((item: any) => item.bag_number).join(', ') || "",
+      "Кол-во мешков": record.services?.length 
+        ? record.services.length + " шт"
+        : "0 шт",
+      "Сумма": `${
         Number(record.totalServiceAmountSum || 0) +
-        Number(record.totalProductAmountSum || 0) -
-        Number(record.paid_sum || 0),
+        Number(record.totalProductAmountSum || 0)
+      } руб`,
+      "Способ оплаты": record.payment_method || "",
+      "Статус операции": (() => {
+        if (record.operation_id) {
+          return "Оплачено";
+        }
+        return "Не оплачено";
+      })(),
+      "Сотрудник": record.employee 
+        ? `${record.employee.firstName}-${record.employee.lastName}`
+        : "",
+      "Комментарий": record.comments || "",
     }));
   };
 
