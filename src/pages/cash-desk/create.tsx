@@ -51,20 +51,23 @@ export const CashDeskCreate: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
 
+  // Mutate function to update multiple goods (e.g., link them to the new cash-desk operation)
   const { mutate: updateManyGoods } = useUpdateMany({
     resource: "goods-processing",
     mutationOptions: {
       onSuccess: async (data: any, variables, context) => {
-        refetch();
-        push("/income");
+        refetch(); // Refetch goods data after update
+        push("/income"); // Navigate to income page
       },
     },
   });
 
+  // Form hook for creating a cash-desk entry
   const { formProps, saveButtonProps, form } = useForm({
     onMutationSuccess(data, variables, context, isAutoSave) {
-      const id = data?.data?.id;
+      const id = data?.data?.id; // Get the ID of the newly created cash-desk entry
       if (selectedRowKeys.length > 0) {
+        // If goods were selected, update them with the cash-desk operation ID
         updateManyGoods({
           ids: selectedRowKeys,
           values: {
@@ -72,40 +75,43 @@ export const CashDeskCreate: React.FC = () => {
           },
         });
       } else {
+        // If no goods were selected (e.g., direct income), navigate
         navigate("/income");
       }
     },
     resource: "cash-desk",
-    redirect: false,
+    redirect: false, // Prevent default redirection
     //@ts-ignore
     defaultValues: {
-      type: "income",
-      type_operation: "Извне",
-      date: dayjs(),
+      type: "income", // Default type for cash desk entry
+      type_operation: "Извне", // Default operation type
+      date: dayjs(), // Default date to current day
     },
   });
 
-  const [isAgent, setIsAgent] = useState(false);
-  const [sorterVisible, setSorterVisible] = useState(false);
-  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
-  const [sortField, setSortField] = useState<"id" | "counterparty.name">("id");
-  const [filters, setFilters] = useState<any>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(100);
-  const [change, setChange] = useState(0);
-  const [bolik, setBolik] = useState(false);
+  const [isAgent, setIsAgent] = useState(false); // State to control visibility of agent-related fields and table
+  const [sorterVisible, setSorterVisible] = useState(false); // State for sort dropdown visibility
+  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC"); // Sorting direction
+  const [sortField, setSortField] = useState<"id" | "counterparty.name">("id"); // Field to sort by
+  const [filters, setFilters] = useState<any>([]); // Filters for the goods table
+  const [currentPage, setCurrentPage] = useState(1); // Current page for goods table
+  const [pageSize, setPageSize] = useState(100); // Page size for goods table
+  const [change, setChange] = useState(0); // Dummy state to trigger useEffect for amount calculation
+  const [bolik, setBolik] = useState(false); // True for "Контрагент частично" (partial payment), enables single selection
 
+  // Fetch currency data
   const { data: currency = { data: [] }, isLoading: currencyLoading } =
     useCustom<any>({
       url: `${API_URL}/currency`,
       method: "get",
     });
 
-  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null); // To determine if sender or recipient
   const [selectedReceipientId, setSelectedReceipientId] = useState<
     string | null
-  >(null);
+  >(null); // For fetching counterparty details (though not directly used now)
 
+  // Fetch goods-processing data based on filters, sorting, and pagination
   const { data, isLoading, refetch } = useCustom<any>({
     url: `${API_URL}/goods-processing`,
     method: "get",
@@ -144,12 +150,13 @@ export const CashDeskCreate: React.FC = () => {
     },
   });
 
+  // Select properties for the sender/counterparty dropdown
   const { selectProps: senderSelectProps } = useSelect({
     resource: "counterparty",
     optionLabel: (item) =>
       `${item.name} ${item.clientPrefix}-${item.clientCode}/${
         item.type === "sender" ? "." : ","
-      }`,
+      }`, // Custom label combining name, prefix, code
     filters: [
       {
         operator: "or",
@@ -172,12 +179,14 @@ export const CashDeskCreate: React.FC = () => {
     ],
   });
 
+  // Set initial form values (type: "income") when the form is available
   useEffect(() => {
     if (form) {
       form.setFieldValue("type", "income");
     }
   }, [form]);
 
+  // Effect to calculate and set 'amount' and 'paid_sum' based on selections and currency
   useEffect(() => {
     if (formProps.form) {
       if (isAgent) {
@@ -188,7 +197,8 @@ export const CashDeskCreate: React.FC = () => {
             currency.data?.find((item: any) => item.name === currentValue)
               ?.rate || 0;
         }
-        console.log(currentValue, rate);
+
+        // Calculate total amounts from selected goods (services + products)
         const totalServiceAmount = selectedRows.reduce(
           (total: number, item: any) => {
             const localAmount = item.services.reduce(
@@ -210,16 +220,20 @@ export const CashDeskCreate: React.FC = () => {
           0
         );
         const totalAmount = totalProductAmount + totalServiceAmount;
+        // Transform amount based on currency rate
         const transformAmount = rate > 0 ? rate * totalAmount : totalAmount;
+
+        // Calculate the remaining amount to be paid
+        const remainingToPay = selectedRows.length > 0 ? (transformAmount - (selectedRows[0]?.paid_sum || 0)) : 0;
+
+        // Set form fields: 'amount' and 'paid_sum'
         formProps.form.setFieldsValue({
-          amount: transformAmount - selectedRows[0]?.paid_sum || 0,
+          amount: remainingToPay,
+          paid_sum: remainingToPay,
         });
-        if (selectedRows?.length) {
-          formProps.form.setFieldsValue({
-            paid_sum: transformAmount - selectedRows[0]?.paid_sum || 0,
-          });
-        }
+
       } else {
+        // If not an agent operation, reset agent-specific fields
         const currentValues: any = formProps.form.getFieldsValue();
 
         const resetValues = Object.keys(currentValues).reduce(
@@ -236,7 +250,7 @@ export const CashDeskCreate: React.FC = () => {
             ) {
               acc[key] = currentValues[key];
             } else {
-              acc[key] = undefined;
+              acc[key] = undefined; // Reset other fields
             }
             return acc;
           },
@@ -246,13 +260,15 @@ export const CashDeskCreate: React.FC = () => {
         formProps.form.setFieldsValue(resetValues);
       }
     }
-  }, [isAgent, selectedRows, currency.data, change]);
+  }, [isAgent, selectedRows, currency.data, change, bolik]); // Added bolik to dependencies
 
+  // Select properties for the bank dropdown
   const { selectProps: bankSelectProps } = useSelect({
     resource: "bank",
     optionLabel: "name",
   });
 
+  // Fetch counterparty data (currently not fully utilized for setting form fields, but available)
   const { data: counterpartyData } = useOne({
     resource: "counterparty",
     id: selectedReceipientId ?? "",
@@ -261,8 +277,9 @@ export const CashDeskCreate: React.FC = () => {
     },
   });
 
-  const currentDateDayjs = dayjs();
+  const currentDateDayjs = dayjs(); // Get current date for default value
 
+  // Set counterparty name and default date when data is available
   useEffect(() => {
     if (counterpartyData && counterpartyData.data) {
       // @ts-ignore
@@ -277,6 +294,7 @@ export const CashDeskCreate: React.FC = () => {
     }
   }, [counterpartyData, formProps.form]);
 
+  // Set default type_operation on component mount
   useEffect(() => {
     if (formProps.form) {
       formProps.form.setFieldsValue({
@@ -285,18 +303,14 @@ export const CashDeskCreate: React.FC = () => {
     }
   }, []);
 
-  // Debug currency data
-  useEffect(() => {
-    console.log("Currency data:", currency.data);
-    console.log("Currency loading:", currencyLoading);
-  }, [currency.data, currencyLoading]);
-
+  // Handle sender selection change
   const handleSenderChange = (value: any, record: any) => {
     setSelectedType(
       record.label.split("/")[1] === "." ? "sender" : "recipient"
     );
-    setSelectedRows([]);
-    setChange(change + 1);
+    setSelectedRows([]); // Clear selected rows when sender changes
+    setSelectedRowKeys([]); // Clear selected row keys
+    setChange(change + 1); // Trigger recalculation
   };
 
   const paymentTypes = [
@@ -307,6 +321,7 @@ export const CashDeskCreate: React.FC = () => {
 
   const incomeTypes = ["Извне", "Контрагент оптом", "Контрагент частично"];
 
+  // Handle table pagination, filtering, and sorting
   const handleTableChange = (pagination: any, filters: any, sorter: any) => {
     setCurrentPage(pagination.current);
     setPageSize(pagination.pageSize);
@@ -321,8 +336,9 @@ export const CashDeskCreate: React.FC = () => {
 
   const dataSource = data?.data?.data;
 
+  // Table props configuration
   const tableProps = {
-    type: "radio" as const,
+    type: "radio" as const, // Although we handle multi-select with checkboxes, Antd Table `type` can be used for built-in radio
     dataSource: dataSource,
     loading: isLoading,
     pagination: {
@@ -338,6 +354,7 @@ export const CashDeskCreate: React.FC = () => {
     },
   };
 
+  // Content for the date picker dropdown
   const datePickerContent = (
     <DatePicker.RangePicker
       style={{ width: "280px" }}
@@ -352,11 +369,14 @@ export const CashDeskCreate: React.FC = () => {
               },
             },
           ]);
+        } else {
+          setFilters([]); // Clear date filter if dates are cleared
         }
       }}
     />
   );
 
+  // Content for the sort dropdown
   const sortContent = (
     <Card style={{ width: 200, padding: "0px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -403,8 +423,10 @@ export const CashDeskCreate: React.FC = () => {
     </Card>
   );
 
+  // Handle row selection for the goods table
   const handleRowSelect = (record: any) => {
     if (!bolik) {
+      // If NOT partial payment (i.e., bulk payment or other multi-select)
       const alreadySelected = selectedRowKeys.includes(record.id);
 
       if (alreadySelected) {
@@ -415,17 +437,17 @@ export const CashDeskCreate: React.FC = () => {
         setSelectedRows([...selectedRows, record]);
       }
     } else {
+      // If partial payment (bolik is true), only allow single selection
       setSelectedRowKeys([record.id]);
       setSelectedRows([record]);
     }
   };
 
+  // Clear selected rows/keys when 'bolik' (payment type) changes
   useEffect(() => {
     setSelectedRowKeys([]);
     setSelectedRows([]);
   }, [bolik]);
-
-  console.log();
 
   return (
     <Create
@@ -434,7 +456,7 @@ export const CashDeskCreate: React.FC = () => {
         onClick: () => {
           const confirmed = window.confirm("Вы уверены, что хотите сохранить?");
           if (confirmed) {
-            form.setFieldValue("type", "income");
+            form.setFieldValue("type", "income"); // Ensure type is income before saving
             saveButtonProps.onClick && saveButtonProps.onClick();
           }
         },
@@ -449,23 +471,47 @@ export const CashDeskCreate: React.FC = () => {
           type: "income",
         }}
         onFinish={(values: any) => {
-          if (values.amount > values.paid_sum) {
-            message.error("Неравильная сумма");
-            return;
+          // --- Validation for "Контрагент частично" (Partial Payment) ---
+          // This ensures the user cannot pay more than the remaining balance for a single item.
+          if (bolik && selectedRows.length === 1) {
+            const selectedGood = selectedRows[0];
+            let rate = 0;
+            const selectedCurrency = values.type_currency;
+            if (selectedCurrency) {
+              rate = currency.data?.find((item: any) => item.name === selectedCurrency)?.rate || 0;
+            }
+
+            // Calculate the total actual amount of the selected good (services + products)
+            const totalGoodAmount = selectedGood.services.reduce((acc: number, service: any) => acc + Number(service.sum || 0), 0) +
+                                    selectedGood.products.reduce((acc: number, product: any) => acc + Number(product.sum || 0), 0);
+
+            // Calculate the remaining amount due for this specific good, considering currency rate
+            const remainingAmount = (rate > 0 ? rate * totalGoodAmount : totalGoodAmount) - (selectedGood?.paid_sum || 0);
+
+            // Check if the user-entered amount exceeds the remaining amount
+            if (values.amount > remainingAmount) {
+              message.error("Сумма к оплате не может превышать оставшуюся сумму.");
+              return; // Prevent form submission
+            }
           }
-          console.log(values)
+          // --- End Validation ---
+
           const finalValues = {
             ...values,
             type: "income",
+            // counterparty_id is set based on the sender_id selected in the form
             counterparty_id: formProps?.form?.getFieldValue("sender_id"),
           };
 
-          if (isAgent) {
+          // If it's an agent operation, link the cash desk entry to the first selected good
+          // (For "Контрагент частично", this will be the single selected good)
+          // (For "Контрагент оптом", this will link all selected goods to a single cash desk operation)
+          if (isAgent && selectedRows.length > 0) {
             //@ts-ignore
-            finalValues.good_id = selectedRows[0]?.id;
+            finalValues.good_id = selectedRows[0]?.id; // Link to the first selected good's ID
           }
 
-          formProps.onFinish && formProps.onFinish(finalValues);
+          formProps.onFinish && formProps.onFinish(finalValues); // Proceed with form submission
         }}
       >
         <Form.Item name="type" hidden={true} initialValue="income">
@@ -480,7 +526,7 @@ export const CashDeskCreate: React.FC = () => {
               style={{ marginBottom: 5 }}
             >
               <DatePicker
-                disabled={true}
+                disabled={true} // Date is disabled and set to current date
                 style={{ width: "100%" }}
                 format="YYYY-MM-DD HH:mm:ss"
                 showTime
@@ -521,12 +567,10 @@ export const CashDeskCreate: React.FC = () => {
                 placeholder="Выберите вид прихода"
                 style={{ width: "100%" }}
                 onChange={(e) => {
-                  setIsAgent(
-                    e === "Контрагент оптом" || "Контрагент частично"
-                      ? true
-                      : false
-                  );
-                  setBolik(e === "Контрагент частично" ? true : false);
+                  // Set isAgent based on selection
+                  setIsAgent(e === "Контрагент оптом" || e === "Контрагент частично");
+                  // Set bolik for "Контрагент частично" to enable single selection
+                  setBolik(e === "Контрагент частично");
                 }}
               />
             </Form.Item>
@@ -597,42 +641,9 @@ export const CashDeskCreate: React.FC = () => {
                     .includes(input.toLowerCase())
                 }
                 onChange={(value) => {
-                  setChange(change + 1);
-                  if (isAgent && value) {
-                    let rate = 0;
-                    if (value) {
-                      rate =
-                        currency.data?.find((item: any) => item.name === value)
-                          ?.rate || 0;
-                    }
-                    const totalServiceAmount = selectedRows.reduce(
-                      (total: number, item: any) => {
-                        const localAmount = item.services.reduce(
-                          (acc: number, service: any) =>
-                            acc + Number(service.sum || 0),
-                          0
-                        );
-                        return total + localAmount;
-                      },
-                      0
-                    );
-                    const totalProductAmount = selectedRows.reduce(
-                      (total: number, item: any) => {
-                        const localAmount = item.products.reduce(
-                          (acc: number, service: any) =>
-                            acc + Number(service.sum || 0),
-                          0
-                        );
-                        return total + localAmount;
-                      },
-                      0
-                    );
-                    const totalAmount = totalProductAmount + totalServiceAmount;
-                    const transformAmount =
-                      rate > 0 ? rate * totalAmount : totalAmount;
-                    formProps.form?.setFieldsValue({ amount: transformAmount });
-                  }
-                  // For non-agent mode, currency selection works normally without amount calculation
+                  setChange(change + 1); // Trigger re-calculation on currency change
+                  // The main logic for amount calculation is in the useEffect,
+                  // this handler just ensures that effect runs.
                 }}
                 options={Object.values(CurrencyType).map((item: any) => ({
                   label: `${item}`,
@@ -650,7 +661,7 @@ export const CashDeskCreate: React.FC = () => {
             >
               <Input
                 type="number"
-                // disabled={isAgent}
+                disabled={isAgent && !bolik} // Disabled if agent AND NOT partial payment (bolik)
                 min={0}
                 placeholder="Введите сумму прихода"
                 style={{ width: "100%" }}
@@ -658,13 +669,17 @@ export const CashDeskCreate: React.FC = () => {
             </Form.Item>
           </Col>
           {isAgent && (
-            <Col span={isAgent ? 3 : 12}>
+            <Col span={3}>
               <Form.Item
                 label="Сумма к оплате"
                 name="paid_sum"
                 style={{ marginBottom: 5 }}
               >
-                <Input type="number" disabled style={{ width: "100%" }} />
+                <Input
+                  type="number"
+                  disabled // This field is always disabled as it displays the calculated remaining amount
+                  style={{ width: "100%" }}
+                />
               </Form.Item>
             </Col>
           )}
@@ -686,24 +701,24 @@ export const CashDeskCreate: React.FC = () => {
               <Form.Item name="check_file" noStyle>
                 <Upload.Dragger
                   name="file"
-                  action={`${API_URL}/file-upload`}
+                  action={`${API_URL}/file-upload`} // Your upload endpoint
                   listType="picture"
                   accept=".png,.jpg,.jpeg"
                   beforeUpload={(file) => {
-                    // Создаем объект FormData для отправки файла
+                    // Create FormData to send the file
                     const formData = new FormData();
                     formData.append("file", file);
 
-                    // Отправляем запрос на сервер для получения пути к файлу
+                    // Send request to server to get file path
                     fetch(`${API_URL}/file-upload`, {
                       method: "POST",
                       body: formData,
                     })
                       .then((response) => response.json())
                       .then((data) => {
-                        // Предполагаем, что сервер возвращает объект с путем к файлу
+                        // Assuming the server returns an object with the file path
                         const filePath = data.path || data.url || data.filePath;
-                        // Устанавливаем путь к файлу в форму
+                        // Set the file path in the form field
                         if (formProps.form) {
                           formProps.form.setFieldsValue({
                             check_file: filePath,
@@ -714,7 +729,7 @@ export const CashDeskCreate: React.FC = () => {
                         console.error("Ошибка загрузки файла:", error);
                       });
 
-                    // Предотвращаем стандартную загрузку Ant Design
+                    // Prevent Ant Design's default upload behavior
                     return false;
                   }}
                 >
@@ -729,178 +744,178 @@ export const CashDeskCreate: React.FC = () => {
       </Form>
 
       {isAgent && (
-        <Row gutter={[16, 16]} align="middle" style={{ marginBottom: 16 }}>
-          <Col>
-            <Space size="middle">
-              <Dropdown
-                overlay={sortContent}
-                trigger={["click"]}
-                placement="bottomLeft"
-                open={sorterVisible}
-                onOpenChange={(visible) => {
-                  setSorterVisible(visible);
+        <>
+          <Row gutter={[16, 16]} align="middle" style={{ marginBottom: 16 }}>
+            <Col>
+              <Space size="middle">
+                <Dropdown
+                  overlay={sortContent}
+                  trigger={["click"]}
+                  placement="bottomLeft"
+                  open={sorterVisible}
+                  onOpenChange={(visible) => {
+                    setSorterVisible(visible);
+                  }}
+                >
+                  <Button
+                    icon={
+                      sortDirection === "ASC" ? (
+                        <ArrowUpOutlined />
+                      ) : (
+                        <ArrowDownOutlined />
+                      )
+                    }
+                  ></Button>
+                </Dropdown>
+              </Space>
+            </Col>
+            <Col flex="auto">
+              <Input
+                placeholder="Поиск по номеру накладной"
+                prefix={<SearchOutlined />}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) {
+                    setFilters([]); // Clear filters if search is empty
+                    return;
+                  }
+
+                  setFilters([
+                    {
+                      $or: [
+                        { invoice_number: { $contL: value } },
+                        { "sender.clientCode": { $contL: value } },
+                        { "recipient.clientCode": { $contL: value } },
+                        { "sender.name": { $contL: value } },
+                        { "recipient.name": { $contL: value } },
+                      ],
+                    },
+                  ]);
                 }}
+              />
+            </Col>
+            <Col>
+              <Dropdown
+                overlay={datePickerContent}
+                trigger={["click"]}
+                placement="bottomRight"
               >
                 <Button
-                  icon={
-                    sortDirection === "ASC" ? (
-                      <ArrowUpOutlined />
-                    ) : (
-                      <ArrowDownOutlined />
-                    )
-                  }
-                ></Button>
+                  icon={<CalendarOutlined />}
+                  className="date-picker-button"
+                >
+                  Дата
+                </Button>
               </Dropdown>
-            </Space>
-          </Col>
-          <Col flex="auto">
-            <Input
-              placeholder="Поиск по номеру накладной"
-              prefix={<SearchOutlined />}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (!value) {
-                  setFilters([{ trackCode: { $contL: "" } }]);
-                  return;
-                }
+            </Col>
+          </Row>
 
-                setFilters([
-                  {
-                    $or: [
-                      { invoice_number: { $contL: value } },
-                      { "sender.clientCode": { $contL: value } },
-                      { "recipient.clientCode": { $contL: value } },
-                      { "sender.name": { $contL: value } },
-                      { "recipient.name": { $contL: value } },
-                    ],
-                  },
-                ]);
+          <Table
+            {...tableProps}
+            rowKey="id"
+            scroll={{ x: "max-content" }}
+            onRow={(record) => ({
+              onClick: () => {
+                handleRowSelect(record); // Handle row click for selection
+              },
+              style: { cursor: "pointer" },
+            })}
+          >
+            <Table.Column
+              title=""
+              dataIndex="id"
+              render={(value) => (
+                <Checkbox
+                  // This checkbox visualizes selection; the actual selection is handled by onRow onClick
+                  checked={selectedRowKeys.includes(value)}
+                />
+              )}
+            />
+            <Table.Column
+              title="№"
+              render={(_: any, __: any, index: number) => {
+                return (data?.data?.page - 1) * pageSize + index + 1;
               }}
             />
-          </Col>
-          <Col>
-            <Dropdown
-              overlay={datePickerContent}
-              trigger={["click"]}
-              placement="bottomRight"
-            >
-              <Button
-                icon={<CalendarOutlined />}
-                className="date-picker-button"
-              >
-                Дата
-              </Button>
-            </Dropdown>
-          </Col>
-        </Row>
-      )}
-
-      {isAgent && (
-        <Table
-          {...tableProps}
-          rowKey="id"
-          scroll={{ x: "max-content" }}
-          onRow={(record) => ({
-            onClick: () => {
-              handleRowSelect(record);
-            },
-            style: { cursor: "pointer" },
-          })}
-        >
-          <Table.Column
-            title=""
-            dataIndex="id"
-            render={(value) => (
-              <Checkbox
-                type="radio"
-                checked={selectedRowKeys.includes(value)}
-              />
-            )}
-          />
-          <Table.Column
-            title="№"
-            render={(_: any, __: any, index: number) => {
-              return (data?.data?.page - 1) * pageSize + index + 1;
-            }}
-          />
-          <Table.Column
-            dataIndex="created_at"
-            title="Дата приемки"
-            render={(value) =>
-              value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
-            }
-          />
-          <Table.Column dataIndex="invoice_number" title="№ накладной" />
-          <Table.Column
-            dataIndex="employee"
-            title="Пункт приема"
-            render={(value) =>
-              `${value?.branch?.name}, ${value?.under_branch?.address || ""}`
-            }
-          />
-          <Table.Column
-            dataIndex="sender"
-            title="Код отправителя"
-            render={(value) => {
-              return value?.clientPrefix + "-" + value?.clientCode;
-            }}
-          />
-          <Table.Column
-            dataIndex="sender"
-            title="Фио отправителя"
-            render={(value) => value?.name}
-          />
-          <Table.Column
-            dataIndex="recipient"
-            title="Код получателя"
-            render={(value) => {
-              return value?.clientPrefix + "-" + value?.clientCode;
-            }}
-          />
-          <Table.Column
-            dataIndex="recipient"
-            title="Фио получателя"
-            render={(value) => value?.name}
-          />
-          <Table.Column
-            dataIndex="destination"
-            render={(value) => value?.name}
-            title="Пункт назначения"
-          />
-          <Table.Column
-            dataIndex="totalServiceWeight"
-            title="Вес"
-            render={(value) => value.toFixed(2) + " кг"}
-          />
-          <Table.Column
-            dataIndex="services"
-            title="Кол-во мешков"
-            render={(value) => value?.length + " шт"}
-          />
-          <Table.Column
-            dataIndex="totalServiceAmountSum"
-            title="Сумма"
-            render={(_, record: any) =>
-              `${
-                Number(record.totalServiceAmountSum) +
-                Number(record.totalProductAmountSum)
-              } руб`
-            }
-          />
-          <Table.Column
-            dataIndex="paid_sum"
-            title="Оплачено"
-            render={(value) => `${value || 0} руб`}
-          />
-          <Table.Column
-            dataIndex="employee"
-            title="Сотрудник"
-            render={(value) => {
-              return `${value?.firstName}-${value?.lastName}`;
-            }}
-          />
-          <Table.Column dataIndex="comments" title="Комментарий" />
-        </Table>
+            <Table.Column
+              dataIndex="created_at"
+              title="Дата приемки"
+              render={(value) =>
+                value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
+              }
+            />
+            <Table.Column dataIndex="invoice_number" title="№ накладной" />
+            <Table.Column
+              dataIndex="employee"
+              title="Пункт приема"
+              render={(value) =>
+                `${value?.branch?.name}, ${value?.under_branch?.address || ""}`
+              }
+            />
+            <Table.Column
+              dataIndex="sender"
+              title="Код отправителя"
+              render={(value) => {
+                return value?.clientPrefix + "-" + value?.clientCode;
+              }}
+            />
+            <Table.Column
+              dataIndex="sender"
+              title="Фио отправителя"
+              render={(value) => value?.name}
+            />
+            <Table.Column
+              dataIndex="recipient"
+              title="Код получателя"
+              render={(value) => {
+                return value?.clientPrefix + "-" + value?.clientCode;
+              }}
+            />
+            <Table.Column
+              dataIndex="recipient"
+              title="Фио получателя"
+              render={(value) => value?.name}
+            />
+            <Table.Column
+              dataIndex="destination"
+              render={(value) => value?.name}
+              title="Пункт назначения"
+            />
+            <Table.Column
+              dataIndex="totalServiceWeight"
+              title="Вес"
+              render={(value) => value.toFixed(2) + " кг"}
+            />
+            <Table.Column
+              dataIndex="services"
+              title="Кол-во мешков"
+              render={(value) => value?.length + " шт"}
+            />
+            <Table.Column
+              dataIndex="totalServiceAmountSum"
+              title="Сумма"
+              render={(_, record: any) =>
+                `${
+                  Number(record.totalServiceAmountSum) +
+                  Number(record.totalProductAmountSum)
+                } руб`
+              }
+            />
+            <Table.Column
+              dataIndex="paid_sum"
+              title="Оплачено"
+              render={(value) => `${value || 0} руб`}
+            />
+            <Table.Column
+              dataIndex="employee"
+              title="Сотрудник"
+              render={(value) => {
+                return `${value?.firstName}-${value?.lastName}`;
+              }}
+            />
+            <Table.Column dataIndex="comments" title="Комментарий" />
+          </Table>
+        </>
       )}
     </Create>
   );
