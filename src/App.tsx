@@ -102,6 +102,7 @@ import { CargoTypesReport } from "./pages/reports/cargo-types";
 import { StockReport } from "./pages/reports/stock";
 import { MyCompany } from "./pages/my-company";
 import { IssueReport } from "./pages/reports/issue";
+import { BankReport } from "./pages/reports/bank";
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
 function App() {
@@ -333,6 +334,7 @@ function App() {
                     <Route path="borrow" element={<IncomeReport />} />
                     <Route path="stock" element={<StockReport />} />
                     <Route path="issue" element={<IssueReport />} />
+                    <Route path="bank" element={<BankReport />} />
                   </Route>
 
                   <Route path="/notification">
