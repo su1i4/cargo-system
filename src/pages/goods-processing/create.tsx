@@ -447,6 +447,15 @@ export const GoodsCreate = () => {
       ...values,
       services: services,
       products: products.filter((product) => Number(product.quantity) > 0),
+      amount:
+        services.reduce(
+          (accumulator, currentValue) => accumulator + Number(currentValue.sum),
+          0
+        ) +
+        products.reduce(
+          (accumulator, currentValue) => accumulator + Number(currentValue.sum),
+          0
+        ),
     };
 
     if (submitValues.created_at) {
