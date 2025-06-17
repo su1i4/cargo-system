@@ -507,6 +507,15 @@ export const GoodsEdit = () => {
         is_updated: product.updated === true && !product.is_created,
         is_created: product.is_created === true,
       })),
+      amount:
+        services.reduce(
+          (accumulator, currentValue) => accumulator + Number(currentValue.sum),
+          0
+        ) +
+        products.reduce(
+          (accumulator, currentValue) => accumulator + Number(currentValue.sum),
+          0
+        ),
     };
 
     if (submitValues.created_at) {
