@@ -45,6 +45,13 @@ export const ReportList = () => {
       icon: <CargoReceivedIcon3 />,
       link: "bank",
     },
+    {
+      id: "receiving",
+      title: "Отчет по получению",
+      description: "",
+      icon: <CargoReceivedIcon3 />,
+      link: "receiving",
+    },
   ];
 
   const { push } = useNavigation();

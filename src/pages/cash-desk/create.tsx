@@ -140,6 +140,11 @@ export const CashDeskCreate: React.FC = () => {
               ],
             },
             ...filters,
+            {
+              is_payment: {
+                $eq: false,
+              },
+            },
           ],
         }),
         sort: `${sortField},${sortDirection}`,
@@ -224,14 +229,16 @@ export const CashDeskCreate: React.FC = () => {
         const transformAmount = rate > 0 ? rate * totalAmount : totalAmount;
 
         // Calculate the remaining amount to be paid
-        const remainingToPay = selectedRows.length > 0 ? (transformAmount - (selectedRows[0]?.paid_sum || 0)) : 0;
+        const remainingToPay =
+          selectedRows.length > 0
+            ? transformAmount - (selectedRows[0]?.paid_sum || 0)
+            : 0;
 
         // Set form fields: 'amount' and 'paid_sum'
         formProps.form.setFieldsValue({
           amount: remainingToPay,
           paid_sum: remainingToPay,
         });
-
       } else {
         // If not an agent operation, reset agent-specific fields
         const currentValues: any = formProps.form.getFieldsValue();
@@ -478,19 +485,33 @@ export const CashDeskCreate: React.FC = () => {
             let rate = 0;
             const selectedCurrency = values.type_currency;
             if (selectedCurrency) {
-              rate = currency.data?.find((item: any) => item.name === selectedCurrency)?.rate || 0;
+              rate =
+                currency.data?.find(
+                  (item: any) => item.name === selectedCurrency
+                )?.rate || 0;
             }
 
             // Calculate the total actual amount of the selected good (services + products)
-            const totalGoodAmount = selectedGood.services.reduce((acc: number, service: any) => acc + Number(service.sum || 0), 0) +
-                                    selectedGood.products.reduce((acc: number, product: any) => acc + Number(product.sum || 0), 0);
+            const totalGoodAmount =
+              selectedGood.services.reduce(
+                (acc: number, service: any) => acc + Number(service.sum || 0),
+                0
+              ) +
+              selectedGood.products.reduce(
+                (acc: number, product: any) => acc + Number(product.sum || 0),
+                0
+              );
 
             // Calculate the remaining amount due for this specific good, considering currency rate
-            const remainingAmount = (rate > 0 ? rate * totalGoodAmount : totalGoodAmount) - (selectedGood?.paid_sum || 0);
+            const remainingAmount =
+              (rate > 0 ? rate * totalGoodAmount : totalGoodAmount) -
+              (selectedGood?.paid_sum || 0);
 
             // Check if the user-entered amount exceeds the remaining amount
             if (values.amount > remainingAmount) {
-              message.error("Сумма к оплате не может превышать оставшуюся сумму.");
+              message.error(
+                "Сумма к оплате не может превышать оставшуюся сумму."
+              );
               return; // Prevent form submission
             }
           }
@@ -568,7 +589,9 @@ export const CashDeskCreate: React.FC = () => {
                 style={{ width: "100%" }}
                 onChange={(e) => {
                   // Set isAgent based on selection
-                  setIsAgent(e === "Контрагент оптом" || e === "Контрагент частично");
+                  setIsAgent(
+                    e === "Контрагент оптом" || e === "Контрагент частично"
+                  );
                   // Set bolik for "Контрагент частично" to enable single selection
                   setBolik(e === "Контрагент частично");
                 }}
