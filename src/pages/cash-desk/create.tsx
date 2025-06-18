@@ -5,6 +5,7 @@ import {
   useNavigation,
   useOne,
   useUpdateMany,
+  useCreate,
 } from "@refinedev/core";
 import {
   Button,
@@ -21,6 +22,7 @@ import {
   Space,
   Table,
   Upload,
+  notification,
 } from "antd";
 import dayjs from "dayjs";
 import {
@@ -62,21 +64,146 @@ export const CashDeskCreate: React.FC = () => {
     },
   });
 
+  // Функция для создания cash-desk записей
+  const { mutate: createCashDeskEntry } = useCreate();
+
+    // Функция для создания множественных cash-desk записей для каждого товара
+  const createMultipleCashDeskEntries = async (formValues: any) => {
+    let successCount = 0;
+    const totalItems = selectedRows.length;
+
+    // Показываем уведомление о начале процесса
+    notification.info({
+      message: "Создание оплат",
+      description: `Создается ${totalItems} записей оплаты для каждого товара...`,
+      duration: 3,
+    });
+
+    // Вычисляем курс валюты
+    let rate = 0;
+    const selectedCurrency = formValues.type_currency;
+    if (selectedCurrency) {
+      rate = currency.data?.find((item: any) => item.name === selectedCurrency)?.rate || 0;
+    }
+
+    for (const good of selectedRows) {
+      // Вычисляем сумму для каждого товара отдельно
+      const totalServiceAmount = good.services.reduce(
+        (acc: number, service: any) => acc + Number(service.sum || 0),
+        0
+      );
+      const totalProductAmount = good.products.reduce(
+        (acc: number, product: any) => acc + Number(product.sum || 0),
+        0
+      );
+      const totalGoodAmount = totalServiceAmount + totalProductAmount;
+      const transformAmount = rate > 0 ? rate * totalGoodAmount : totalGoodAmount;
+      const remainingToPay = transformAmount - (good?.paid_sum || 0);
+
+      // Создаем отдельную cash-desk запись для каждого товара
+      const cashDeskData = {
+        ...formValues,
+        amount: remainingToPay,
+        paid_sum: remainingToPay,
+        good_id: good.id,
+        counterparty_id: formValues.sender_id,
+      };
+
+      try {
+        // Создаем cash-desk запись
+        await new Promise((resolve, reject) => {
+          createCashDeskEntry(
+            {
+              resource: "cash-desk",
+              values: cashDeskData,
+            },
+            {
+              onSuccess: (response: any) => {
+                // Обновляем товар с новым operation_id
+                updateManyGoods({
+                  ids: [good.id],
+                  values: {
+                    operation_id: response.data.id,
+                  },
+                });
+                successCount++;
+                
+                // Показываем прогресс
+                notification.info({
+                  message: "Прогресс создания",
+                  description: `Создано ${successCount} из ${totalItems} записей`,
+                  duration: 1,
+                });
+                
+                resolve(response);
+              },
+              onError: (error) => {
+                notification.error({
+                  message: "Ошибка при создании оплаты",
+                  description: `Не удалось создать оплату для товара ${good.invoice_number || good.id}`,
+                  duration: 4,
+                });
+                reject(error);
+              },
+            }
+          );
+        });
+      } catch (error) {
+        console.error(`Ошибка при создании cash-desk записи для товара ${good.id}:`, error);
+      }
+    }
+
+    // После завершения всех операций показываем результат и переходим на страницу income
+    if (successCount === totalItems) {
+      notification.success({
+        message: "Оплаты созданы успешно",
+        description: `Успешно создано ${successCount} записей оплаты для каждого товара`,
+        duration: 4,
+      });
+      setTimeout(() => {
+        push("/income");
+      }, 1000);
+    } else {
+      notification.warning({
+        message: "Процесс завершен с ошибками",
+        description: `Создано ${successCount} из ${totalItems} записей. Проверьте остальные товары.`,
+        duration: 5,
+      });
+    }
+  };
+
   // Form hook for creating a cash-desk entry
   const { formProps, saveButtonProps, form } = useForm({
     onMutationSuccess(data, variables, context, isAutoSave) {
-      const id = data?.data?.id; // Get the ID of the newly created cash-desk entry
-      if (selectedRowKeys.length > 0) {
-        // If goods were selected, update them with the cash-desk operation ID
-        updateManyGoods({
-          ids: selectedRowKeys,
-          values: {
-            operation_id: id,
-          },
-        });
+      // Проверяем, если это оптовая оплата и выбрано товаров
+      if ((variables as any)?.type_operation === "Контрагент оптом" && selectedRows.length > 0) {
+        // Если выбран только один товар, используем обычную логику
+        if (selectedRows.length === 1) {
+          const id = data?.data?.id;
+          updateManyGoods({
+            ids: selectedRowKeys,
+            values: {
+              operation_id: id,
+            },
+          });
+        } else {
+          // Создаем отдельную cash-desk запись для каждого товара
+          createMultipleCashDeskEntries(variables);
+        }
       } else {
-        // If no goods were selected (e.g., direct income), navigate
-        navigate("/income");
+        const id = data?.data?.id; // Get the ID of the newly created cash-desk entry
+        if (selectedRowKeys.length > 0) {
+          // If goods were selected, update them with the cash-desk operation ID
+          updateManyGoods({
+            ids: selectedRowKeys,
+            values: {
+              operation_id: id,
+            },
+          });
+        } else {
+          // If no goods were selected (e.g., direct income), navigate
+          navigate("/income");
+        }
       }
     },
     resource: "cash-desk",
@@ -596,6 +723,11 @@ export const CashDeskCreate: React.FC = () => {
                   setBolik(e === "Контрагент частично");
                 }}
               />
+              {form?.getFieldValue("type_operation") === "Контрагент оптом" && selectedRows.length > 1 && (
+                <div style={{ fontSize: "12px", color: "#1890ff", marginTop: "4px" }}>
+                  ℹ️ Будет создано {selectedRows.length} отдельных записей оплаты для каждого товара
+                </div>
+              )}
             </Form.Item>
           </Col>
           <Col span={6}>
