@@ -175,35 +175,20 @@ export const CashDeskCreate: React.FC = () => {
   // Form hook for creating a cash-desk entry
   const { formProps, saveButtonProps, form } = useForm({
     onMutationSuccess(data, variables, context, isAutoSave) {
-      // Проверяем, если это оптовая оплата и выбрано товаров
-      if ((variables as any)?.type_operation === "Контрагент оптом" && selectedRows.length > 0) {
-        // Если выбран только один товар, используем обычную логику
-        if (selectedRows.length === 1) {
-          const id = data?.data?.id;
-          updateManyGoods({
-            ids: selectedRowKeys,
-            values: {
-              operation_id: id,
-            },
-          });
-        } else {
-          // Создаем отдельную cash-desk запись для каждого товара
-          createMultipleCashDeskEntries(variables);
-        }
+      // Оптовая оплата с несколькими товарами обрабатывается в onFinish
+      // Здесь обрабатываем только остальные случаи
+      const id = data?.data?.id; // Get the ID of the newly created cash-desk entry
+      if (selectedRowKeys.length > 0) {
+        // If goods were selected, update them with the cash-desk operation ID
+        updateManyGoods({
+          ids: selectedRowKeys,
+          values: {
+            operation_id: id,
+          },
+        });
       } else {
-        const id = data?.data?.id; // Get the ID of the newly created cash-desk entry
-        if (selectedRowKeys.length > 0) {
-          // If goods were selected, update them with the cash-desk operation ID
-          updateManyGoods({
-            ids: selectedRowKeys,
-            values: {
-              operation_id: id,
-            },
-          });
-        } else {
-          // If no goods were selected (e.g., direct income), navigate
-          navigate("/income");
-        }
+        // If no goods were selected (e.g., direct income), navigate
+        navigate("/income");
       }
     },
     resource: "cash-desk",
@@ -644,6 +629,14 @@ export const CashDeskCreate: React.FC = () => {
           }
           // --- End Validation ---
 
+          // Проверяем, если это оптовая оплата с несколькими товарами
+          if (values.type_operation === "Контрагент оптом" && selectedRows.length > 1) {
+            // Для оптовой оплаты создаем отдельные записи для каждого товара
+            // и не создаем основную запись
+            createMultipleCashDeskEntries(values);
+            return; // Не продолжаем обычную логику создания
+          }
+
           const finalValues = {
             ...values,
             type: "income",
@@ -653,7 +646,7 @@ export const CashDeskCreate: React.FC = () => {
 
           // If it's an agent operation, link the cash desk entry to the first selected good
           // (For "Контрагент частично", this will be the single selected good)
-          // (For "Контрагент оптом", this will link all selected goods to a single cash desk operation)
+          // (For "Контрагент оптом" с одним товаром, this will link to that single good)
           if (isAgent && selectedRows.length > 0) {
             //@ts-ignore
             finalValues.good_id = selectedRows[0]?.id; // Link to the first selected good's ID
