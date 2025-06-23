@@ -33,8 +33,8 @@ export const ReportList = () => {
     },
     {
       id: "issue",
-      title: "Отчет по задолженности представительств",
-      description: "Отчёт показывает задолженности представительств",
+      title: "Отчет по выданным товарам",
+      description: "Отчёт показывает выданные товары за выбранный период",
       icon: <CargoReceivedIcon3 />,
       link: "issue",
     },

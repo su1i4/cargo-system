@@ -169,7 +169,7 @@ export const IssueReport = () => {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
 
-      const fileName = `отчет_задолженность_${dayjs().format(
+      const fileName = `отчет_выданным_товарам_${dayjs().format(
         "DD-MM-YYYY_HH-mm"
       )}.xlsx`;
       XLSX.writeFile(workbook, fileName);
@@ -209,7 +209,7 @@ export const IssueReport = () => {
       link.setAttribute("href", url);
       link.setAttribute(
         "download",
-        `отчет_задолженность_${dayjs().format("DD-MM-YYYY_HH-mm")}.csv`
+        `отчет_выданным_товарам_${dayjs().format("DD-MM-YYYY_HH-mm")}.csv`
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -230,7 +230,7 @@ export const IssueReport = () => {
   const filterContent = (
     <Card style={{ width: 300, padding: "0px !important" }}>
       <Select
-        title="Выберите пункт назначения"
+        title="Выберите  пункт назначения"
         placeholder="Выберите пункт назначения"
         options={branch?.data?.map((branch: any) => ({
           label: branch.name,
@@ -375,7 +375,7 @@ export const IssueReport = () => {
   const dataSource = data?.data?.data || [];
 
   return (
-    <List title="Отчет выданным товарам" headerButtons={() => false}>
+    <List title="Отчет по выданным товарам" headerButtons={() => false}>
       <Flex
         gap={10}
         style={{ marginBottom: 16, position: "sticky", top: 80, zIndex: 10 }}
@@ -447,7 +447,7 @@ export const IssueReport = () => {
         <Select
           {...branchSelectProps}
           onChange={(value) =>
-            setFilters([{ "employee.branch_id": { $eq: value } }], "replace")
+            setFilters([{ "destination_id": { $eq: value } }], "replace")
           }
           style={{ width: "200px", minWidth: "200px" }}
         />

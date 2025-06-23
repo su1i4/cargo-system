@@ -23,7 +23,7 @@ export const operationStatus = () => {
           return <p style={{ color: "red" }}>Не оплачено</p>;
         }
 
-        if (paidSum <= amount) {
+        if (paidSum < amount) {
           return <p style={{ color: "orange" }}>Частично оплачено</p>;
         }
 

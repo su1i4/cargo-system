@@ -151,30 +151,30 @@ export const BankReport = () => {
           type="text"
           style={{
             textAlign: "left",
-            fontWeight: sortField === "id" ? "bold" : "normal",
+            fontWeight: sortField === "operation.id" ? "bold" : "normal",
           }}
           onClick={() => {
-            setSortField("id");
+            setSortField("operation.id");
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
           Дате создания{" "}
-          {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
+          {sortField === "operation.id" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
         {/* Сортировка по типу операции */}
         <Button
           type="text"
           style={{
             textAlign: "left",
-            fontWeight: sortField === "type" ? "bold" : "normal",
+            fontWeight: sortField === "operation.type" ? "bold" : "normal",
           }}
           onClick={() => {
-            setSortField("type");
+            setSortField("operation.type");
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
           Типу операции{" "}
-          {sortField === "type" && (sortDirection === "ASC" ? "↑" : "↓")}
+          {sortField === "operation.type" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
       </div>
     </Card>
@@ -210,7 +210,7 @@ export const BankReport = () => {
   // Обработчик изменения таблицы (только сортировка)
   const handleTableChange = (_pagination: any, _filters: any, sorter: any) => {
     if (sorter && sorter.field) {
-      setSortField(sorter.field === "type" ? "type" : "id");
+      setSortField(sorter.field === "operation.type" ? "operation.type" : "operation.id");
       setSortDirection(sorter.order === "ascend" ? "ASC" : "DESC");
     }
   };
