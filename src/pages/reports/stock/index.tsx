@@ -22,7 +22,7 @@ import { useEffect, useState } from "react";
 import { useCustom } from "@refinedev/core";
 import { useDocumentTitle } from "@refinedev/react-router";
 import { API_URL } from "../../../App";
-import { CustomTooltip } from "../../../shared/custom-tooltip";
+import { CustomTooltip, operationStatus } from "../../../shared/custom-tooltip";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
@@ -35,7 +35,7 @@ export const StockReport = () => {
   const setTitle = useDocumentTitle();
 
   useEffect(() => {
-    setTitle("Все товары");
+    setTitle("Остатки товаров");
   }, []);
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
@@ -122,25 +122,15 @@ export const StockReport = () => {
 
     return dataSource.map((record: any, index: number) => ({
       "№": index + 1,
-      "Дата приемки": record.created_at
-        ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
-        : "",
-      "Дата отправки": record.created_at
-        ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
-        : "",
       "Дата получения": record.created_at
         ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
         : "",
-      "Дата выдачи": (() => {
-        const issuedStatus = Array.isArray(record.tracking_status)
-          ? record.tracking_status.find((item: any) => item.status === "Выдали")
-          : null;
-        return issuedStatus?.createdAt
-          ? dayjs(issuedStatus.createdAt).utc().format("DD.MM.YYYY HH:mm")
-          : "";
-      })(),
-      "Номер машины": record.truck_number || "",
       "№ накладной": record.invoice_number || "",
+      "Пункт приема": record.employee?.branch?.name
+        ? `${record.employee.branch.name}, ${
+            record.employee.under_branch?.address || ""
+          }`
+        : "",
       "Код отправителя": record.sender
         ? `${record.sender.clientPrefix}-${record.sender.clientCode}`
         : "",
@@ -149,18 +139,32 @@ export const StockReport = () => {
         ? `${record.recipient.clientPrefix}-${record.recipient.clientCode}`
         : "",
       "Фио получателя": record.recipient?.name || "",
-      "Город (с досыслом если есть)": record.destination?.name || "",
-      "Вес, кг": record.totalServiceWeight
-        ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5)
+      "Тел-номер получателя": record.recipient?.phoneNumber || "",
+      "Пункт назначения": record.destination?.name || "",
+      Вес: record.totalServiceWeight
+        ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5) +
+          " кг"
         : "",
-      "Кол-во мешков": record.services?.length || 0,
-      Сумма: record.totalServiceAmountSum || 0,
-      "Сумма за мешки": record.totalProductAmountSum || 0,
-      Оплачено: record.paid_sum || 0,
-      Долг:
+      "Номер мешков":
+        record.services?.map((item: any) => item.bag_number).join(", ") || "",
+      "Кол-во мешков": record.services?.length
+        ? record.services.length + " шт"
+        : "0 шт",
+      Сумма: `${
         Number(record.totalServiceAmountSum || 0) +
-        Number(record.totalProductAmountSum || 0) -
-        Number(record.paid_sum || 0),
+        Number(record.totalProductAmountSum || 0)
+      } руб`,
+      "Способ оплаты": record.payment_method || "",
+      "Статус операции": (() => {
+        if (record.operation_id) {
+          return "Оплачено";
+        }
+        return "Не оплачено";
+      })(),
+      Сотрудник: record.employee
+        ? `${record.employee.firstName}-${record.employee.lastName}`
+        : "",
+      Комментарий: record.comments || "",
     }));
   };
 
@@ -174,7 +178,7 @@ export const StockReport = () => {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
 
-      const fileName = `отчет_задолженность_${dayjs().format(
+      const fileName = `отчет_остатки_товаров_${dayjs().format(
         "DD-MM-YYYY_HH-mm"
       )}.xlsx`;
       XLSX.writeFile(workbook, fileName);
@@ -215,7 +219,7 @@ export const StockReport = () => {
       link.setAttribute("href", url);
       link.setAttribute(
         "download",
-        `отчет_задолженность_${dayjs().format("DD-MM-YYYY_HH-mm")}.csv`
+        `отчет_остатки_товаров_${dayjs().format("DD-MM-YYYY_HH-mm")}.csv`
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -237,7 +241,7 @@ export const StockReport = () => {
   const filterContent = (
     <Card style={{ width: 300, padding: "0px !important" }}>
       <Select
-        title="Выберите пункт назначения"
+        title="Выберите  пункт назначения"
         placeholder="Выберите пункт назначения"
         options={branch?.data?.map((branch: any) => ({
           label: branch.name,
@@ -375,14 +379,14 @@ export const StockReport = () => {
   );
 
   const { selectProps: branchSelectProps } = useSelect({
-    resource: "branch",
-    optionLabel: (value) => value?.name,
+    resource: "under-branch",
+    optionLabel: (value) => value?.address,
   });
 
   const dataSource = data?.data?.data || [];
 
   return (
-    <List title="Отчет по остаткам на складах" headerButtons={() => false}>
+    <List title="Отчет по остаткам товаров" headerButtons={() => false}>
       <Flex
         gap={10}
         style={{ marginBottom: 16, position: "sticky", top: 80, zIndex: 10 }}
@@ -454,9 +458,9 @@ export const StockReport = () => {
         <Select
           {...branchSelectProps}
           onChange={(value) =>
-            setFilters([{ "employee.branch_id": { $eq: value } }], "replace")
+            setFilters([{ "employee.under_branch_id": { $eq: value } }], "replace")
           }
-          style={{ width: "200px", minWidth: "200px" }}
+          style={{ width: "300px", minWidth: "300px" }}
         />
         <Button
           icon={<FileExcelOutlined />}
@@ -539,24 +543,9 @@ export const StockReport = () => {
         scroll={{ x: 1000 }}
       >
         <Table.Column
+          dataIndex="id"
           title="№"
-          render={(_: any, __: any, index: number) => {
-            return index + 1;
-          }}
-        />
-        <Table.Column
-          dataIndex="created_at"
-          title="Дата приемки"
-          render={(value) =>
-            value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
-          }
-        />
-        <Table.Column
-          dataIndex="created_at"
-          title="Дата отправки"
-          render={(value) =>
-            value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
-          }
+          render={(_, record, index) => index + 1}
         />
         <Table.Column
           dataIndex="created_at"
@@ -565,22 +554,14 @@ export const StockReport = () => {
             value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
           }
         />
-        <Table.Column
-          dataIndex="tracking_status"
-          title="Дата выдачи"
-          render={(value) => {
-            const issuedStatus = Array.isArray(value)
-              ? value.find((item: any) => item.status === "Выдали")
-              : null;
-
-            return issuedStatus?.createdAt
-              ? dayjs(issuedStatus.createdAt).utc().format("DD.MM.YYYY HH:mm")
-              : "";
-          }}
-        />
-
-        <Table.Column dataIndex="truck_number" title="Номер машины" />
         <Table.Column dataIndex="invoice_number" title="№ накладной" />
+        <Table.Column
+          dataIndex="employee"
+          title="Пункт приема"
+          render={(value) =>
+            `${value?.branch?.name}, ${value?.under_branch?.address || ""}`
+          }
+        />
         <Table.Column
           dataIndex="sender"
           title="Код отправителя"
@@ -606,37 +587,54 @@ export const StockReport = () => {
           render={(value) => value?.name}
         />
         <Table.Column
+          dataIndex="recipient"
+          title="Тел-номер получателя"
+          render={(value) => value?.phoneNumber}
+        />
+        <Table.Column
           dataIndex="destination"
           render={(value) => value?.name}
-          title="Город (с досыслом если есть)"
+          title="Пункт назначения"
         />
         <Table.Column
           dataIndex="totalServiceWeight"
-          title="Вес, кг"
-          render={(value) => String(value).replace(".", ",").slice(0, 5)}
+          title="Вес"
+          render={(value) =>
+            String(value).replace(".", ",").slice(0, 5) + " кг"
+          }
+        />
+        <Table.Column
+          dataIndex="services"
+          title="Номер мешков"
+          render={(value) =>
+            value?.map((item: any) => item.bag_number).join(", ")
+          }
         />
         <Table.Column
           dataIndex="services"
           title="Кол-во мешков"
-          render={(value) => value?.length}
+          render={(value) => value?.length + " шт"}
         />
-        <Table.Column dataIndex="totalServiceAmountSum" title="Сумма" />
         <Table.Column
-          dataIndex="totalProductAmountSum"
-          title="Сумма за мешки"
-        />
-        <Table.Column dataIndex="paid_sum" title="Оплачено" />
-        <Table.Column
-          dataIndex="id"
-          title="Долг"
-          render={(_, record) =>
+          dataIndex="totalServiceAmountSum"
+          title="Сумма"
+          render={(_, record: any) =>
             `${
-              Number(record?.totalServiceAmountSum) +
-              Number(record?.totalProductAmountSum) -
-              Number(record?.paid_sum)
-            }`
+              Number(record.totalServiceAmountSum) +
+              Number(record.totalProductAmountSum)
+            } руб`
           }
         />
+        <Table.Column dataIndex="payment_method" title="Способ оплаты" />
+        {operationStatus()}
+        <Table.Column
+          dataIndex="employee"
+          title="Сотрудник"
+          render={(value) => {
+            return `${value?.firstName}-${value?.lastName}`;
+          }}
+        />
+        <Table.Column dataIndex="comments" title="Комментарий" />
       </Table>
     </List>
   );

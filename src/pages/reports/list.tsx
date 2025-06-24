@@ -17,6 +17,14 @@ export const ReportList = () => {
       link: "cargo-received",
     },
     {
+      id: "stock",
+      title: "Отчет по остаткам товаров",
+      description:
+        "Отчет показывает товары находящиеся на складе с детальной информацией по каждому месту и статусом 'На складе'.",
+      icon: <CargoReceivedIcon3 />,
+      link: "stock",
+    },
+    {
       id: "nomenclature",
       title: "Отчеты по упаковочному листу",
       description:
@@ -51,6 +59,34 @@ export const ReportList = () => {
       description: "",
       icon: <CargoReceivedIcon3 />,
       link: "receiving",
+    },
+    {
+      id: "cash-desk",
+      title: "Отчет по приходам и расходам",
+      description: "Отчёт показывает все операции прихода и расхода по кассе за выбранный период",
+      icon: <CargoReceivedIcon3 />,
+      link: "cash-desk",
+    },
+    {
+      id: "cash-desk-income",
+      title: "Отчет по приходам кассы",
+      description: "Отчёт показывает только операции прихода по кассе за выбранный период",
+      icon: <CargoReceivedIcon3 />,
+      link: "cash-desk-income",
+    },
+    {
+      id: "cash-desk-outcome",
+      title: "Отчет по расходам кассы",
+      description: "Отчёт показывает только операции расхода по кассе за выбранный период",
+      icon: <CargoReceivedIcon3 />,
+      link: "cash-desk-outcome",
+    },
+    {
+      id: "warehouse-stock",
+      title: "Отчет по упаковочным листам со статусом 'В складе'",
+      description: "Отчёт показывает номенклатуры товаров со статусом 'В складе' с подробной информацией по каждому месту",
+      icon: <CargoReceivedIcon3 />,
+      link: "warehouse-stock",
     },
   ];
 

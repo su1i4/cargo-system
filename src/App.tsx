@@ -104,6 +104,10 @@ import { MyCompany } from "./pages/my-company";
 import { IssueReport } from "./pages/reports/issue";
 import { BankReport } from "./pages/reports/bank";
 import { ShipmentReport } from "./pages/reports/receiving";
+import { CashDeskReport } from "./pages/reports/cash-desk";
+import { CashDeskIncomeReport } from "./pages/reports/cash-desk-income";
+import { CashDeskOutcomeReport } from "./pages/reports/cash-desk-outcome";
+import { WarehouseStockReport } from "./pages/reports/warehouse-stock";
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
 function App() {
@@ -337,6 +341,10 @@ function App() {
                     <Route path="issue" element={<IssueReport />} />
                     <Route path="bank" element={<BankReport />} />
                     <Route path="receiving" element={<ShipmentReport />} />
+                    <Route path="cash-desk" element={<CashDeskReport />} />
+                    <Route path="cash-desk-income" element={<CashDeskIncomeReport />} />
+                    <Route path="cash-desk-outcome" element={<CashDeskOutcomeReport />} />
+                    <Route path="warehouse-stock" element={<WarehouseStockReport />} />
                   </Route>
 
                   <Route path="/notification">
