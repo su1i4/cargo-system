@@ -37,6 +37,7 @@ import TextArea from "antd/lib/input/TextArea";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { useNavigate } from "react-router";
+import { useSearchParams } from "react-router";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -50,8 +51,10 @@ export enum CurrencyType {
 export const CashDeskCreate: React.FC = () => {
   const { push } = useNavigation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [preselectedGoodsIds, setPreselectedGoodsIds] = useState<number[]>([]);
 
   // Mutate function to update multiple goods (e.g., link them to the new cash-desk operation)
   const { mutate: updateManyGoods } = useUpdateMany({
@@ -198,6 +201,7 @@ export const CashDeskCreate: React.FC = () => {
       type: "income", // Default type for cash desk entry
       type_operation: "Извне", // Default operation type
       date: dayjs(), // Default date to current day
+      type_currency: "Сом", // Default currency to Som
     },
   });
 
@@ -223,33 +227,17 @@ export const CashDeskCreate: React.FC = () => {
     string | null
   >(null); // For fetching counterparty details (though not directly used now)
 
-  // Fetch goods-processing data based on filters, sorting, and pagination
-  const { data, isLoading, refetch } = useCustom<any>({
-    url: `${API_URL}/goods-processing`,
-    method: "get",
-    config: {
-      query: {
+  // Функция для построения фильтров запроса
+  const buildGoodsQuery = () => {
+    // Если есть предварительно выбранные товары (переданные через URL), загружаем их по ID
+    if (preselectedGoodsIds.length > 0) {
+      return {
         s: JSON.stringify({
           $and: [
             {
-              $or: [
-                {
-                  "sender.id": {
-                    $eq:
-                      form?.getFieldValue("sender_id") === undefined
-                        ? 0
-                        : form?.getFieldValue("sender_id"),
-                  },
-                },
-                {
-                  "recipient.id": {
-                    $eq:
-                      form?.getFieldValue("sender_id") === undefined
-                        ? 0
-                        : form?.getFieldValue("sender_id"),
-                  },
-                },
-              ],
+              id: {
+                $in: preselectedGoodsIds,
+              },
             },
             ...filters,
             {
@@ -263,7 +251,54 @@ export const CashDeskCreate: React.FC = () => {
         limit: pageSize,
         page: currentPage,
         offset: (currentPage - 1) * pageSize,
-      },
+      };
+    }
+
+    // Обычная логика фильтрации по контрагенту
+    return {
+      s: JSON.stringify({
+        $and: [
+          {
+            $or: [
+              {
+                "sender.id": {
+                  $eq:
+                    form?.getFieldValue("sender_id") === undefined
+                      ? 0
+                      : form?.getFieldValue("sender_id"),
+                },
+              },
+              {
+                "recipient.id": {
+                  $eq:
+                    form?.getFieldValue("sender_id") === undefined
+                      ? 0
+                      : form?.getFieldValue("sender_id"),
+                },
+              },
+            ],
+          },
+          ...filters,
+          {
+            is_payment: {
+              $eq: false,
+            },
+          },
+        ],
+      }),
+      sort: `${sortField},${sortDirection}`,
+      limit: pageSize,
+      page: currentPage,
+      offset: (currentPage - 1) * pageSize,
+    };
+  };
+
+  // Fetch goods-processing data based on filters, sorting, and pagination
+  const { data, isLoading, refetch } = useCustom<any>({
+    url: `${API_URL}/goods-processing`,
+    method: "get",
+    config: {
+      query: buildGoodsQuery(),
     },
   });
 
@@ -296,10 +331,11 @@ export const CashDeskCreate: React.FC = () => {
     ],
   });
 
-  // Set initial form values (type: "income") when the form is available
+  // Set initial form values (type: "income", currency: "Сом") when the form is available
   useEffect(() => {
     if (form) {
       form.setFieldValue("type", "income");
+      form.setFieldValue("type_currency", "Сом");
     }
   }, [form]);
 
@@ -421,6 +457,73 @@ export const CashDeskCreate: React.FC = () => {
       });
     }
   }, []);
+
+  // Set default bank and payment method when bank data is loaded
+  useEffect(() => {
+    if (formProps.form && bankSelectProps.options && bankSelectProps.options.length > 0) {
+      // Выбираем первый банк из списка
+      const firstBank = bankSelectProps.options[0];
+      formProps.form.setFieldsValue({
+        bank_id: firstBank.value,
+        method_payment: "Оплата наличными", // Устанавливаем метод оплаты по умолчанию
+      });
+    }
+  }, [formProps.form, bankSelectProps.options]);
+
+  // Обработка URL параметров для автоматической установки типа операции и выбора товаров
+  useEffect(() => {
+    const typeOperation = searchParams.get("type_operation");
+    const goodsIds = searchParams.get("goods_ids");
+
+    if (formProps.form && typeOperation) {
+      formProps.form.setFieldsValue({
+        type_operation: typeOperation,
+      });
+      
+      // Если тип операции "Контрагент оптом" или "Контрагент частично", активируем режим агента
+      if (typeOperation === "Контрагент оптом" || typeOperation === "Контрагент частично") {
+        setIsAgent(true);
+        // Для частичного контрагента включаем режим одиночного выбора
+        if (typeOperation === "Контрагент частично") {
+          setBolik(true);
+        }
+      }
+    }
+
+    // Устанавливаем предварительно выбранные товары для загрузки
+    if (goodsIds) {
+      const idsArray = goodsIds.split(',').map(id => parseInt(id.trim()));
+      setPreselectedGoodsIds(idsArray);
+    }
+  }, [formProps.form, searchParams]);
+
+  // Отдельный useEffect для автоматического выбора товаров после их загрузки
+  useEffect(() => {
+    if (preselectedGoodsIds.length > 0 && data?.data?.data) {
+      const goodsToSelect = data.data.data.filter((good: any) => preselectedGoodsIds.includes(good.id));
+      
+      setSelectedRowKeys(preselectedGoodsIds);
+      setSelectedRows(goodsToSelect);
+
+      // Автоматически выбираем контрагента на основе первого товара
+      if (goodsToSelect.length > 0 && formProps.form) {
+        const firstGood = goodsToSelect[0];
+        // Выбираем отправителя как контрагента
+        if (firstGood.sender?.id) {
+          formProps.form.setFieldsValue({
+            sender_id: firstGood.sender.id,
+          });
+        }
+      }
+    }
+  }, [data?.data?.data, preselectedGoodsIds, formProps.form]);
+
+  // Принудительное обновление данных при изменении preselectedGoodsIds
+  useEffect(() => {
+    if (preselectedGoodsIds.length > 0) {
+      refetch();
+    }
+  }, [preselectedGoodsIds, refetch]);
 
   // Handle sender selection change
   const handleSenderChange = (value: any, record: any) => {

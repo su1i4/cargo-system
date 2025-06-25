@@ -41,8 +41,10 @@ export const BankReport = () => {
   const [sorterVisible, setSorterVisible] = useState(false);
   const [bankId, setBankId] = useState<number | null>(null);
   const [searchText, setSearchText] = useState<string>("");
-  const [from, setFrom] = useState<string>("");
-  const [to, setTo] = useState<string>("");
+  const [from, setFrom] = useState(
+    dayjs().startOf("day").format("YYYY-MM-DDTHH:mm")
+  );
+  const [to, setTo] = useState(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
 
   // Стили для инпутов дат
   const inputStyle = {

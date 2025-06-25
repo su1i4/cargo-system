@@ -28,15 +28,50 @@ export const GoodsShow: React.FC = () => {
     onBeforePrint: async () => {
       const el = printRef.current;
       if (el) {
+        // Базовый размер шрифта в зависимости от количества контента
+        const servicesCount = record?.services?.length || 0;
+        const productsCount = record?.products?.length || 0;
+        const totalItems = servicesCount + productsCount;
+        
+        // Динамическое масштабирование шрифта
+        let fontSize = 9; // базовый размер
+        if (totalItems > 20) {
+          fontSize = 7;
+        } else if (totalItems > 15) {
+          fontSize = 8;
+        } else if (totalItems < 5) {
+          fontSize = 10;
+        }
+        
+        el.style.fontSize = `${fontSize}px`;
         el.style.width = "100%";
-        el.style.height = "297mm";
+        el.style.height = "100vh";
         el.style.boxSizing = "border-box";
+        el.style.paddingLeft = "5px";
+        
+        // Дополнительное уменьшение блока с условиями перевозок
+        const termsSection = el.querySelectorAll('.terms-section');
+        termsSection.forEach((section: any) => {
+          section.style.setProperty('font-size', '8px', 'important');
+          section.style.setProperty('line-height', '0.9', 'important');
+          section.style.setProperty('margin', '0', 'important');
+          section.style.setProperty('padding', '0', 'important');
+        });
       }
     },
     onAfterPrint: () => {
       const el = printRef.current;
       if (el) {
         el.removeAttribute("style");
+        
+        // Сброс стилей для блока условий
+        const termsSection = el.querySelectorAll('.terms-section');
+        termsSection.forEach((section: any) => {
+          section.style.removeProperty('font-size');
+          section.style.removeProperty('line-height');
+          section.style.removeProperty('margin');
+          section.style.removeProperty('padding');
+        });
       }
     },
     onPrintError: (error) => console.error("Print Error:", error),
@@ -134,27 +169,27 @@ export const GoodsShow: React.FC = () => {
   const InvoiceContent = () => {
     return (
       <div>
-        <Flex justify="space-between" align="center">
+        <Flex justify="space-between" align="center" style={{ marginBottom: "4px" }}>
           <img
             src="/rosscargo.png"
-            style={{ width: 100, height: 60, objectFit: "contain" }}
+            style={{ width: "60px", height: "30px", objectFit: "contain" }}
             alt="photo"
           />
-          <Title style={{ fontSize: 16, fontWeight: 600 }} level={5}>
+          <Title style={{ fontSize: "1.4em", fontWeight: 600, margin: 0 }} level={5}>
             Накладная №: {record?.invoice_number}
           </Title>
         </Flex>
-        <Flex justify="space-between" align="center">
-          <Text>Call-center: +996 509 003 003</Text>
-          <Text>
+        <Flex justify="space-between" align="center" style={{ marginBottom: "2px" }}>
+          <Text style={{ fontSize: "1em" }}>Call-center: +996 509 003 003</Text>
+          <Text style={{ fontSize: "1em" }}>
             {dayjs(record?.created_at).utc().format("DD.MM.YYYY HH:mm")}
           </Text>
         </Flex>
-        <Flex vertical style={{ marginBottom: 10 }}>
-          <Text style={{ fontSize: 14, color: "#808080" }}>
+        <Flex vertical style={{ marginBottom: "6px" }}>
+          <Text style={{ fontSize: "1em", color: "#010801", margin: 0 }}>
             Досыл, услуги грузчиков и адресная доставка оплачивается отдельно
           </Text>
-          <Text style={{ fontSize: 14, color: "#808080" }}>
+          <Text style={{ fontSize: "1em", color: "#010101", margin: 0 }}>
             Адрес склада:{" "}
             {
               tableProps?.dataSource?.find(
@@ -177,12 +212,12 @@ export const GoodsShow: React.FC = () => {
         </Flex>
 
         <Row
-          gutter={[12, 0]}
+          gutter={[4, 0]}
           style={{
             border: "1px solid #F2F2F1",
-            borderRadius: 10,
+            borderRadius: "4px",
             overflow: "hidden",
-            marginBottom: 10,
+            marginBottom: "6px",
           }}
         >
           <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={4}>
@@ -275,10 +310,10 @@ export const GoodsShow: React.FC = () => {
         </Row>
 
         <Row
-          gutter={[12, 0]}
+          gutter={[4, 0]}
           style={{
             border: "1px solid #F2F2F1",
-            borderRadius: 10,
+            borderRadius: "4px",
             overflow: "hidden",
           }}
         >
@@ -354,7 +389,7 @@ export const GoodsShow: React.FC = () => {
                 <Text>{service.bag_number}</Text>
               </Col>
               <Col style={colStyle} span={4}>
-                <Text style={{ fontSize: 13, lineHeight: "10px" }}>
+                <Text style={{ fontSize: 13, lineHeight: "10px", fontWeight: 600 }}>
                   Грузоперевозка{" "}
                   {`${record?.employee?.branch?.name} - ${record?.destination?.name}`}
                 </Text>
@@ -404,15 +439,15 @@ export const GoodsShow: React.FC = () => {
           </Col>
         </Row>
         {record?.products?.length ? (
-          <Row
-            gutter={[12, 0]}
-            style={{
-              border: "1px solid #F2F2F1",
-              borderRadius: 10,
-              overflow: "hidden",
-              marginTop: 12,
-            }}
-          >
+                  <Row
+          gutter={[4, 0]}
+          style={{
+            border: "1px solid #F2F2F1",
+            borderRadius: "4px",
+            overflow: "hidden",
+            marginTop: "6px",
+          }}
+        >
             <Col span={10} style={{ ...colStyle, backgroundColor: "#F5F5F4" }}>
               <Text>Номенклатура</Text>
             </Col>
@@ -458,27 +493,28 @@ export const GoodsShow: React.FC = () => {
         ) : (
           ""
         )}
-        <Flex justify="space-between" align="center" style={{ marginTop: 10 }}>
-          <Text style={{ fontWeight: "bold", fontSize: 15 }}>Сумма заказа</Text>
-          <Flex vertical align="flex-end" style={{ width: "300px" }}>
+        <Flex justify="space-between" align="center" style={{ marginTop: "6px" }}>
+          <Text style={{ fontWeight: "bold", fontSize: "1.2em", margin: 0 }}>Сумма заказа</Text>
+          <Flex vertical align="flex-end" style={{ width: "200px" }}>
             <Text
               style={{
                 fontWeight: "bold",
-                fontSize: 16,
+                fontSize: "1.2em",
                 borderBottom: "1px solid black",
+                margin: 0,
               }}
             >
               Итого к оплате: {totalSum + totalProdSum} RUB
             </Text>
-            <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+            <Text style={{ fontWeight: "bold", fontSize: "1.2em", margin: 0 }}>
               {((totalSum + totalProdSum) * Number(som?.rate)).toFixed(0)} KGS
             </Text>
           </Flex>
         </Flex>
-        <Flex gap={12} style={{ marginTop: 5 }}>
-          <Flex vertical style={{ width: "50%", fontSize: 14 }}>
-            <Text>Условия перевозок:</Text>
-            <Text style={{ fontSize: 12 }}>
+        <Flex gap="3px" style={{ marginTop: "3px" }}>
+          <Flex vertical style={{ width: "50%" }}>
+            <Text className="terms-section" style={{ margin: 0, fontWeight: "bold", fontSize: "0.7em" }}>Условия перевозок:</Text>
+            <Text className="terms-section" style={{ fontSize: "0.8em", margin: 0, lineHeight: "1.0" }}>
               1. Клиент / представитель Клиента гарантирует, что отправляемый
               груз не содержит предметов, запрещенных к перевозке, в
               соответствии с правилами компании, указанными на сайте
@@ -486,20 +522,20 @@ export const GoodsShow: React.FC = () => {
               полную ответственность за достоверность предоставляемой
               информации.
             </Text>
-            <Text style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+            <Text className="terms-section" style={{ fontSize: "0.8em", fontWeight: 600, margin: "1px 0", lineHeight: "1.0" }}>
               2. В случае пропажи или порчи товара, или пожара Клиенту
               возмещается стоимость 1 кг груза по следующим тарифам: а) товары
               производства Кыргызстана - по 600 руб., б) товары производства
               Турции - по 1000 руб., в) товары производства Китая и других стран
               - по 750 руб. Гарантия не распространяется на досылы
             </Text>
-            <Text style={{ fontSize: 12, marginBottom: 4 }}>
+            <Text className="terms-section" style={{ fontSize: "0.8em", margin: 0, lineHeight: "1.0" }}>
               3. При сдаче и перевозки груза Росс Карго несет ответственность
               только на массу груза, за количество ответственности не несет.
             </Text>
           </Flex>
-          <Flex vertical style={{ width: "50%", fontSize: 12 }}>
-            <Text style={{ fontSize: 12, marginBottom: 4 }}>
+          <Flex vertical style={{ width: "50%" }}>
+            <Text className="terms-section" style={{ fontSize: "0.8em", margin: 0, lineHeight: "1.0" }}>
               4. Стоимость доставки указана только до конечных городов: Москва,
               Новосибирск, Екатеринбург. За досыл в другие города взимается
               дополнительная плата в соответствии с тарифами местных
@@ -508,7 +544,7 @@ export const GoodsShow: React.FC = () => {
               хранение и другое в соответствии с требованиями администрации
               (склада, рынка, пункта перегрузки) на местах.
             </Text>
-            <Text style={{ fontSize: 12 }}>
+            <Text className="terms-section" style={{ fontSize: "0.8em", margin: 0, lineHeight: "1.0" }}>
               5. Предоставляя свои персональные данные, Клиент / представитель
               Клиента дает полное и безусловное согласие на их хранение и
               обработку. 6. Подписанием данного документа Клиент / представитель
@@ -518,19 +554,19 @@ export const GoodsShow: React.FC = () => {
             </Text>
           </Flex>
         </Flex>
-        <Flex justify="space-between" align="center" style={{ marginTop: 10 }}>
+        <Flex justify="space-between" align="center" style={{ marginTop: "4px" }}>
           <Flex vertical>
-            <Text>Принял(а): _______________________</Text>
-            <Text>
+            <Text style={{ margin: 0, fontSize: "1em" }}>Принял(а): _______________________</Text>
+            <Text style={{ margin: 0, fontSize: "1em" }}>
               Менеджер: {record?.employee?.firstName}{" "}
               {record?.employee?.lastName}
             </Text>
           </Flex>
           <Flex vertical>
-            <Text>Сдал(а): _____________________________________</Text>
-            <Text>
+            <Text style={{ margin: 0, fontSize: "1em" }}>Сдал(а): _____________________________________</Text>
+            <Text style={{ margin: 0, fontSize: "1em" }}>
               ФИО клиента / представителя клиента{" "}
-              <span style={{ marginLeft: 40 }}>подпись</span>
+              <span style={{ marginLeft: "20px" }}>подпись</span>
             </Text>
           </Flex>
         </Flex>

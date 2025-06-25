@@ -1,5 +1,5 @@
 import { List } from "@refinedev/antd";
-import { Button, Table, Space, message, Divider } from "antd";
+import { Button, Table, Space, message, Divider, Checkbox } from "antd";
 import { FileExcelOutlined, FileOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useCustom } from "@refinedev/core";
@@ -162,11 +162,12 @@ export const inputStyle = {
 export const CargoReceivedReport = () => {
   const [tableData, setTableData] = useState<GroupedData[]>([]);
   const [totalData, setTotalData] = useState<GroupedData[]>([]);
+  const [isWarehouse, setIsWarehouse] = useState<boolean>(false);
 
   const [from, setFrom] = useState(
-    dayjs().subtract(1, "month").format("YYYY-MM-DDTHH:mm")
+    dayjs().startOf("day").format("YYYY-MM-DDTHH:mm")
   );
-  const [to, setTo] = useState(dayjs().format("YYYY-MM-DDTHH:mm"));
+  const [to, setTo] = useState(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
 
   const fromDate = new Date(from);
 
@@ -181,6 +182,8 @@ export const CargoReceivedReport = () => {
     " " +
     toDate.toLocaleDateString("ru-RU");
 
+  console.log(isWarehouse, "isWarehouse");
+
   const { data, isLoading, refetch } = useCustom<any>({
     url: `${API_URL}/report/reportOnReceivedCargo`,
     method: "get",
@@ -189,6 +192,7 @@ export const CargoReceivedReport = () => {
         pagination: false,
         startDate: from.replace("T", " ") + ":00",
         endDate: to.replace("T", " ") + ":00",
+        is_warehouse: isWarehouse,
       },
     },
   });
@@ -197,7 +201,7 @@ export const CargoReceivedReport = () => {
     if (!isLoading) {
       refetch();
     }
-  }, [isLoading, refetch, from, to]);
+  }, [isLoading, refetch, from, to, isWarehouse]);
 
   useEffect(() => {
     if (data?.data) {
@@ -503,7 +507,7 @@ export const CargoReceivedReport = () => {
           >
             CSV
           </Button>
-          <div style={{ display: "flex", gap: "1rem" }}>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "end" }}>
             <div style={{ position: "relative" }}>
               <p style={{ position: "absolute", top: -20 }}>От:</p>
               <input
@@ -526,6 +530,18 @@ export const CargoReceivedReport = () => {
                 onFocus={(e) => (e.target.style.borderColor = "#4096ff")}
                 onBlur={(e) => (e.target.style.borderColor = "#d9d9d9")}
               />
+            </div>
+
+            <div
+              style={{ display: "flex", alignItems: "center", height: "32px" }}
+            >
+              <Checkbox
+                checked={isWarehouse}
+                onChange={(e) => setIsWarehouse(e.target.checked)}
+                style={{ fontSize: "14px" }}
+              >
+                В складе
+              </Checkbox>
             </div>
           </div>
         </Space>

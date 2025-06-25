@@ -55,8 +55,10 @@ export const IncomeReport = () => {
   const [search, setSearch] = useState("");
 
   // Состояния для дат
-  const [from, setFrom] = useState<string>("");
-  const [to, setTo] = useState<string>("");
+  const [from, setFrom] = useState(
+    dayjs().startOf("day").format("YYYY-MM-DDTHH:mm")
+  );
+  const [to, setTo] = useState(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
   const [downloadLoading, setDownloadLoading] = useState(false);
 
   // Стили для инпутов дат

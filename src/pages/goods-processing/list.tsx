@@ -13,6 +13,7 @@ import {
   Modal,
   Flex,
   Select,
+  message,
 } from "antd";
 import {
   SearchOutlined,
@@ -32,8 +33,6 @@ import { CustomTooltip, operationStatus } from "../../shared/custom-tooltip";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-
-import moment from "moment";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -174,31 +173,61 @@ export const GoogsProcessingList = () => {
         options={[
           {
             label: "Оплаченные",
-            value: "paid",
+            value: true,
           },
           {
             label: "Не оплаченные",
-            value: "unpaid",
+            value: false,
           },
         ]}
-        mode="multiple"
         allowClear
         onChange={(value) => {
-          const filters = [];
-
-          if (value.includes("paid")) {
-            filters.push({ operation_id: { $ne: null } });
-          }
-
-          if (value.includes("unpaid")) {
-            filters.push({ operation_id: { $eq: null } });
-          }
-
-          if (filters.length === 0) {
+          if (value === undefined || value === null) {
             // очищено — убираем фильтр
             setFilters([], "replace");
           } else {
-            setFilters([{ $or: filters }], "replace");
+            setFilters([{ is_payment: { $eq: value } }], "replace");
+          }
+        }}
+        style={{ width: "100%", marginBottom: 20 }}
+      />
+      <Select
+        placeholder="Выберите статус"
+        options={[
+          {
+            label: "На складе",
+            value: "В складе",
+          },
+          {
+            label: "В пути",
+            value: "В пути",
+          },
+          {
+            label: "Готов к выдаче",
+            value: "Готов к выдаче",
+          },
+          {
+            label: "Выдали",
+            value: "Выдали",
+          },
+        ]}
+        allowClear
+        mode="multiple"
+        onChange={(value) => {
+          if (!value || value.length === 0) {
+            // очищено — убираем фильтр по статусу, но сохраняем другие фильтры
+            setFilters(searchFilters.filter(filter => !filter.$or || !filter.$or.some((item: any) => item.status)), "replace");
+          } else {
+            // добавляем фильтр по статусу с несколькими значениями
+            const otherFilters = searchFilters.filter(filter => !filter.$or || !filter.$or.some((item: any) => item.status));
+            setFilters([
+              ...otherFilters, 
+              {
+                $or: value.map((status: string) => ({
+                  status: { $eq: status }
+                }))
+              }
+            ], "replace");
           }
         }}
         style={{ width: "100%" }}
@@ -383,6 +412,19 @@ export const GoogsProcessingList = () => {
     }
   };
 
+  const handleCashDeskCreate = () => {
+    if (selectedRows.length === 0) {
+      message.warning("Выберите товары для создания приходного кассового ордера");
+      return;
+    }
+
+    // Собираем IDs выбранных товаров
+    const selectedIds = selectedRows.map(row => row.id).join(',');
+    
+    // Переходим на страницу создания cash-desk с параметрами
+    push(`/income/create?type_operation=Контрагент оптом&goods_ids=${selectedIds}`);
+  };
+
   const checkboxContent = (
     <Flex
       vertical
@@ -394,8 +436,7 @@ export const GoogsProcessingList = () => {
         boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.1)",
       }}
     >
-      <Button onClick={handleSaveChanges}>Показать накладную</Button>
-      <Button onClick={handleSaveChanges}>Приходный кассовый ордер</Button>
+      <Button onClick={handleCashDeskCreate}>Приходный кассовый ордер</Button>
     </Flex>
   );
 

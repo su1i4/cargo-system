@@ -1,18 +1,15 @@
 import { useEffect, useState } from "react";
-import { List, useTable } from "@refinedev/antd";
+import { useApiUrl, useCustom } from "@refinedev/core";
+import { List } from "@refinedev/antd";
 import {
   Table,
   Button,
   Space,
-  Row,
-  Input,
-  Divider,
   message,
 } from "antd";
 import {
   FileExcelOutlined,
   FileOutlined,
-  SearchOutlined,
 } from "@ant-design/icons";
 
 import dayjs from "dayjs";
@@ -22,96 +19,30 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.tz.setDefault("Asia/Bishkek");
 
-interface GroupedNomenclature {
+interface WarehouseReportItem {
   id: number;
   name: string;
-  quantity: number;
-  count: number;
+  totalQuantity: number;
+  packageCount: number;
   totalWeight: number;
 }
 
 export const WarehouseStockReport = () => {
-  const [searchValue, setSearchValue] = useState("");
-  const [nomenclatures, setNomenclatures] = useState<GroupedNomenclature[]>([]);
-  const [selectedKey, setSelectedKey] = useState(0);
+  const [nomenclatures, setNomenclatures] = useState<WarehouseReportItem[]>([]);
+  const apiUrl = useApiUrl();
 
-  const { tableProps, setSorters, setFilters } = useTable({
-    resource: "goods-processing",
-    sorters: {
-      initial: [{ field: "created_at", order: "desc" }],
-    },
-    syncWithLocation: false,
-    pagination: {
-      mode: "off",
-    },
-  });
-
-  const { tableProps: serviceTableProps } = useTable({
-    resource: "service",
-    syncWithLocation: false,
-    initialSorter: [
-      {
-        field: "id",
-        order: "desc",
-      },
-    ],
-    filters: {
-      permanent: [
-        {
-          field: "goodsProcessing_id",
-          operator: "eq",
-          value: Number(selectedKey),
-        },
-        {
-          field: "status",
-          operator: "eq",
-          value: "В складе",
-        },
-      ],
-    },
-    pagination: {
-      mode: "off",
-    },
+  const { data, isLoading, refetch } = useCustom<WarehouseReportItem[]>({
+    url: `${apiUrl}/report/reportInWarehouse`,
+    method: "get",
   });
 
   useEffect(() => {
-    if (selectedKey > 0) {
+    if (data?.data) {
+      setNomenclatures(data.data);
     }
-  }, [selectedKey]);
+  }, [data]);
 
-  const handleSearch = (value: string) => {
-    setSearchValue(value);
 
-    if (value.trim() === "") {
-      setFilters([], "replace");
-    } else {
-      setFilters(
-        [
-          {
-            operator: "or",
-            value: [
-              {
-                field: "counterparty.name",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "counterparty.clientCode",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "destination.name",
-                operator: "contains",
-                value: value.trim(),
-              },
-            ],
-          },
-        ],
-        "replace"
-      );
-    }
-  };
 
   // Функция для скачивания CSV
   const downloadCSV = () => {
@@ -134,9 +65,9 @@ export const WarehouseStockReport = () => {
         [
           `${index + 1}`,
           `"${item.name}"`,
-          item.quantity,
+            item.totalQuantity,
           item.totalWeight,
-          item.count,
+          item.packageCount,
         ].join(";")
       ),
     ].join("\n");
@@ -186,9 +117,9 @@ export const WarehouseStockReport = () => {
         ...nomenclatures.map((item, index) => [
           index + 1,
           item.name,
-          item.quantity,
+          item.totalQuantity,
           item.totalWeight,
-          item.count,
+          item.packageCount,
         ]),
       ];
 
@@ -215,41 +146,7 @@ export const WarehouseStockReport = () => {
     }
   };
 
-  const services = serviceTableProps?.dataSource;
 
-  useEffect(() => {
-    if (services) {
-      const nomenclatureMap = new Map<string, GroupedNomenclature>();
-
-      services.forEach((item: any) => {
-        const id = item.nomenclature.id;
-        const name = item.nomenclature.name;
-        const quantity = item.quantity;
-        const weight = Number(item.weight);
-
-        if (nomenclatureMap.has(id)) {
-          const existing = nomenclatureMap.get(id)!;
-          existing.count += 1;
-          existing.quantity += quantity;
-          existing.totalWeight += weight;
-        } else {
-          nomenclatureMap.set(id, {
-            id,
-            name,
-            quantity,
-            count: 1,
-            totalWeight: weight,
-          });
-        }
-      });
-
-      const nomenclature: GroupedNomenclature[] = Array.from(
-        nomenclatureMap.values()
-      );
-
-      setNomenclatures(nomenclature);
-    }
-  }, [services]);
 
   return (
     <List
@@ -288,7 +185,7 @@ export const WarehouseStockReport = () => {
         );
       }}
     >
-      <Table loading={false} dataSource={nomenclatures}>
+      <Table loading={isLoading} dataSource={nomenclatures}>
         <Table.Column
           width={10}
           title="№"
@@ -299,75 +196,11 @@ export const WarehouseStockReport = () => {
           dataIndex="name"
           title="Наименование товара, артикул, состав, размер"
         />
-        <Table.Column dataIndex="quantity" title="Количество" />
-        <Table.Column dataIndex="totalWeight" title="Вес" />
+        <Table.Column dataIndex="totalQuantity" title="Общ количество" />
+        <Table.Column dataIndex="totalWeight" title="Общ вес" render={(value) => `${value} кг`} />
         <Table.Column
-          dataIndex="count"
+          dataIndex="packageCount"
           title="Количество мест, коробки, мешки"
-        />
-      </Table>
-      <Divider />
-      <Row gutter={[16, 16]} style={{ marginBottom: 10 }}>
-        <Input
-          prefix={<SearchOutlined />}
-          placeholder="Поиск по контрагенту, коду клиента или пункту назначения..."
-          value={searchValue}
-          onChange={(e) => handleSearch(e.target.value)}
-          allowClear
-          style={{ width: "100%" }}
-        />
-      </Row>
-      <Table
-        onRow={(record) => {
-          return {
-            onClick: () => {
-              setSelectedKey(record.id as number);
-            },
-          };
-        }}
-        {...tableProps}
-        rowKey="id"
-      >
-        <Table.Column
-          title=""
-          dataIndex="id"
-          render={(value) => (
-            <input 
-              type="radio" 
-              checked={selectedKey === value}
-              onChange={() => setSelectedKey(value)}
-            />
-          )}
-          width={10}
-        />
-        <Table.Column
-          width={10}
-          title="№"
-          dataIndex="number"
-          render={(value, record, index) => index + 1}
-        />
-        <Table.Column
-          title="Дата создания"
-          dataIndex="created_at"
-          width={50}
-          render={(value) => dayjs(value).utc().format("DD.MM.YYYY HH:mm")}
-        />
-        <Table.Column 
-          width={100} 
-          title="Контрагент" 
-          dataIndex="counterparty"
-          render={(value) => `${value?.name} (${value?.clientCode})`}
-        />
-        <Table.Column
-          width={80}
-          title="Пункт назначения"
-          dataIndex="destination"
-          render={(value) => value?.name}
-        />
-        <Table.Column
-          width={60}
-          title="Статус"
-          dataIndex="status"
         />
       </Table>
     </List>

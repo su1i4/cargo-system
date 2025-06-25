@@ -87,30 +87,77 @@
 }
 
 @media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
   body {
     margin: 0;
     padding: 0;
   }
 
   .print-container {
-    zoom: 0.55;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
     width: 100%;
     page-break-inside: avoid;
+    transform-origin: top left;
+    font-size: 9px !important;
+  }
+
+  .print-container * {
+    font-size: inherit !important;
   }
 
   .invoice-copy {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 49.5vh;
+    overflow: hidden;
     page-break-inside: avoid;
     break-inside: avoid;
-    margin-bottom: 10px;
+    padding: 0;
+    transform-origin: top left;
+  }
+
+  .invoice-copy > div {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .invoice-copy .ant-typography {
+    font-size: inherit !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+  }
+
+  .invoice-copy .ant-row {
+    margin: 0 !important;
+  }
+
+  .invoice-copy .ant-col {
+    padding: 1px 2px !important;
+    font-size: inherit !important;
   }
 
   .divider {
     border-top: 1px dashed #999;
-    margin: 12px 0;
+    margin: 1vh 0;
+    height: 1px;
+    flex-shrink: 0;
+  }
+
+  .print-container img {
+    max-width: 60px !important;
+    max-height: 30px !important;
   }
 
   @page {
     size: A4 portrait;
-    margin: 5mm;
+    padding: 3mm;
   }
 }

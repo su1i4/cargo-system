@@ -11,7 +11,6 @@ import {
   Dropdown,
   Input,
 } from "antd";
-import dayjs from "dayjs";
 import { API_URL } from "../../App";
 import { useState } from "react";
 import { useCustom } from "@refinedev/core";
@@ -23,6 +22,12 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import { CustomTooltip, operationStatus } from "../../shared/custom-tooltip";
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export const IssueProcessingListReceived = () => {
   const [searchparams, setSearchParams] = useSearchParams();
@@ -212,11 +217,16 @@ export const IssueProcessingListReceived = () => {
           }}
         />
         <Table.Column
-          dataIndex="created_at"
+          dataIndex="tracking_status"
           title="Дата выдачи"
-          render={(value) =>
-            value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
-          }
+          render={(value, record) => {
+            const date = record.tracking_status.find(
+              (item: any) => item.status === "Выдали"
+            );
+            return date
+              ? dayjs(date.createdAt).utc().format("DD.MM.YYYY HH:mm")
+              : dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm");
+          }}
         />
         <Table.Column dataIndex="invoice_number" title="№ накладной" />
         <Table.Column

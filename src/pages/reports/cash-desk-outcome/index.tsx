@@ -53,8 +53,10 @@ export const CashDeskOutcomeReport = () => {
   const [search, setSearch] = useState("");
 
   // Состояния для дат
-  const [from, setFrom] = useState<string>("");
-  const [to, setTo] = useState<string>("");
+  const [from, setFrom] = useState(
+    dayjs().startOf("day").format("YYYY-MM-DDTHH:mm")
+  );
+  const [to, setTo] = useState(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
   const [downloadLoading, setDownloadLoading] = useState(false);
 
   // Стили для инпутов дат
@@ -128,21 +130,24 @@ export const CashDeskOutcomeReport = () => {
       "Дата расхода": record.date
         ? dayjs(record.date).utc().format("DD.MM.YYYY HH:mm")
         : "",
-      "Вид расхода": typeOperationMap[record.type_operation] || record.type_operation || "",
-      "Банк": banks.find((bank: any) => bank.id === record.bank_id)?.name || "",
+      "Вид расхода":
+        typeOperationMap[record.type_operation] || record.type_operation || "",
+      Банк: banks.find((bank: any) => bank.id === record.bank_id)?.name || "",
       "Код клиента": record.counterparty
-        ? `${record.counterparty.clientPrefix || ""}-${record.counterparty.clientCode || ""}`
+        ? `${record.counterparty.clientPrefix || ""}-${
+            record.counterparty.clientCode || ""
+          }`
         : "",
       "ФИО клиента": record.counterparty?.name || "",
       "Телефон клиента": record.counterparty?.phoneNumber || "",
       "Номер накладной": record.good?.invoice_number || "",
-      "Сумма": `${record.amount || 0} ${record.type_currency || ""}`,
-      "Валюта": record.type_currency || "",
+      Сумма: `${record.amount || 0} ${record.type_currency || ""}`,
+      Валюта: record.type_currency || "",
       "Способ оплаты": record.method_payment || "",
-      "Сотрудник": record.user
+      Сотрудник: record.user
         ? `${record.user.firstName || ""} ${record.user.lastName || ""}`
         : "",
-      "Комментарий": record.comment || "",
+      Комментарий: record.comment || "",
     }));
   };
 
@@ -201,7 +206,9 @@ export const CashDeskOutcomeReport = () => {
         ),
       ].join("\n");
 
-      const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob(["\uFEFF" + csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
@@ -279,8 +286,7 @@ export const CashDeskOutcomeReport = () => {
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
-          ID{" "}
-          {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
+          ID {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
       </div>
     </Card>
@@ -505,4 +511,4 @@ export const CashDeskOutcomeReport = () => {
       </Table>
     </List>
   );
-}; 
+};

@@ -51,8 +51,10 @@ export const StockReport = () => {
   const [search, setSearch] = useState("");
 
   // Состояния для дат
-  const [from, setFrom] = useState<string>("");
-  const [to, setTo] = useState<string>("");
+  const [from, setFrom] = useState(
+    dayjs().startOf("day").format("YYYY-MM-DDTHH:mm")
+  );
+  const [to, setTo] = useState(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
   const [downloadLoading, setDownloadLoading] = useState(false);
 
   // Стили для инпутов дат
@@ -458,7 +460,10 @@ export const StockReport = () => {
         <Select
           {...branchSelectProps}
           onChange={(value) =>
-            setFilters([{ "employee.under_branch_id": { $eq: value } }], "replace")
+            setFilters(
+              [{ "employee.under_branch_id": { $eq: value } }],
+              "replace"
+            )
           }
           style={{ width: "300px", minWidth: "300px" }}
         />
