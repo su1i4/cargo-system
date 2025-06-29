@@ -35,7 +35,7 @@ export const IssueProcessingListReceived = () => {
   const [sortField, setSortField] = useState<"id" | "counterparty.name">("id");
   const [searchFilters, setSearchFilters] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(100);
+  const [pageSize, setPageSize] = useState(200);
   const buildQueryParams = () => {
     return {
       s: JSON.stringify({

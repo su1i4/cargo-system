@@ -35,7 +35,7 @@ const ShipmentList = () => {
     },
     syncWithLocation: false,
     pagination: {
-      pageSize: 100,
+      pageSize: 200,
     },
   });
 

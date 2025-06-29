@@ -158,6 +158,8 @@ const ReceivingCreate = () => {
               rowKey="id"
               rowSelection={{
                 type: "checkbox",
+                selectedRowKeys,
+                preserveSelectedRowKeys: true,
                 onChange: (keys) => {
                   setSelectedRowKeys(keys as number[]);
                 },

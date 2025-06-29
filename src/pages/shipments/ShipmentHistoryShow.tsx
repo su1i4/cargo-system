@@ -56,7 +56,7 @@ const ShipmentHistoryShow = () => {
       ],
     },
     pagination: {
-      pageSize: 100,
+      pageSize: 200,
     },
   });
 

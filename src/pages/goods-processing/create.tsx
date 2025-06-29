@@ -110,6 +110,7 @@ export const GoodsCreate = () => {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [tariffs, setTariffs] = useState<TariffItem[]>([]);
   const [copyCount, setCopyCount] = useState(0);
+  const [sentCityData, setSentCityData] = useState<any[]>([]);
 
   const [senderData, setSenderData] = useState<any>(null);
   const values: any = Form.useWatch([], form);
@@ -126,8 +127,19 @@ export const GoodsCreate = () => {
     },
   });
 
+  const { refetch: refetchSentCity } = useCustom({
+    url: `${apiUrl}/sent-the-city`,
+    method: "get",
+    queryOptions: {
+      onSuccess: (data: any) => {
+        setSentCityData(data?.data || []);
+      },
+    },
+  });
+
   useEffect(() => {
     refetchTariffs();
+    refetchSentCity();
   }, []);
 
   const findTariff = (branchId: number, productTypeId: number): number => {
@@ -456,6 +468,9 @@ export const GoodsCreate = () => {
           (accumulator, currentValue) => accumulator + Number(currentValue.sum),
           0
         ),
+      sent_back_id: sentCityData.find(
+        (item: any) => item.id === values.sent_back_id
+      ).sent_city_id,
     };
 
     if (submitValues.created_at) {
@@ -608,17 +623,13 @@ export const GoodsCreate = () => {
 
   const { selectProps: branchSelectProps } = useSelect({
     resource: "branch",
-    optionLabel: (record: any) => `${record?.name}`,
+    optionLabel: (record: any) =>
+      `${record?.name}${record?.is_sent ? " (досыльный)" : ""}`,
     filters: [
       {
         field: "name",
         operator: "ne",
         value: "Бишкек",
-      },
-      {
-        field: "is_sent",
-        operator: "eq",
-        value: false,
       },
     ],
     onSearch: (value) => [
@@ -647,9 +658,6 @@ export const GoodsCreate = () => {
         value,
       },
     ],
-    queryOptions: {
-      enabled: !!values?.destination_id,
-    },
   });
 
   const { selectProps: nomenclatureSelectProps } = useSelect({
@@ -781,8 +789,6 @@ export const GoodsCreate = () => {
     },
   ];
 
-  console.log(services, "mainSev");
-
   return (
     <Create saveButtonProps={saveButtonProps}>
       <Form {...formProps} layout="vertical" onFinish={handleFormSubmit}>
@@ -803,27 +809,57 @@ export const GoodsCreate = () => {
                   const reciver = counterpartySelectPropsReceiver.options?.find(
                     (item: any) => item.value === recieverId
                   );
+                  const sentCityRecord = sentCityData.find(
+                    (item: any) => item.sent_city_id === val
+                  );
+
+                  if (sentCityRecord) {
+                    formProps.form?.setFieldsValue({
+                      destination_id: sentCityRecord.city_id,
+                      sent_back_id: sentCityRecord.id,
+                    });
+
+                    const mainBranch = branchSelectProps.options?.find(
+                      (item: any) => item.value === sentCityRecord.city_id
+                    );
+
+                    const newServices = services.map((item) => {
+                      return {
+                        ...item,
+                        bag_number: `${
+                          //@ts-ignore
+                          reciver?.label?.split(",")[0]
+                        }/${String(
+                          mainBranch?.label || record?.label || ""
+                        ).slice(0, 1)}`,
+                      };
+                    });
+                    setServices(newServices);
+                    return;
+                  }
+
+                  formProps.form?.setFieldsValue({
+                    destination_id: val,
+                    sent_back_id: null,
+                  });
+
                   const newServices = services.map((item) => {
                     return {
                       ...item,
                       bag_number: `${
                         //@ts-ignore
                         reciver?.label?.split(",")[0]
-                      }/${record?.label?.slice(0, 1)}`,
+                      }/${String(record?.label || "").slice(0, 1)}`,
                     };
                   });
-                  console.log(newServices);
                   setServices(newServices);
-                  formProps.form?.setFieldsValue({
-                    sent_back_id: null,
-                  });
                 }}
                 {...branchSelectProps}
                 allowClear
               />
             </Form.Item>
           </Col>
-          <Col span={6}>
+          <Col span={9}>
             <Form.Item
               rules={[{ required: true, message: "Отправитель обязателен" }]}
               label="Отправитель"
@@ -832,7 +868,7 @@ export const GoodsCreate = () => {
               <Select {...counterpartySelectPropsSender} allowClear />
             </Form.Item>
           </Col>
-          <Col span={6}>
+          <Col span={9}>
             <Form.Item
               rules={[{ required: true, message: "Получатель обязателен" }]}
               label="Получатель"
@@ -932,59 +968,71 @@ export const GoodsCreate = () => {
           </Col>
         </Row>
         <Title level={5}>Услуги</Title>
-        <Row gutter={16} style={{ marginBottom: 10 }}>
-          <Col>
-            <Space>
-              <Tooltip
-                color="red"
-                title={
-                  !values?.destination_id
-                    ? "Сначала выберите город назначения"
-                    : ""
-                }
-              >
-                <Button
-                  disabled={!values?.destination_id}
-                  onClick={addNewItem}
-                  icon={<FileAddOutlined />}
-                >
-                  Добавить товар
-                </Button>
-              </Tooltip>
-              <Input
-                style={{ width: 100 }}
-                min={0}
-                type="number"
-                value={copyCount}
-                onChange={(e: any) => setCopyCount(e.target.value)}
-              />
+        <Row gutter={[16, 8]} style={{ marginBottom: 10 }}>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Tooltip
+              color="red"
+              title={
+                !values?.destination_id
+                  ? "Сначала выберите город назначения"
+                  : ""
+              }
+            >
               <Button
-                disabled={
-                  Number(copyCount || 0) === 0 ||
-                  values?.destination_id === undefined ||
-                  values?.sender_id === undefined ||
-                  values?.recipient_id === undefined
-                }
-                onClick={copyWhileCount}
-                icon={<CopyOutlined />}
+                disabled={!values?.destination_id}
+                onClick={addNewItem}
+                icon={<FileAddOutlined />}
+                style={{ width: "100%" }}
               >
-                Копировать: ({copyCount}) кол-во
+                Добавить товар
               </Button>
-              <Button
-                onClick={copySelectedItems}
-                icon={<CopyOutlined />}
-                disabled={selectedRowKeys.length === 0}
-              >
-                Копировать выбранные ({selectedRowKeys.length})
-              </Button>
-              <Button
-                onClick={removeSelectedItems}
-                icon={<DeleteOutlined />}
-                disabled={selectedRowKeys.length === 0}
-              >
-                Удалить выбранные ({selectedRowKeys.length})
-              </Button>
-            </Space>
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={6} md={4} lg={3}>
+            <Input
+              style={{ width: "100%" }}
+              min={0}
+              type="number"
+              value={copyCount}
+              onChange={(e: any) => setCopyCount(e.target.value)}
+              placeholder="Кол-во"
+            />
+          </Col>
+          <Col xs={12} sm={10} md={8} lg={6}>
+            <Button
+              disabled={
+                Number(copyCount || 0) === 0 ||
+                values?.destination_id === undefined ||
+                values?.sender_id === undefined ||
+                values?.recipient_id === undefined
+              }
+              onClick={copyWhileCount}
+              icon={<CopyOutlined />}
+              style={{ width: "100%" }}
+            >
+              Копировать: ({copyCount})
+            </Button>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={5}>
+            <Button
+              onClick={copySelectedItems}
+              icon={<CopyOutlined />}
+              disabled={selectedRowKeys.length === 0}
+              style={{ width: "100%" }}
+            >
+              Копировать ({selectedRowKeys.length})
+            </Button>
+          </Col>
+          <Col xs={12} sm={8} md={6} lg={4}>
+            <Button
+              onClick={removeSelectedItems}
+              icon={<DeleteOutlined />}
+              disabled={selectedRowKeys.length === 0}
+              style={{ width: "100%" }}
+              danger
+            >
+              Удалить ({selectedRowKeys.length})
+            </Button>
           </Col>
         </Row>
         <Table

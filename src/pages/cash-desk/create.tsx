@@ -214,6 +214,7 @@ export const CashDeskCreate: React.FC = () => {
   const [pageSize, setPageSize] = useState(100); // Page size for goods table
   const [change, setChange] = useState(0); // Dummy state to trigger useEffect for amount calculation
   const [bolik, setBolik] = useState(false); // True for "Контрагент частично" (partial payment), enables single selection
+  const [selectedCurrency, setSelectedCurrency] = useState("Сом"); // Track selected currency for table display
 
   // Fetch currency data
   const { data: currency = { data: [] }, isLoading: currencyLoading } =
@@ -336,6 +337,7 @@ export const CashDeskCreate: React.FC = () => {
     if (form) {
       form.setFieldValue("type", "income");
       form.setFieldValue("type_currency", "Сом");
+      setSelectedCurrency("Сом"); // Set initial selected currency
     }
   }, [form]);
 
@@ -415,13 +417,22 @@ export const CashDeskCreate: React.FC = () => {
         formProps.form.setFieldsValue(resetValues);
       }
     }
-  }, [isAgent, selectedRows, currency.data, change, bolik]); // Added bolik to dependencies
+  }, [isAgent, selectedRows, currency.data, change, bolik, selectedCurrency]); // Added selectedCurrency to dependencies
 
   // Select properties for the bank dropdown
   const { selectProps: bankSelectProps } = useSelect({
     resource: "bank",
     optionLabel: "name",
   });
+
+  // Function to convert amount based on selected currency
+  const convertAmount = (amount: number, targetCurrency: string) => {
+    if (!targetCurrency || !currency.data) return amount;
+    
+    const rate = currency.data.find((item: any) => item.name === targetCurrency)?.rate || 0;
+    // Convert from rubles to target currency
+    return rate * amount;
+  };
 
   // Fetch counterparty data (currently not fully utilized for setting form fields, but available)
   const { data: counterpartyData } = useOne({
@@ -494,6 +505,12 @@ export const CashDeskCreate: React.FC = () => {
     if (goodsIds) {
       const idsArray = goodsIds.split(',').map(id => parseInt(id.trim()));
       setPreselectedGoodsIds(idsArray);
+    }
+
+    // Синхронизируем selectedCurrency с текущим значением формы
+    const currentCurrency = formProps.form?.getFieldValue("type_currency");
+    if (currentCurrency) {
+      setSelectedCurrency(currentCurrency);
     }
   }, [formProps.form, searchParams]);
 
@@ -892,6 +909,7 @@ export const CashDeskCreate: React.FC = () => {
                     .includes(input.toLowerCase())
                 }
                 onChange={(value) => {
+                  setSelectedCurrency(value); // Update selected currency for table display
                   setChange(change + 1); // Trigger re-calculation on currency change
                   // The main logic for amount calculation is in the useEffect,
                   // this handler just ensures that effect runs.
@@ -1145,17 +1163,24 @@ export const CashDeskCreate: React.FC = () => {
             <Table.Column
               dataIndex="totalServiceAmountSum"
               title="Сумма"
-              render={(_, record: any) =>
-                `${
-                  Number(record.totalServiceAmountSum) +
-                  Number(record.totalProductAmountSum)
-                } руб`
-              }
+              render={(_, record: any) => {
+                const totalAmount = Number(record.totalServiceAmountSum) + Number(record.totalProductAmountSum);
+                const convertedAmount = convertAmount(totalAmount, selectedCurrency);
+                const currencySymbol = selectedCurrency === "Доллар" ? "USD" : 
+                                     selectedCurrency === "Рубль" ? "руб" : "сом";
+                return `${convertedAmount.toFixed(2)} ${currencySymbol}`;
+              }}
             />
             <Table.Column
               dataIndex="paid_sum"
               title="Оплачено"
-              render={(value) => `${value || 0} руб`}
+              render={(value) => {
+                const paidAmount = value || 0;
+                const convertedPaidAmount = convertAmount(paidAmount, selectedCurrency);
+                const currencySymbol = selectedCurrency === "Доллар" ? "USD" : 
+                                     selectedCurrency === "Рубль" ? "руб" : "сом";
+                return `${convertedPaidAmount.toFixed(2)} ${currencySymbol}`;
+              }}
             />
             <Table.Column
               dataIndex="employee"

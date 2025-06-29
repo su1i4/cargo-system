@@ -58,7 +58,7 @@ const ShipmentCreate = () => {
       ],
     },
     pagination: {
-      pageSize: 100,
+      pageSize: 200,
     },
   });
 
@@ -144,6 +144,7 @@ const ShipmentCreate = () => {
 
   const rowSelection = {
     selectedRowKeys,
+    preserveSelectedRowKeys: true,
     onChange: (keys: React.Key[]) => {
       console.log("Выбранные ключи:", keys);
       setSelectedRowKeys(keys);

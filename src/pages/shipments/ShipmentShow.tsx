@@ -65,7 +65,7 @@ const ShipmentShow = () => {
       ],
     },
     pagination: {
-      pageSize: 100,
+      pageSize: 200,
     },
   });
 

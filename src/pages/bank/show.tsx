@@ -303,6 +303,7 @@ export const BankShow = () => {
         loading={isLoading}
         pagination={false}
         onChange={handleTableChange}
+        scroll={{ x: true }}
       >
         <Table.Column
           title="№"

@@ -39,7 +39,7 @@ const ShipmentAdd = () => {
   const { tableProps, setFilters, setSorters } = useTable({
     resource: "service",
     pagination: {
-      pageSize: 100,
+      pageSize: 200,
     },
     sorters: {
       initial: [
@@ -147,6 +147,7 @@ const ShipmentAdd = () => {
 
   const rowSelection = {
     selectedRowKeys,
+    preserveSelectedRowKeys: true,
     onChange: (keys: React.Key[], rows: any[]) => {
       setSelectedRowKeys(keys as number[]);
       setSelectedRows(rows);

@@ -54,7 +54,7 @@ export const ShipmentReport = () => {
     },
     syncWithLocation: false,
     pagination: {
-      pageSize: 100,
+      pageSize: 200,
     },
   });
 

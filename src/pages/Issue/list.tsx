@@ -78,7 +78,7 @@ export const IssueProcessingList = () => {
     { status: { $eq: "Готов к выдаче" } },
   ]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(100);
+  const [pageSize, setPageSize] = useState(200);
 
   const buildQueryParams = () => {
     return {
@@ -536,6 +536,7 @@ export const IssueProcessingList = () => {
         rowSelection={{
           type: "checkbox",
           selectedRowKeys,
+          preserveSelectedRowKeys: true,
           onChange: handleRowSelectionChange,
         }}
         scroll={{ x: 1000 }}

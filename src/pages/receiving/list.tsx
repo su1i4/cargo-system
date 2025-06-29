@@ -54,11 +54,16 @@ import { translateStatus } from "../../lib/utils";
 export const GoogsProcessingList = () => {
   const { tableProps, setFilters, setSorter } = useTable({
     syncWithLocation: true,
+    pagination: {
+      pageSize: 200,
+    },
   });
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [filterVisible, setFilterVisible] = useState(false);
   const [sortVisible, setSortVisible] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const { create } = useNavigation();
   const { mutate: updateMany } = useUpdateMany();
   const go = useGo();
@@ -383,7 +388,11 @@ export const GoogsProcessingList = () => {
         rowKey="id"
         rowSelection={{
           type: "checkbox",
+          selectedRowKeys,
+          preserveSelectedRowKeys: true,
           onChange: (selectedRowKeys, selectedRows) => {
+            setSelectedRowKeys(selectedRowKeys);
+            setSelectedRows(selectedRows);
           },
         }}
       >

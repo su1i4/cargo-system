@@ -57,7 +57,7 @@ export const GoogsProcessingList = () => {
   const [search, setSearch] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(100);
+  const [pageSize, setPageSize] = useState(200);
 
   const buildQueryParams = () => {
     return {
@@ -610,6 +610,8 @@ export const GoogsProcessingList = () => {
           },
         })}
         rowSelection={{
+          selectedRowKeys,
+          preserveSelectedRowKeys: true,
           onChange: (selectedRowKeys, selectedRows) => {
             setSelectedRowKeys(selectedRowKeys);
             setSelectedRows(selectedRows);

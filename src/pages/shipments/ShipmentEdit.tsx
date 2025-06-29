@@ -79,7 +79,7 @@ const ShipmentEdit = () => {
         : [],
     },
     pagination: {
-      pageSize: 100,
+      pageSize: 200,
     },
   });
 
@@ -286,6 +286,7 @@ const ShipmentEdit = () => {
 
   const rowSelection = {
     selectedRowKeys,
+    preserveSelectedRowKeys: true,
     onChange: (keys: React.Key[]) => {
       console.log("Row selection changed:", keys);
       setSelectedRowKeys(keys as number[]);

@@ -45,7 +45,7 @@ const ReceivingList = () => {
       ],
     },
     pagination: {
-      pageSize: 100
+      pageSize: 200
     }
   });
 
