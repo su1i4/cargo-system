@@ -470,7 +470,7 @@ export const GoodsCreate = () => {
         ),
       sent_back_id: sentCityData.find(
         (item: any) => item.id === values.sent_back_id
-      ).sent_city_id,
+      )?.sent_city_id || null,
     };
 
     if (submitValues.created_at) {
