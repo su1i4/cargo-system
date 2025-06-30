@@ -72,7 +72,7 @@ export const BankReport = () => {
 
       const filters = [...searchFilters];
       if (Object.keys(dateFilter).length > 0) {
-        filters.push({ date: dateFilter });
+        filters.push({ 'operation.date': dateFilter });
       }
 
       if (filters.length > 0) {
@@ -114,18 +114,6 @@ export const BankReport = () => {
       enabled: !!bankId,
     },
   });
-
-  // Функция для обновления фильтров
-  const setFilters = (
-    filters: any[],
-    mode: "replace" | "append" = "append"
-  ) => {
-    if (mode === "replace") {
-      setSearchFilters(filters);
-    } else {
-      setSearchFilters((prevFilters) => [...prevFilters, ...filters]);
-    }
-  };
 
   // Обновление данных при изменении фильтров или сортировки
   useEffect(() => {
