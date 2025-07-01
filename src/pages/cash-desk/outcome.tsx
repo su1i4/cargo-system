@@ -233,7 +233,7 @@ export const CashDeskOutcomeList: React.FC = () => {
         </Col>
       </Row>
 
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" size="small">
         <Table.Column
           title="№"
           render={(_: any, __: any, index: number) => {
@@ -244,6 +244,7 @@ export const CashDeskOutcomeList: React.FC = () => {
           dataIndex="date"
           title="Дата расхода"
           render={(date) => dayjs(date).format("DD.MM.YYYY HH:mm")}
+          width={120}
         />
 
         <Table.Column
@@ -255,6 +256,7 @@ export const CashDeskOutcomeList: React.FC = () => {
             );
             return bank?.name;
           }}
+          width={120}
         />
 
         <Table.Column
@@ -262,6 +264,7 @@ export const CashDeskOutcomeList: React.FC = () => {
           title="Вид расхода"
           render={(value) => typeOperationMap[value] || value}
         />
+        <Table.Column dataIndex="comment" title="Комментарий" />
 
         {/* <Table.Column dataIndex="id" title="Трек-код" /> */}
 
@@ -269,7 +272,13 @@ export const CashDeskOutcomeList: React.FC = () => {
 
         <Table.Column dataIndex="type_currency" title="валюта" />
 
-        <Table.Column dataIndex="comment" title="Комментарий" />
+        <Table.Column
+          dataIndex="user"
+          title="Сотрудник"
+          render={(value) =>
+            value ? `${value.firstName || ""} ${value.lastName || ""}` : "-"
+          }
+        />
       </Table>
     </List>
   );

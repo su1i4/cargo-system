@@ -503,6 +503,14 @@ export const CashDeskOutcomeReport = () => {
           width={150}
         />
         <Table.Column
+          dataIndex="user"
+          title="Сотрудник"
+          render={(value) =>
+            value ? `${value.firstName || ""} ${value.lastName || ""}` : "-"
+          }
+          width={150}
+        />
+        <Table.Column
           dataIndex="comment"
           title="Комментарий"
           render={(value) => value || "-"}

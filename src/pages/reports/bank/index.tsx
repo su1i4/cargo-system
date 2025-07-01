@@ -64,21 +64,8 @@ export const BankReport = () => {
       sort: `${sortField},${sortDirection}`,
     };
 
-    // Добавляем фильтры по датам если они заданы
-    if (from || to) {
-      const dateFilter: any = {};
-      if (from) dateFilter.$gte = from;
-      if (to) dateFilter.$lte = to;
-
-      const filters = [...searchFilters];
-      if (Object.keys(dateFilter).length > 0) {
-        filters.push({ 'operation.date': dateFilter });
-      }
-
-      if (filters.length > 0) {
-        params.s = JSON.stringify({ $and: filters });
-      }
-    } else if (searchFilters.length > 0) {
+    // Добавляем только searchFilters (без фильтра по дате)
+    if (searchFilters.length > 0) {
       params.s = JSON.stringify({ $and: searchFilters });
     }
 
@@ -115,12 +102,12 @@ export const BankReport = () => {
     },
   });
 
-  // Обновление данных при изменении фильтров или сортировки
+  // Обновление данных при изменении фильтров или сортировки (без дат)
   useEffect(() => {
     if (bankId) {
       refetch();
     }
-  }, [searchFilters, sortDirection, sortField, bankId, from, to]);
+  }, [searchFilters, sortDirection, sortField, bankId]);
 
   // Компонент сортировки
   const sortContent = (
@@ -141,30 +128,30 @@ export const BankReport = () => {
           type="text"
           style={{
             textAlign: "left",
-            fontWeight: sortField === "operation.id" ? "bold" : "normal",
+            fontWeight: sortField === "id" ? "bold" : "normal",
           }}
           onClick={() => {
-            setSortField("operation.id");
+            setSortField("id");
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
           Дате создания{" "}
-          {sortField === "operation.id" && (sortDirection === "ASC" ? "↑" : "↓")}
+          {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
         {/* Сортировка по типу операции */}
         <Button
           type="text"
           style={{
             textAlign: "left",
-            fontWeight: sortField === "operation.type" ? "bold" : "normal",
+            fontWeight: sortField === "type" ? "bold" : "normal",
           }}
           onClick={() => {
-            setSortField("operation.type");
+            setSortField("type");
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
           Типу операции{" "}
-          {sortField === "operation.type" && (sortDirection === "ASC" ? "↑" : "↓")}
+          {sortField === "type" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
       </div>
     </Card>
@@ -173,9 +160,28 @@ export const BankReport = () => {
   // Получаем данные операций
   const operations = data?.data?.operation || [];
 
-  // Применяем локальную фильтрацию по поиску
+  // Применяем локальную фильтрацию по поиску и датам
   const filteredOperations = useMemo(() => {
     let result = [...operations];
+
+    // Применяем фильтрацию по датам
+    if (from || to) {
+      result = result.filter((op) => {
+        if (!op.date) return false;
+        
+        const opDate = dayjs(op.date);
+        const fromDate = from ? dayjs(from) : null;
+        const toDate = to ? dayjs(to) : null;
+
+        if (fromDate && opDate.isBefore(fromDate)) {
+          return false;
+        }
+        if (toDate && opDate.isAfter(toDate)) {
+          return false;
+        }
+        return true;
+      });
+    }
 
     // Применяем общий поиск по коду клиента и трек-коду
     if (searchText) {
@@ -193,14 +199,14 @@ export const BankReport = () => {
     }
 
     return result;
-  }, [operations, searchText]);
+  }, [operations, searchText, from, to]);
 
   const total = filteredOperations.length;
 
   // Обработчик изменения таблицы (только сортировка)
   const handleTableChange = (_pagination: any, _filters: any, sorter: any) => {
     if (sorter && sorter.field) {
-      setSortField(sorter.field === "operation.type" ? "operation.type" : "operation.id");
+      setSortField(sorter.field === "type" ? "type" : "id");
       setSortDirection(sorter.order === "ascend" ? "ASC" : "DESC");
     }
   };

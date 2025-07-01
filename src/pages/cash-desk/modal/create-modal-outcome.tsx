@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useModalForm, useSelect } from "@refinedev/antd";
 import { useOne } from "@refinedev/core";
-import { DatePicker, Form, Input, Modal, Select, Upload } from "antd";
+import { DatePicker, Form, Input, Modal, Select, Upload, AutoComplete } from "antd";
 import { API_URL } from "../../../App";
 import { PaperClipOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -75,10 +75,27 @@ export const MyCreateModalOutcome: React.FC<{
   };
 
   const expenseTypes = [
-    { value: "supplier_payment", label: "Оплата поставщику" },
-    { value: "repair_payment", label: "Оплата за ремонт" },
-    { value: "salary_payment", label: "Выплата заработной платы работнику" },
-    { value: "advance_payment", label: "Выдача подотчет" },
+    { value: "Оплата поставщику", label: "Оплата поставщику" },
+    { value: "Оплата за ремонт", label: "Оплата за ремонт" },
+    { value: "Выплата заработной платы работнику", label: "Выплата заработной платы работнику" },
+    { value: "Выдача подотчет", label: "Выдача подотчет" },
+    { value: "Фрахт", label: "Фрахт" },
+    { value: "Проходы КЗ", label: "Проходы КЗ" },
+    { value: "Проходы РФ", label: "Проходы РФ" },
+    { value: "Встречка", label: "Встречка" },
+    { value: "Грузчики", label: "Грузчики" },
+    { value: "Газель", label: "Газель" },
+    { value: "Аренда офиса", label: "Аренда офиса" },
+    { value: "Аренда Склада", label: "Аренда Склада" },
+    { value: "Бонус", label: "Бонус" },
+    { value: "Заработная оплата", label: "Заработная оплата" },
+    { value: "Мобильная связь", label: "Мобильная связь" },
+    { value: "Канц товары", label: "Канц товары" },
+    { value: "ГСМ", label: "ГСМ" },
+    { value: "Возврат депозита", label: "Возврат депозита" },
+    { value: "Мешки", label: "Мешки" },
+    { value: "Электроэнергия", label: "Электроэнергия" },
+    { value: "Оплата за мусор", label: "Оплата за мусор" },
   ];
 
   const incomeTypes = [{ value: "cash", label: "Оплата наличными" }];
@@ -164,32 +181,20 @@ export const MyCreateModalOutcome: React.FC<{
         </Form.Item>
 
         <Form.Item
-          label="Сотрудник"
-          name={["user_id"]}
+          label="Статья расходов"
+          name="type_operation"
           rules={[
-            { required: true, message: "Пожалуйста, выберите Сотрудника" },
+            { required: false, message: "Пожалуйста, выберите или введите статью расходов" },
           ]}
           style={formItemStyle}
         >
-          <Select
-            {...userSelectProps}
-            placeholder="Выберите Сотрудника"
-            style={{ width: "100%" }}
-          />
-        </Form.Item>
-
-        <Form.Item
-          label="Вид расхода"
-          name={["type_operation"]}
-          rules={[
-            { required: false, message: "Пожалуйста, выберите  вид расхода" },
-          ]}
-          style={formItemStyle}
-        >
-          <Select
+          <AutoComplete
             options={expenseTypes}
-            placeholder="Выберите вид расхода"
+            placeholder="Выберите или введите статью расходов"
             style={{ width: "100%" }}
+            filterOption={(inputValue, option) =>
+              option?.label?.toLowerCase().indexOf(inputValue.toLowerCase()) !== -1
+            }
           />
         </Form.Item>
 
