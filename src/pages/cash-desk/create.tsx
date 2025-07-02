@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Create, useSelect, useForm } from "@refinedev/antd";
 import {
   useCustom,
@@ -38,6 +38,7 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { useNavigate } from "react-router";
 import { useSearchParams } from "react-router";
+import { filterBanksByUserAccess } from "../bank/list";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -425,6 +426,31 @@ export const CashDeskCreate: React.FC = () => {
     optionLabel: "name",
   });
 
+  // Filter banks by user access for dropdown
+  const filteredBankSelectProps = useMemo(() => {
+    const userId = parseInt(localStorage.getItem("cargo-system-id") || "", 10);
+    
+    const accessMap: Record<number, number[]> = {
+      3: [7, 6],
+      5: [7, 6],
+      4: [2, 6],
+      6: [5],
+    };
+
+    if (accessMap[userId] && bankSelectProps.options) {
+      const filteredOptions = bankSelectProps.options.filter((option: any) => 
+        accessMap[userId].includes(option.value)
+      );
+      
+      return {
+        ...bankSelectProps,
+        options: filteredOptions,
+      };
+    }
+
+    return bankSelectProps;
+  }, [bankSelectProps]);
+
   // Function to convert amount based on selected currency
   const convertAmount = (amount: number, targetCurrency: string) => {
     if (!targetCurrency || !currency.data) return amount;
@@ -471,15 +497,15 @@ export const CashDeskCreate: React.FC = () => {
 
   // Set default bank and payment method when bank data is loaded
   useEffect(() => {
-    if (formProps.form && bankSelectProps.options && bankSelectProps.options.length > 0) {
+    if (formProps.form && filteredBankSelectProps.options && filteredBankSelectProps.options.length > 0) {
       // Выбираем первый банк из списка
-      const firstBank = bankSelectProps.options[0];
+      const firstBank = filteredBankSelectProps.options[0];
       formProps.form.setFieldsValue({
         bank_id: firstBank.value,
         method_payment: "Оплата наличными", // Устанавливаем метод оплаты по умолчанию
       });
     }
-  }, [formProps.form, bankSelectProps.options]);
+  }, [formProps.form, filteredBankSelectProps.options]);
 
   // Обработка URL параметров для автоматической установки типа операции и выбора товаров
   useEffect(() => {
@@ -802,7 +828,7 @@ export const CashDeskCreate: React.FC = () => {
               style={{ marginBottom: 5 }}
             >
               <Select
-                {...bankSelectProps}
+                {...filteredBankSelectProps}
                 placeholder="Выберите код банк"
                 style={{ width: "100%" }}
               />

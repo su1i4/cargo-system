@@ -1,11 +1,41 @@
 import React from "react";
 import { Create, useForm } from "@refinedev/antd";
-import {Col, Form, Input, Select} from "antd";
+import {Col, Form, Input, Select, notification} from "antd";
 import InputMask from "react-input-mask";
 import {useSelect} from "@refinedev/antd";
+
 export const CounterpartyCreate: React.FC = () => {
     const { formProps, saveButtonProps } = useForm({
-
+        errorNotification: false,
+        onMutationError: (error: any) => {
+            console.error("Mutation error:", error);
+            
+            // Проверяем, есть ли информация об ошибке в ответе
+            if (error?.response?.data?.message) {
+                const errorMessage = error.response.data.message;
+                
+                // Обрабатываем конкретную ошибку о дублирующемся номере телефона
+                if (errorMessage.includes("уже существует") || errorMessage.includes("already exists")) {
+                    notification.error({
+                        message: "Ошибка создания контрагента",
+                        description: "Контрагент с таким номером телефона уже существует. Пожалуйста, используйте другой номер телефона.",
+                        duration: 5,
+                    });
+                } else {
+                    notification.error({
+                        message: "Ошибка создания контрагента",
+                        description: errorMessage,
+                        duration: 5,
+                    });
+                }
+            } else {
+                notification.error({
+                    message: "Ошибка создания контрагента",
+                    description: "Произошла неизвестная ошибка. Пожалуйста, попробуйте еще раз.",
+                    duration: 5,
+                });
+            }
+        },
     });
 
     const { selectProps: branchSelectProps } = useSelect({

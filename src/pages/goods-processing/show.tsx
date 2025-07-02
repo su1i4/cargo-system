@@ -1,6 +1,6 @@
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { Show, EditButton, DeleteButton, useTable } from "@refinedev/antd";
-import { useShow, useNavigation } from "@refinedev/core";
+import { useShow } from "@refinedev/core";
 import { Typography, Flex, Row, Col, Button } from "antd";
 import { PrinterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -34,13 +34,13 @@ export const GoodsShow: React.FC = () => {
         const totalItems = servicesCount + productsCount;
         
         // Динамическое масштабирование шрифта
-        let fontSize = 9; // базовый размер
+        let fontSize = 13; // базовый размер
         if (totalItems > 20) {
-          fontSize = 7;
+          fontSize = 12;
         } else if (totalItems > 15) {
-          fontSize = 8;
+          fontSize = 11;
         } else if (totalItems < 5) {
-          fontSize = 10;
+          fontSize = 12;
         }
         
         el.style.fontSize = `${fontSize}px`;
@@ -52,10 +52,15 @@ export const GoodsShow: React.FC = () => {
         // Дополнительное уменьшение блока с условиями перевозок
         const termsSection = el.querySelectorAll('.terms-section');
         termsSection.forEach((section: any) => {
-          section.style.setProperty('font-size', '8px', 'important');
-          section.style.setProperty('line-height', '0.9', 'important');
+          section.style.setProperty('font-size', '9px', 'important');
+          section.style.setProperty('line-height', '1', 'important');
           section.style.setProperty('margin', '0', 'important');
           section.style.setProperty('padding', '0', 'important');
+        });
+
+        const termsSectionInvoice = el.querySelectorAll('.terms-section-invoice');
+        termsSectionInvoice.forEach((section: any) => {
+          section.style.setProperty('font-size', '13px', 'important');
         });
       }
     },
@@ -102,8 +107,8 @@ export const GoodsShow: React.FC = () => {
   }
 
   const colStyle = {
-    borderRight: "1px solid #EDEDEC",
-    borderBottom: "1px solid #EDEDEC",
+    borderRight: "1px solid black",
+    borderBottom: "1px solid black",
     padding: "2px 6px",
   };
 
@@ -123,8 +128,7 @@ export const GoodsShow: React.FC = () => {
       (acc: number, item: any) => acc + Number(item.sum || 0),
       0
     ) || 0;
-
-  const totalProdQty =
+    const totalProdQty =
     record?.products?.reduce(
       (acc: number, { quantity = 0 }) => acc + +quantity,
       0
@@ -172,24 +176,24 @@ export const GoodsShow: React.FC = () => {
         <Flex justify="space-between" align="center" style={{ marginBottom: "4px" }}>
           <img
             src="/rosscargo.png"
-            style={{ width: "60px", height: "30px", objectFit: "contain" }}
+            style={{ width: "70px", height: "40px", objectFit: "contain" }}
             alt="photo"
           />
-          <Title style={{ fontSize: "1.4em", fontWeight: 600, margin: 0 }} level={5}>
+          <Title className="terms-section-invoice" style={{ fontSize: "20px", fontWeight: 600, margin: 0 }} level={5}>
             Накладная №: {record?.invoice_number}
           </Title>
         </Flex>
         <Flex justify="space-between" align="center" style={{ marginBottom: "2px" }}>
-          <Text style={{ fontSize: "1em" }}>Call-center: +996 509 003 003</Text>
-          <Text style={{ fontSize: "1em" }}>
+          <Text style={{ fontSize: "15px" }}>Call-center: +996 509 003 003</Text>
+          <Text style={{ fontSize: "15px" }}>
             {dayjs(record?.created_at).utc().format("DD.MM.YYYY HH:mm")}
           </Text>
         </Flex>
         <Flex vertical style={{ marginBottom: "6px" }}>
-          <Text style={{ fontSize: "1em", color: "#010801", margin: 0 }}>
+          <Text style={{ fontSize: "15px", color: "#010801", margin: 0 }}>
             Досыл, услуги грузчиков и адресная доставка оплачивается отдельно
           </Text>
-          <Text style={{ fontSize: "1em", color: "#010101", margin: 0 }}>
+          <Text style={{ fontSize: "15px", color: "#010101", margin: 0 }}>
             Адрес склада:{" "}
             {
               tableProps?.dataSource?.find(
@@ -214,7 +218,7 @@ export const GoodsShow: React.FC = () => {
         <Row
           gutter={[4, 0]}
           style={{
-            border: "1px solid #F2F2F1",
+            border: "1px solid black",
             borderRadius: "4px",
             overflow: "hidden",
             marginBottom: "6px",
@@ -245,7 +249,6 @@ export const GoodsShow: React.FC = () => {
               record?.recipient?.clientCode || ""
             }`}</Text>
           </Col>
-
           <Col style={colStyle} span={4}>
             <Text>Фио</Text>
           </Col>
@@ -295,24 +298,23 @@ export const GoodsShow: React.FC = () => {
             <Text>{record?.destination?.name || ""}</Text>
           </Col>
 
-          <Col style={colStyle} span={4}>
+          <Col style={{...colStyle, borderBottom: "none"}} span={4}>
             <Text>Комментарий</Text>
           </Col>
-          <Col style={colStyle} span={8}>
+          <Col style={{...colStyle, borderBottom: "none"}} span={8}>
             <Text>{record?.comments || ""}</Text>
           </Col>
-          <Col style={colStyle} span={4}>
+          <Col style={{...colStyle, borderBottom: "none"}} span={4}>
             <Text>Досыл</Text>
           </Col>
-          <Col style={colStyle} span={8}>
+          <Col style={{...colStyle, borderBottom: "none"}} span={8}>
             <Text>{record?.sent_back?.name || ""}</Text>
           </Col>
         </Row>
-
         <Row
           gutter={[4, 0]}
           style={{
-            border: "1px solid #F2F2F1",
+            border: "1px solid black",
             borderRadius: "4px",
             overflow: "hidden",
           }}
@@ -416,25 +418,24 @@ export const GoodsShow: React.FC = () => {
               </Col>
             </React.Fragment>
           ))}
-
-          <Col style={colStyle} span={12}>
+          <Col style={{...colStyle, borderBottom: "none"}} span={12}>
             <Text style={{ textAlign: "end", fontWeight: "bold" }}>Итого</Text>
           </Col>
-          <Col style={colStyle} span={2}>
+          <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
             <Text style={{ fontWeight: "bold" }}>{totalPlaces}</Text>
           </Col>
-          <Col style={colStyle} span={2}>
+          <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
             <Text style={{ fontWeight: "bold" }}>{totalQuantity}</Text>
           </Col>
-          <Col style={colStyle} span={2}>
+          <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
             <Text style={{ fontWeight: "bold" }}>
               {String(totalWeight).replace(".", ",").slice(0, 5)}
             </Text>
           </Col>
-          <Col style={colStyle} span={4}>
+          <Col style={{ ...colStyle, borderBottom: "none" }} span={4}>
             <Text style={{ fontWeight: "bold" }}>-</Text>
           </Col>
-          <Col style={colStyle} span={2}>
+          <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
             <Text style={{ fontWeight: "bold" }}>{totalSum}</Text>
           </Col>
         </Row>
@@ -442,7 +443,7 @@ export const GoodsShow: React.FC = () => {
                   <Row
           gutter={[4, 0]}
           style={{
-            border: "1px solid #F2F2F1",
+            border: "1px solid black",
             borderRadius: "4px",
             overflow: "hidden",
             marginTop: "6px",
@@ -457,7 +458,7 @@ export const GoodsShow: React.FC = () => {
             <Col span={4} style={{ ...colStyle, backgroundColor: "#F5F5F4" }}>
               <Text>Количество, шт</Text>
             </Col>
-            <Col span={6} style={{ ...colStyle, backgroundColor: "#F5F5F4" }}>
+            <Col span={6} style={{ ...colStyle, backgroundColor: "#F5F5F4", borderRight: "none" }}>
               <Text>Сумма</Text>
             </Col>
 
@@ -473,20 +474,22 @@ export const GoodsShow: React.FC = () => {
                   <Col span={4} style={colStyle}>
                     <Text>{quantity}</Text>
                   </Col>
-                  <Col span={6} style={colStyle}>
+                  <Col span={6} style={{...colStyle, borderRight: "none"}}>
                     <Text>{sum}</Text>
                   </Col>
                 </React.Fragment>
               )
             )}
-
-            <Col span={10} style={colStyle}>
+            <Col span={10} style={{ ...colStyle, borderBottom: "none" }}>
               <Text style={{ fontWeight: "bold" }}>Итого</Text>
             </Col>
-            <Col span={4} style={colStyle}>
+            <Col span={4} style={{ ...colStyle, borderBottom: "none" }}>
+              <Text style={{ fontWeight: "bold" }}></Text>
+            </Col>
+            <Col span={4} style={{ ...colStyle, borderBottom: "none" }}>
               <Text style={{ fontWeight: "bold" }}>{totalProdQty}</Text>
             </Col>
-            <Col span={6} style={colStyle}>
+            <Col span={6} style={{ ...colStyle, border: "none" }}>
               <Text style={{ fontWeight: "bold" }}>{totalProdSum}</Text>
             </Col>
           </Row>
