@@ -435,6 +435,8 @@ export const CashDeskCreate: React.FC = () => {
       5: [7, 6],
       4: [2, 6],
       6: [5],
+      9: [8, 6],
+      8: [7, 6],
     };
 
     if (accessMap[userId] && bankSelectProps.options) {
