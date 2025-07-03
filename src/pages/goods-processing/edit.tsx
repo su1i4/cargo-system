@@ -528,9 +528,9 @@ export const GoodsEdit = () => {
           (accumulator, currentValue) => accumulator + Number(currentValue.sum),
           0
         ),
-      sent_back_id: sentCityData.find(
-        (item: any) => item.id === values.sent_back_id
-      ).sent_city_id || null,
+      sent_back_id:
+        sentCityData.find((item: any) => item.id === values.sent_back_id)
+          ?.sent_city_id || null,
     };
 
     if (submitValues.created_at) {

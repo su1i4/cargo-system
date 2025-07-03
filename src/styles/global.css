@@ -119,7 +119,7 @@
     overflow: hidden;
     page-break-inside: avoid;
     break-inside: avoid;
-    padding: 0;
+    padding: 3;
     transform-origin: top left;
   }
 
