@@ -52,7 +52,8 @@ import { i18nProvider_ru } from "./i18n/ru";
 import { IssueProcessingList } from "./pages/Issue";
 import { CashBackList } from "./pages/cash-back";
 import { BankCreate, BankEdit, BankList, BankShow } from "./pages/bank";
-import { BankPermissionList, BankPermissionCreate } from "./pages/bank-permission";
+import { BankPermissionList } from "./pages/bank-permission/list";
+import { BankPermissionCreate } from "./pages/bank-permission/create";
 import { CashDeskCreate, CashDeskList } from "./pages/cash-desk";
 import { CashDeskOutcomeList } from "./pages/cash-desk/outcome";
 import {
