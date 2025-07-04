@@ -531,6 +531,7 @@ export const GoodsEdit = () => {
       sent_back_id:
         sentCityData.find((item: any) => item.id === values.sent_back_id)
           ?.sent_city_id || null,
+      destination_id: values?.destination_id || null,
     };
 
     if (submitValues.created_at) {
@@ -815,40 +816,26 @@ export const GoodsEdit = () => {
                   const reciver = counterpartySelectPropsReceiver.options?.find(
                     (item: any) => item.value === recieverId
                   );
+                  // Ищем досыльную запись для выбранного города
                   const sentCityRecord = sentCityData.find(
-                    (item: any) => item.sent_city_id === val
+                    (item: any) => item.city_id === val
                   );
 
                   if (sentCityRecord) {
+                    // Если у города есть досыльная привязка, автоматически выбираем её
                     formProps.form?.setFieldsValue({
                       destination_id: sentCityRecord.city_id,
                       sent_back_id: sentCityRecord.id,
                     });
-
-                    const mainBranch = branchSelectProps.options?.find(
-                      (item: any) => item.value === sentCityRecord.city_id
-                    );
-
-                    const newServices = services.map((item) => {
-                      return {
-                        ...item,
-                        bag_number: `${
-                          //@ts-ignore
-                          reciver?.label?.split(",")[0]
-                        }/${String(
-                          mainBranch?.label || record?.label || ""
-                        ).slice(0, 1)}`,
-                      };
+                  } else {
+                    // Если досыльной привязки нет, просто устанавливаем город
+                    formProps.form?.setFieldsValue({
+                      destination_id: val,
+                      sent_back_id: null,
                     });
-                    setServices(newServices);
-                    return;
                   }
 
-                  formProps.form?.setFieldsValue({
-                    destination_id: val,
-                    sent_back_id: null,
-                  });
-
+                  // Обновляем номера мешков для всех услуг
                   const newServices = services.map((item) => {
                     return {
                       ...item,
