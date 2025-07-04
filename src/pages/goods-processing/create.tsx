@@ -208,22 +208,10 @@ export const GoodsCreate = () => {
   };
 
   const addNewItem = () => {
-    const recieverId = formProps.form?.getFieldValue("recipient_id");
-    const reciver = counterpartySelectPropsReceiver.options?.find(
-      (item: any) => item.value === recieverId
-    );
-    const branchId = formProps.form?.getFieldValue("destination_id");
-    const branch = branchSelectProps.options?.find(
-      (item: any) => item.value === branchId
-    );
     const newItem: GoodItem = {
       id: nextId,
       barcode: generateBarcode(),
-      //@ts-ignore
-      bag_number: `${reciver?.label?.split(",")[0]}/${branch?.label?.slice(
-        0,
-        1
-      )}|`,
+      bag_number: "",
     };
     setServices([...services, newItem]);
     setNextId(nextId + 1);
@@ -254,7 +242,7 @@ export const GoodsCreate = () => {
     message.success(`Скопировано ${selectedItems.length} товаров`);
   };
 
-  const createItemsByCount = (bag_number: string) => {
+  const createItemsByCount = () => {
     const count = Number(copyCount || 0);
     if (count <= 0) {
       message.warning("Укажите корректное количество для создания");
@@ -268,7 +256,7 @@ export const GoodsCreate = () => {
         id: newId,
         name: "Новый товар",
         barcode: generateBarcode(),
-        bag_number: bag_number,
+        bag_number: "",
       };
     });
 
@@ -277,21 +265,7 @@ export const GoodsCreate = () => {
   };
 
   const copyWhileCount = () => {
-    const recieverId = formProps.form?.getFieldValue("recipient_id");
-    const reciver = counterpartySelectPropsReceiver.options?.find(
-      (item: any) => item.value === recieverId
-    );
-    const branchId = formProps.form?.getFieldValue("destination_id");
-    const branch = branchSelectProps.options?.find(
-      (item: any) => item.value === branchId
-    );
-    for (let i = 0; i < Number(copyCount || 0); i++) {
-      //@ts-ignore
-      createItemsByCount(
-        //@ts-ignore
-        `${reciver?.label?.split(",")[0]}/${branch?.label?.slice(0, 1)}|`
-      );
-    }
+    createItemsByCount();
     message.success(`Создано ${copyCount} новых товаров`);
   };
 
@@ -441,12 +415,14 @@ export const GoodsCreate = () => {
 
     let hasInvalidFields = false;
     services.forEach((service, index) => {
-      if (!service.type_id || !service.weight || service.weight <= 0) {
+      if (!service.type_id || !service.weight || service.weight <= 0 || !service.bag_number) {
         hasInvalidFields = true;
+        let missingFields = [];
+        if (!service.type_id) missingFields.push("Тип товара");
+        if (!service.weight || service.weight <= 0) missingFields.push("Вес");
+        if (!service.bag_number) missingFields.push("Номер мешка");
         message.warning(
-          `Услуга #${
-            index + 1
-          }: Заполните все обязательные поля (Тип товара, Вес)`
+          `Услуга #${index + 1}: Заполните все обязательные поля (${missingFields.join(", ")})`
         );
       }
     });
@@ -506,28 +482,6 @@ export const GoodsCreate = () => {
       );
       if (selectedSender) {
         setSenderData(selectedSender);
-
-        if (services.length > 0) {
-          const senderPrefix =
-            typeof selectedSender?.label === "string"
-              ? selectedSender.label.split(",")[0]
-              : "";
-          setServices(
-            services.map((service, index) => {
-              const selectedType = tariffTableProps?.dataSource?.find(
-                (type: any) =>
-                  type.branch_id === values?.destination_id &&
-                  type.product_type_id === service.type_id
-              );
-              return {
-                ...service,
-                bag_number: `${senderPrefix}/${
-                  selectedType?.product_type?.name.slice(0, 1) || ""
-                }${index + 1}`,
-              };
-            })
-          );
-        }
       }
     }
   }, [values?.sender_id]);
@@ -804,11 +758,6 @@ export const GoodsCreate = () => {
             >
               <Select
                 onChange={(val, record: any) => {
-                  const recieverId =
-                    formProps.form?.getFieldValue("recipient_id");
-                  const reciver = counterpartySelectPropsReceiver.options?.find(
-                    (item: any) => item.value === recieverId
-                  );
                   const sentCityRecord = sentCityData.find(
                     (item: any) => item.sent_city_id === val
                   );
@@ -818,23 +767,6 @@ export const GoodsCreate = () => {
                       destination_id: sentCityRecord.city_id,
                       sent_back_id: sentCityRecord.id,
                     });
-
-                    const mainBranch = branchSelectProps.options?.find(
-                      (item: any) => item.value === sentCityRecord.city_id
-                    );
-
-                    const newServices = services.map((item) => {
-                      return {
-                        ...item,
-                        bag_number: `${
-                          //@ts-ignore
-                          reciver?.label?.split(",")[0]
-                        }/${String(
-                          mainBranch?.label || record?.label || ""
-                        ).slice(0, 1)}`,
-                      };
-                    });
-                    setServices(newServices);
                     return;
                   }
 
@@ -842,17 +774,6 @@ export const GoodsCreate = () => {
                     destination_id: val,
                     sent_back_id: null,
                   });
-
-                  const newServices = services.map((item) => {
-                    return {
-                      ...item,
-                      bag_number: `${
-                        //@ts-ignore
-                        reciver?.label?.split(",")[0]
-                      }/${String(record?.label || "").slice(0, 1)}`,
-                    };
-                  });
-                  setServices(newServices);
                 }}
                 {...branchSelectProps}
                 allowClear
@@ -875,24 +796,6 @@ export const GoodsCreate = () => {
               name="recipient_id"
             >
               <Select
-                onChange={(val, record) => {
-                  const branchId =
-                    formProps.form?.getFieldValue("destination_id");
-                  const branch = branchSelectProps.options?.find(
-                    (item: any) => item.value === branchId
-                  );
-                  const newServices = services.map((item) => {
-                    return {
-                      ...item,
-                      bag_number: `${
-                        //@ts-ignore
-                        record?.label?.split(",")[0]
-                        //@ts-ignore
-                      }/${branch?.label?.slice(0, 1)}`,
-                    };
-                  });
-                  setServices(newServices);
-                }}
                 {...counterpartySelectPropsReceiver}
                 allowClear
               />

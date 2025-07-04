@@ -152,21 +152,7 @@ export const ShipmentReport = () => {
     ]);
   };
 
-  // Мемоизированные отсортированные данные для таблицы услуг
-  const sortedServicesData = useMemo(() => {
-    const data = servicesTableProps.dataSource || [];
-    
-    if (servicesSortField === "bag_number") {
-      return [...data].sort((a: any, b: any) => {
-        const aValue = a.bag_number ? a.bag_number.split("|")[1] || "" : "";
-        const bValue = b.bag_number ? b.bag_number.split("|")[1] || "" : "";
-        const result = aValue.localeCompare(bValue);
-        return servicesSortDirection === "ASC" ? result : -result;
-      });
-    }
-    
-    return data;
-  }, [servicesTableProps.dataSource, servicesSortField, servicesSortDirection]);
+
 
   const handleServicesSearch = (value: string) => {
     setServicesSearchValue(value);
@@ -472,7 +458,6 @@ export const ShipmentReport = () => {
         </Row>
         <Table 
           {...servicesTableProps} 
-          dataSource={sortedServicesData}
           rowKey="id" 
           scroll={{ x: true }}
         >

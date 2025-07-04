@@ -11,25 +11,6 @@ interface IBank extends BaseRecord {
   balance_usd?: number;
 }
 
-export const filterBanksByUserAccess = (banks: IBank[]) => {
-  const userId = parseInt(localStorage.getItem("cargo-system-id") || "", 10);
-
-  const accessMap: Record<number, number[]> = {
-    3: [7, 6, 1],
-    5: [7, 6],
-    4: [2, 6],
-    6: [5],
-    9: [8, 6],
-    8: [7, 6],
-  };
-
-  if (accessMap[userId]) {
-    return banks.filter((bank) => accessMap[userId].includes(bank.id as number));
-  }
-
-  return banks;
-};
-
 export const BankList = () => {
   const { tableProps } = useTable<IBank>({
     syncWithLocation: true,
@@ -37,10 +18,11 @@ export const BankList = () => {
 
   const { dataSource } = tableProps;
   const { show, push } = useNavigation();
+  
   return (
     <List>
       <Row gutter={[16, 16]}>
-        {filterBanksByUserAccess([...(dataSource ?? [])])?.map((bank) => (
+        {dataSource?.map((bank) => (
           <Col key={bank.id} xs={24} sm={12} md={8} lg={6}>
             <Card
               title={
@@ -49,7 +31,7 @@ export const BankList = () => {
                   justify="space-between"
                   style={{ height: "100%" }}
                 >
-                  <Title level={5}>{bank.name} {bank.id}</Title>
+                  <Title level={5}>{bank.name}</Title>
                   <EditOutlined
                     onClick={() => {
                       push(`/bank/edit/${bank.id}`);

@@ -384,6 +384,11 @@ export const BankShow = () => {
           dataIndex="type_operation"
           render={(value) => typeOperationMap[value] ?? value}
         />
+        <Column
+          title="Сотрудник"
+          dataIndex="user"
+          render={(value) => value?.firstName + " " + value?.lastName || "-"}
+        />
         <Column title="Комментарий" dataIndex="comment" />
       </Table>
     </Show>

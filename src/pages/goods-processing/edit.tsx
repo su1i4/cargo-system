@@ -277,6 +277,7 @@ export const GoodsEdit = () => {
     const newItem: GoodItem = {
       id: nextId,
       barcode: generateBarcode(),
+      bag_number: "",
       is_created: true, // Отмечаем, что товар новый
     };
     setServices([...services, newItem]);
@@ -754,7 +755,7 @@ export const GoodsEdit = () => {
     return "";
   };
 
-  const createItemsByCount = (bag_number: string) => {
+  const createItemsByCount = () => {
     const count = Number(copyCount || 0);
     if (count <= 0) {
       message.warning("Укажите корректное количество для создания");
@@ -767,7 +768,7 @@ export const GoodsEdit = () => {
         id: newId,
         name: "Новый товар",
         barcode: generateBarcode(),
-        bag_number: bag_number,
+        bag_number: "",
       };
     });
 
@@ -776,24 +777,11 @@ export const GoodsEdit = () => {
   };
 
   const copyWhileCount = () => {
-    const recieverId = formProps.form?.getFieldValue("recipient_id");
-    const reciver = counterpartySelectPropsReceiver.options?.find(
-      (item) => item.value === recieverId
-    );
-    const branchId = formProps.form?.getFieldValue("destination_id");
-    const branch = branchSelectProps.options?.find(
-      (item) => item.value === branchId
-    );
-    createItemsByCount(
-      getLabelSafe(reciver) && getLabelSafe(branch)
-        ? `${getLabelSafe(reciver).split(",")[0]}/${getLabelSafe(branch).slice(
-            0,
-            1
-          )}`
-        : ""
-    );
+    createItemsByCount();
     message.success(`Создано ${copyCount} новых товаров`);
   };
+
+  console.log(services);
 
   return (
     <Edit headerButtons={() => null} saveButtonProps={saveButtonProps}>
@@ -811,11 +799,6 @@ export const GoodsEdit = () => {
             >
               <Select
                 onChange={(val, record: any) => {
-                  const recieverId =
-                    formProps.form?.getFieldValue("recipient_id");
-                  const reciver = counterpartySelectPropsReceiver.options?.find(
-                    (item: any) => item.value === recieverId
-                  );
                   // Ищем досыльную запись для выбранного города
                   const sentCityRecord = sentCityData.find(
                     (item: any) => item.city_id === val
@@ -834,18 +817,6 @@ export const GoodsEdit = () => {
                       sent_back_id: null,
                     });
                   }
-
-                  // Обновляем номера мешков для всех услуг
-                  const newServices = services.map((item) => {
-                    return {
-                      ...item,
-                      bag_number: `${
-                        //@ts-ignore
-                        reciver?.label?.split(",")[0]
-                      }/${String(record?.label || "").slice(0, 1)}`,
-                    };
-                  });
-                  setServices(newServices);
                 }}
                 {...branchSelectProps}
                 allowClear
@@ -868,28 +839,6 @@ export const GoodsEdit = () => {
               name="recipient_id"
             >
               <Select
-                onChange={(val, record) => {
-                  const branchId =
-                    formProps.form?.getFieldValue("destination_id");
-                  const branch = branchSelectProps.options?.find(
-                    (item) => item.value === branchId
-                  );
-                  const recordLabel = getLabelSafe(record);
-                  const branchLabel = getLabelSafe(branch);
-                  const newServices = services.map((item) => {
-                    return {
-                      ...item,
-                      bag_number:
-                        recordLabel && branchLabel
-                          ? `${recordLabel.split(",")[0]}/${branchLabel.slice(
-                              0,
-                              1
-                            )}`
-                          : "",
-                    };
-                  });
-                  setServices(newServices);
-                }}
                 {...counterpartySelectPropsReceiver}
                 allowClear
               />

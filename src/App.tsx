@@ -52,6 +52,7 @@ import { i18nProvider_ru } from "./i18n/ru";
 import { IssueProcessingList } from "./pages/Issue";
 import { CashBackList } from "./pages/cash-back";
 import { BankCreate, BankEdit, BankList, BankShow } from "./pages/bank";
+import { BankPermissionList, BankPermissionCreate } from "./pages/bank-permission";
 import { CashDeskCreate, CashDeskList } from "./pages/cash-desk";
 import { CashDeskOutcomeList } from "./pages/cash-desk/outcome";
 import {
@@ -275,6 +276,11 @@ function App() {
                     <Route path="create" element={<UserCreate />} />
                     <Route path="edit/:id" element={<UserEdit />} />
                     <Route path="show/:id" element={<UserShow />} />
+                  </Route>
+
+                  <Route path="/bank-permission">
+                    <Route index element={<BankPermissionList />} />
+                    <Route path="create" element={<BankPermissionCreate />} />
                   </Route>
 
                   <Route path="/shipments">

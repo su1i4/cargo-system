@@ -262,6 +262,16 @@ export const routes = [
     },
   },
   {
+    name: "permission-bank",
+    list: "/bank-permission",
+    create: "/bank-permission/create",
+    meta: {
+      canDelete: true,
+      label: "Права доступа к банкам",
+      parent: "Настройки",
+    },
+  },
+  {
     name: "counterparty",
     list: "/counterparty",
     create: "/counterparty/create",

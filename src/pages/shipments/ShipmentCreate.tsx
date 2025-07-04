@@ -209,32 +209,7 @@ const ShipmentCreate = () => {
     />
   );
 
-  const sortedData = [...(tableProps?.dataSource ?? [])].sort(
-    (a: any, b: any) => {
-      if (sortField === "bag_number") {
-        const extractNumber = (val: string) => {
-          const parts = val.split("|");
-          return parseInt(parts[1]?.trim() ?? "0", 10);
-        };
 
-        const aVal = extractNumber(a.bag_number);
-        const bVal = extractNumber(b.bag_number);
-
-        return sortDirection === "ASC" ? aVal - bVal : bVal - aVal;
-      }
-
-      const aVal = a[sortField];
-      const bVal = b[sortField];
-
-      return sortDirection === "ASC"
-        ? aVal > bVal
-          ? 1
-          : -1
-        : aVal < bVal
-        ? 1
-        : -1;
-    }
-  );
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
@@ -447,7 +422,6 @@ const ShipmentCreate = () => {
         </Row>
         <Table
           {...tableProps}
-          dataSource={sortedData}
           rowKey="id"
           rowSelection={rowSelection}
           onRow={(record) => ({

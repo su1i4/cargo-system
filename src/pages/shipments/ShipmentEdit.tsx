@@ -362,53 +362,7 @@ const ShipmentEdit = () => {
     </Menu>
   );
 
-  const sortedData = [...(tableProps?.dataSource ?? [])].sort(
-    (a: any, b: any) => {
-      if (sortField === "bag_number") {
-        const extractNumber = (val: string) => {
-          if (!val) return 0;
-          const parts = val.split("|");
-          return parseInt(parts[1]?.trim() ?? "0", 10);
-        };
 
-        const aVal = extractNumber(a.bag_number);
-        const bVal = extractNumber(b.bag_number);
-
-        return sortDirection === "ASC" ? aVal - bVal : bVal - aVal;
-      }
-
-      // Handle date sorting for created_at field
-      if (sortField === "good.created_at") {
-        const aVal = a.good?.created_at;
-        const bVal = b.good?.created_at;
-
-        if (!aVal && !bVal) return 0;
-        if (!aVal) return 1;
-        if (!bVal) return -1;
-
-        const aDate = new Date(aVal).getTime();
-        const bDate = new Date(bVal).getTime();
-
-        return sortDirection === "ASC" ? aDate - bDate : bDate - aDate;
-      }
-
-      // Generic sorting for other fields
-      const aVal = a[sortField];
-      const bVal = b[sortField];
-
-      if (aVal === bVal) return 0;
-      if (aVal == null) return 1;
-      if (bVal == null) return -1;
-
-      return sortDirection === "ASC"
-        ? aVal > bVal
-          ? 1
-          : -1
-        : aVal < bVal
-        ? 1
-        : -1;
-    }
-  );
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
@@ -449,10 +403,7 @@ const ShipmentEdit = () => {
     }
   };
 
-  const updatedTableProps = {
-    ...tableProps,
-    dataSource: sortedData,
-  };
+
 
   return (
     <Edit
@@ -539,7 +490,7 @@ const ShipmentEdit = () => {
           </Flex>
         </Row>
         <Table
-          {...updatedTableProps}
+          {...tableProps}
           rowKey="id"
           rowSelection={rowSelection}
           onRow={(record) => ({
