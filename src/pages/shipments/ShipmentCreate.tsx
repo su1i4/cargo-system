@@ -327,6 +327,19 @@ const ShipmentCreate = () => {
           value: branch.id,
         }))}
         style={{ width: "100%", marginBottom: 20 }}
+        onChange={(value) => {
+          setFilters(
+            [
+              {
+                field: "good.destination_id",
+                operator: "eq",
+                value: value,
+              },
+            ],
+            "replace"
+          );
+        }}
+        allowClear
       />
       <Select
         title="Выберите тип тов"
