@@ -538,11 +538,11 @@ export const GoodsShow: React.FC = () => {
           justify="space-between"
           align="center"
           style={{ marginTop: "6px" }}
-        >
+        > 
           <Text style={{ fontWeight: "bold", fontSize: "1.2em", margin: 0 }}>
             Сумма заказа
           </Text>
-          <Flex vertical align="flex-end" style={{ width: "200px" }}>
+          <Flex vertical align="flex-end" style={{ width: "350px" }}>
             <Text
               style={{
                 fontWeight: "bold",
@@ -551,10 +551,10 @@ export const GoodsShow: React.FC = () => {
                 margin: 0,
               }}
             >
-              Итого к оплате: {totalSum + totalProdSum} RUB
+              Итого к оплате: {record?.amount} RUB
             </Text>
             <Text style={{ fontWeight: "bold", fontSize: "1.2em", margin: 0 }}>
-              {((totalSum + totalProdSum) * Number(som?.rate)).toFixed(0)} KGS
+              {((record?.amount || 0) * Number(som?.rate)).toFixed(2)} KGS
             </Text>
           </Flex>
         </Flex>

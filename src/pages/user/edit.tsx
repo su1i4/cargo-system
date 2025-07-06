@@ -78,7 +78,12 @@ export const UserEdit = () => {
                 },
               ]}
             >
-              <Input />
+              <Select
+                options={[
+                  { label: "Администратор", value: "admin" },
+                  { label: "Пользователь", value: "user" },
+                ]}
+              />
             </Form.Item>
           </Col>
         </Row>
