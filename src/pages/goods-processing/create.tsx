@@ -431,19 +431,24 @@ export const GoodsCreate = () => {
       return;
     }
 
+    // Рассчитываем базовую сумму (услуги + товары)
+    const baseAmount = services.reduce(
+      (accumulator, currentValue) => accumulator + Number(currentValue.sum),
+      0
+    ) + products.reduce(
+      (accumulator, currentValue) => accumulator + Number(currentValue.sum),
+      0
+    );
+
+    // Добавляем наценку к базовой сумме
+    const markup = Number(values.markup) || 0;
+    const finalAmount = baseAmount + (baseAmount * markup / 100);
+
     const submitValues = {
       ...values,
       services: services,
       products: products.filter((product) => Number(product.quantity) > 0),
-      amount:
-        services.reduce(
-          (accumulator, currentValue) => accumulator + Number(currentValue.sum),
-          0
-        ) +
-        products.reduce(
-          (accumulator, currentValue) => accumulator + Number(currentValue.sum),
-          0
-        ),
+      amount: finalAmount,
       sent_back_id: sentCityData.find(
         (item: any) => item.id === values.sent_back_id
       )?.sent_city_id || null,
@@ -1199,8 +1204,56 @@ export const GoodsCreate = () => {
           </Col>
           <Col span={12}>
             <Form.Item label="Процент наценки" name="markup">
-              <InputNumber style={{ width: "100%" }} min={0} />
+              <InputNumber style={{ width: "100%" }} min={0} addonAfter="%" />
             </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16} style={{ marginTop: 16 }}>
+          <Col span={24}>
+            <div style={{ 
+              padding: '16px', 
+              backgroundColor: '#f5f5f5', 
+              borderRadius: '6px',
+              border: '1px solid #d9d9d9'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span>Базовая сумма:</span>
+                <span style={{ fontWeight: 'bold' }}>
+                  {(
+                    services.reduce((acc, item) => acc + Number(item.sum || 0), 0) +
+                    products.reduce((acc, item) => acc + Number(item.sum || 0), 0)
+                  ).toFixed(2)} руб.
+                </span>
+              </div>
+              {values?.markup && Number(values.markup) > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span>Наценка ({values.markup}%):</span>
+                  <span style={{ fontWeight: 'bold', color: '#1890ff' }}>
+                    {(
+                      (services.reduce((acc, item) => acc + Number(item.sum || 0), 0) +
+                       products.reduce((acc, item) => acc + Number(item.sum || 0), 0)) *
+                      Number(values.markup) / 100
+                    ).toFixed(2)} руб.
+                  </span>
+                </div>
+              )}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                borderTop: '1px solid #d9d9d9',
+                paddingTop: '8px',
+                fontSize: '16px'
+              }}>
+                <span style={{ fontWeight: 'bold' }}>Итоговая сумма:</span>
+                <span style={{ fontWeight: 'bold', color: '#52c41a' }}>
+                  {(
+                    (services.reduce((acc, item) => acc + Number(item.sum || 0), 0) +
+                     products.reduce((acc, item) => acc + Number(item.sum || 0), 0)) *
+                    (1 + (Number(values?.markup) || 0) / 100)
+                  ).toFixed(2)} руб.
+                </span>
+              </div>
+            </div>
           </Col>
         </Row>
         <Title style={{ marginTop: 10 }} level={5}>

@@ -12,4 +12,3 @@ root.render(
   </React.StrictMode>
 );
 
-//VITE_DEV_URL = 'http://192.168.1.192:5002/api'
