@@ -50,7 +50,7 @@ import ReceivingShow from "./pages/receiving/ReceivingShow";
 import ReceivingEdit from "./pages/receiving/ReceivingEdit";
 import { i18nProvider_ru } from "./i18n/ru";
 import { IssueProcessingList } from "./pages/Issue";
-import { CashBackList } from "./pages/cash-back";
+import { CashBackCreate, CashBackList, CashBackShow, CashBackEdit } from "./pages/cash-back";
 import { BankCreate, BankEdit, BankList, BankShow } from "./pages/bank";
 import { BankPermissionList } from "./pages/bank-permission/list";
 import { BankPermissionCreate } from "./pages/bank-permission/create";
@@ -323,9 +323,9 @@ function App() {
 
                   <Route path="/cash-back">
                     <Route index element={<CashBackList />} />
-                    <Route path="create" element={<ReceivingCreate />} />
-                    <Route path="show/:id" element={<ReceivingShow />} />
-                    <Route path="edit/:id" element={<ReceivingEdit />} />
+                    <Route path="create" element={<CashBackCreate />} />
+                    <Route path="show/:id" element={<CashBackShow />} />
+                    <Route path="edit/:id" element={<CashBackEdit />} />
                   </Route>
 
                   <Route path="/discount">

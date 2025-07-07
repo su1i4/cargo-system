@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Show, useTable } from "@refinedev/antd";
+import { useState, useEffect } from "react";
+import { Show, useTable, useSelect } from "@refinedev/antd";
 import { useUpdateMany, useNavigation } from "@refinedev/core";
 import {
   Input,
@@ -12,9 +12,9 @@ import {
   Card,
   Form,
   message,
-  Tooltip,
   Flex,
   Menu,
+  Select,
 } from "antd";
 import { useParams } from "react-router";
 import {
@@ -23,9 +23,11 @@ import {
   ArrowDownOutlined,
   SearchOutlined,
   ArrowUpOutlined,
+  FilterOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import { CustomTooltip } from "../../shared/custom-tooltip";
 
 dayjs.extend(utc);
 
@@ -67,9 +69,29 @@ const ShipmentAdd = () => {
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [selectedProductType, setSelectedProductType] = useState<string | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
+  const [filterVisible, setFilterVisible] = useState(false);
+
+  // Состояния для отдельных фильтров
+  const [productTypeFilter, setProductTypeFilter] = useState<any>(null);
+  const [destinationFilter, setDestinationFilter] = useState<any>(null);
+  const [searchFilter, setSearchFilter] = useState<any>(null);
 
   const { mutate: updateManyGoods } = useUpdateMany({
     resource: "service",
+  });
+
+  const { selectProps: productTypeSelectProps } = useSelect({
+    resource: "type-product",
+    optionLabel: "name",
+    optionValue: "id",
+  });
+
+  const { selectProps: destinationSelectProps } = useSelect({
+    resource: "branch",
+    optionLabel: "name", 
+    optionValue: "id",
   });
 
   const handleSave = async () => {
@@ -202,46 +224,113 @@ const ShipmentAdd = () => {
 
 
 
-  const handleSearch = (value: string) => {
-    setSearchValue(value);
-
-    if (value.trim() === "") {
-      setFilters([], "replace");
-    } else {
+  // Объединение всех фильтров
+  useEffect(() => {
+    const allFilters = [
+      productTypeFilter,
+      destinationFilter,
+      searchFilter,
+    ].filter(Boolean);
+    
+    if (allFilters.length > 0) {
       setFilters(
         [
           {
-            operator: "or",
-            value: [
-              {
-                field: "bag_number",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "good.sender.name",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "good.recipient.name",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "good.invoice_number",
-                operator: "contains",
-                value: value.trim(),
-              },
-            ],
+            operator: "and",
+            value: allFilters,
           },
         ],
         "replace"
       );
+    } else {
+      setFilters([], "replace");
+    }
+  }, [productTypeFilter, destinationFilter, searchFilter]);
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+    
+    if (value.trim() === "") {
+      setSearchFilter(null);
+    } else {
+      setSearchFilter({
+        operator: "or",
+        value: [
+          {
+            field: "bag_number",
+            operator: "contains",
+            value: value.trim(),
+          },
+          {
+            field: "good.sender.name",
+            operator: "contains",
+            value: value.trim(),
+          },
+          {
+            field: "good.recipient.name",
+            operator: "contains",
+            value: value.trim(),
+          },
+          {
+            field: "good.invoice_number",
+            operator: "contains",
+            value: value.trim(),
+          },
+        ],
+      });
     }
   };
 
+  const handleProductTypeChange = (value: string | null) => {
+    setSelectedProductType(value);
+    
+    if (!value) {
+      setProductTypeFilter(null);
+    } else {
+      setProductTypeFilter({
+        field: "product_type.id",
+        operator: "eq",
+        value: value,
+      });
+    }
+  };
 
+  const handleDestinationChange = (value: string | null) => {
+    setSelectedDestination(value);
+    
+    if (!value) {
+      setDestinationFilter(null);
+    } else {
+      setDestinationFilter({
+        field: "good.destination_id",
+        operator: "eq",
+        value: value,
+      });
+    }
+  };
+
+  const filterContent = (
+    <Card style={{ width: 300, padding: "0px !important" }}>
+      <Select
+        options={productTypeSelectProps.options}
+        loading={productTypeSelectProps.loading}
+        placeholder="Выберите тип товара"
+        allowClear
+        value={selectedProductType}
+        onChange={handleProductTypeChange}
+        style={{ width: "100%", marginBottom: 20 }}
+      />
+      <Select
+        options={destinationSelectProps.options}
+        loading={destinationSelectProps.loading}
+        placeholder="Выберите город назначения"
+        allowClear
+        value={selectedDestination}
+        onChange={handleDestinationChange}
+        style={{ width: "100%" }}
+      />
+    </Card>
+  );
 
   return (
     <Show
@@ -256,65 +345,8 @@ const ShipmentAdd = () => {
       title="Добавление товаров к отгрузке"
     >
       <Form form={form} layout="vertical">
-        {/* <Row gutter={[16, 16]}>
-          <Col span={24}>
-            <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-              <Col xs={24} sm={8}>
-                <Input
-                  placeholder="Поиск по трек-коду"
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => handleSearch(e.target.value)}
-                />
-              </Col>
-              <Col xs={24} sm={8}>
-                <Row gutter={8}>
-                  <Col>
-                    <Tooltip title="Сортировка">
-                      <Dropdown
-                        overlay={sortContent}
-                        trigger={["click"]}
-                        placement="bottomLeft"
-                        open={sorterVisible}
-                        onOpenChange={(visible) => {
-                          setSorterVisible(visible);
-                        }}
-                      >
-                        <Button icon={<ArrowDownOutlined />}></Button>
-                      </Dropdown>
-                    </Tooltip>
-                  </Col>
-                  <Col>
-                    <Dropdown
-                      overlay={datePickerContent}
-                      trigger={["click"]}
-                      placement="bottomRight"
-                    >
-                      <Button
-                        icon={<CalendarOutlined />}
-                        className="date-picker-button"
-                      >
-                        Дата
-                      </Button>
-                    </Dropdown>
-                  </Col>
-                </Row>
-              </Col>
-              <Col xs={24} sm={8} style={{ textAlign: "right" }}>
-                <Button
-                  type="primary"
-                  onClick={handleSave}
-                  loading={isSubmitting}
-                  disabled={isSubmitting || selectedRowKeys.length === 0}
-                >
-                  Добавить выбранные товары
-                </Button>
-              </Col>
-            </Row>
-          </Col>
-        </Row> */}
         <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
-          <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10}>
+          <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10} wrap>
             <Dropdown overlay={sortMenu} trigger={["click"]}>
               <Button
                 icon={
@@ -328,12 +360,26 @@ const ShipmentAdd = () => {
                 {getSortFieldLabel()}
               </Button>
             </Dropdown>
+            <CustomTooltip title="Фильтры">
+              <Dropdown
+                overlay={filterContent}
+                trigger={["click"]}
+                placement="bottomLeft"
+                open={filterVisible}
+                onOpenChange={(visible) => {
+                  setFilterVisible(visible);
+                }}
+              >
+                <Button icon={<FilterOutlined />} />
+              </Dropdown>
+            </CustomTooltip>
             <Input
               prefix={<SearchOutlined />}
               placeholder="Поиск по номеру мешка, отправителю, получателю"
               value={searchValue}
               onChange={(e) => handleSearch(e.target.value)}
               allowClear
+              style={{ minWidth: "300px", maxWidth: "400px" }}
             />
             <Dropdown
               overlay={datePickerContent}
@@ -408,7 +454,9 @@ const ShipmentAdd = () => {
           <Table.Column
             title="Пункт назначения"
             dataIndex="good"
-            render={(value) => value?.destination?.name}
+            render={(value, record) =>
+              `${value?.destination?.name}, ${record?.good?.sent_back?.name || ""}`
+            }
           />
           <Table.Column title="Штрихкод" dataIndex="barcode" />
         </Table>

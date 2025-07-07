@@ -1,44 +1,34 @@
-import { Show, TextField, DateField } from "@refinedev/antd";
+import { EditOutlined } from "@ant-design/icons";
+import { Show, TextField } from "@refinedev/antd";
 import { useShow } from "@refinedev/core";
-import { Typography } from "antd";
+import { Button, Typography } from "antd";
 
 const { Title } = Typography;
 
-export const CounterpartyShow: React.FC = () => {
-    const { queryResult } = useShow();
-    const { data, isLoading } = queryResult;
+export const CashBackShow: React.FC = () => {
+  const { queryResult } = useShow();
+  const { data, isLoading } = queryResult;
 
-    const record = data?.data;
+  const record = data?.data;
 
-    return (
-        <Show isLoading={isLoading}>
-            <Title level={5}>ID</Title>
-            <TextField value={record?.id} />
+  return (
+    <Show
+      headerButtons={() => (
+        <Button
+          type="primary"
+          icon={<EditOutlined />}
+          href={`/cash-back/edit/${record?.id}`}
+        >
+          Редактировать
+        </Button>
+      )}
+      isLoading={isLoading}
+    >
+      <Title level={5}>Клиент</Title>
+      <TextField value={record?.counterparty?.code} />
 
-            <Title level={5}>Код клиента</Title>
-            <TextField value={record?.code} />
-
-            <Title level={5}>Имя</Title>
-            <TextField value={record?.name} />
-
-            <Title level={5}>Номер телефона</Title>
-            <TextField value={record?.phoneNumber} />
-
-            <Title level={5}>Email</Title>
-            <TextField value={record?.email} />
-
-            <Title level={5}>Сумма заказов</Title>
-            <TextField value={record?.totalOrders} />
-
-            <Title level={5}>Комментарий</Title>
-            <TextField value={record?.comment} />
-
-            {record?.createdAt && (
-                <>
-                    <Title level={5}>Дата создания</Title>
-                    <DateField value={record?.createdAt} />
-                </>
-            )}
-        </Show>
-    );
+      <Title level={5}>Сумма</Title>
+      <TextField value={record?.amount} />
+    </Show>
+  );
 };

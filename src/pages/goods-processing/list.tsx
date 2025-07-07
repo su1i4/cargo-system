@@ -55,9 +55,29 @@ export const GoogsProcessingList = () => {
   >("id");
   const [searchFilters, setSearchFilters] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  
+  // Состояние для хранения отдельных фильтров
+  const [destinationFilter, setDestinationFilter] = useState<any>(null);
+  const [paymentFilter, setPaymentFilter] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<any>(null);
+  const [searchFilter, setSearchFilter] = useState<any>(null);
+  const [dateFilter, setDateFilter] = useState<any>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(200);
+
+  // Функция для объединения всех фильтров
+  useEffect(() => {
+    const allFilters = [
+      destinationFilter,
+      paymentFilter,
+      statusFilter,
+      searchFilter,
+      dateFilter,
+    ].filter(Boolean);
+    
+    setSearchFilters(allFilters);
+  }, [destinationFilter, paymentFilter, statusFilter, searchFilter, dateFilter]);
 
   const buildQueryParams = () => {
     return {
@@ -90,17 +110,6 @@ export const GoogsProcessingList = () => {
   const [settingVisible, setSettingVisible] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const setFilters = (
-    filters: any[],
-    mode: "replace" | "append" = "append"
-  ) => {
-    if (mode === "replace") {
-      setSearchFilters(filters);
-    } else {
-      setSearchFilters((prevFilters) => [...prevFilters, ...filters]);
-    }
-  };
-
   useEffect(() => {
     if (!searchparams.get("page") && !searchparams.get("size")) {
       searchparams.set("page", String(currentPage));
@@ -118,28 +127,18 @@ export const GoogsProcessingList = () => {
   useEffect(() => {
     const value = searchparams.get("value");
     if (value) {
-      setFilters(
-        [
-          {
-            $or: [
-              { "counterparty.clientCode": { $contL: value } },
-              { "counterparty.name": { $contL: value } },
-            ],
-          },
+      setSearchFilter({
+        $or: [
+          { "counterparty.clientCode": { $contL: value } },
+          { "counterparty.name": { $contL: value } },
         ],
-        "replace"
-      );
+      });
     }
     setSearch(value || "");
   }, []);
 
   const { data: branch } = useCustom({
     url: `${API_URL}/branch`,
-    method: "get",
-  });
-
-  const { data: typeProduct } = useCustom({
-    url: `${API_URL}/type-product`,
     method: "get",
   });
 
@@ -155,16 +154,15 @@ export const GoogsProcessingList = () => {
         allowClear
         mode="multiple"
         onChange={(value) => {
-          setFilters(
-            [
-              {
-                $or: value.map((item: any) => ({
-                  destination_id: { $eq: item },
-                })),
-              },
-            ],
-            "replace"
-          );
+          if (!value || value.length === 0) {
+            setDestinationFilter(null);
+          } else {
+            setDestinationFilter({
+              $or: value.map((item: any) => ({
+                destination_id: { $eq: item },
+              })),
+            });
+          }
         }}
         style={{ width: "100%", marginBottom: 20 }}
       />
@@ -184,9 +182,9 @@ export const GoogsProcessingList = () => {
         onChange={(value) => {
           if (value === undefined || value === null) {
             // очищено — убираем фильтр
-            setFilters([], "replace");
+            setPaymentFilter(null);
           } else {
-            setFilters([{ is_payment: { $eq: value } }], "replace");
+            setPaymentFilter({ is_payment: { $eq: value } });
           }
         }}
         style={{ width: "100%", marginBottom: 20 }}
@@ -215,19 +213,15 @@ export const GoogsProcessingList = () => {
         mode="multiple"
         onChange={(value) => {
           if (!value || value.length === 0) {
-            // очищено — убираем фильтр по статусу, но сохраняем другие фильтры
-            setFilters(searchFilters.filter(filter => !filter.$or || !filter.$or.some((item: any) => item.status)), "replace");
+            // очищено — убираем фильтр по статусу
+            setStatusFilter(null);
           } else {
             // добавляем фильтр по статусу с несколькими значениями
-            const otherFilters = searchFilters.filter(filter => !filter.$or || !filter.$or.some((item: any) => item.status));
-            setFilters([
-              ...otherFilters, 
-              {
-                $or: value.map((status: string) => ({
-                  status: { $eq: status }
-                }))
-              }
-            ], "replace");
+            setStatusFilter({
+              $or: value.map((status: string) => ({
+                status: { $eq: status },
+              })),
+            });
           }
         }}
         style={{ width: "100%" }}
@@ -260,17 +254,14 @@ export const GoogsProcessingList = () => {
       showTime={{ format: "HH:mm" }}
       onChange={(dates, dateStrings) => {
         if (dates && dateStrings[0] && dateStrings[1]) {
-          setFilters(
-            [
-              {
-                created_at: {
-                  $gte: dateStrings[0],
-                  $lte: dateStrings[1],
-                },
-              },
-            ],
-            "replace"
-          );
+          setDateFilter({
+            created_at: {
+              $gte: dateStrings[0],
+              $lte: dateStrings[1],
+            },
+          });
+        } else {
+          setDateFilter(null);
         }
       }}
     />
@@ -414,15 +405,19 @@ export const GoogsProcessingList = () => {
 
   const handleCashDeskCreate = () => {
     if (selectedRows.length === 0) {
-      message.warning("Выберите товары для создания приходного кассового ордера");
+      message.warning(
+        "Выберите товары для создания приходного кассового ордера"
+      );
       return;
     }
 
     // Собираем IDs выбранных товаров
-    const selectedIds = selectedRows.map(row => row.id).join(',');
-    
+    const selectedIds = selectedRows.map((row) => row.id).join(",");
+
     // Переходим на страницу создания cash-desk с параметрами
-    push(`/income/create?type_operation=Контрагент оптом&goods_ids=${selectedIds}`);
+    push(
+      `/income/create?type_operation=Контрагент оптом&goods_ids=${selectedIds}`
+    );
   };
 
   const checkboxContent = (
@@ -544,7 +539,7 @@ export const GoogsProcessingList = () => {
             onChange={(e) => {
               const value = e.target.value;
               if (!value) {
-                setFilters([], "replace");
+                setSearchFilter(null);
                 setSearch("");
                 searchparams.set("value", "");
                 setSearchParams(searchparams);
@@ -556,18 +551,13 @@ export const GoogsProcessingList = () => {
               searchparams.set("value", value);
               setSearchParams(searchparams);
               setSearch(value);
-              setFilters(
-                [
-                  {
-                    $or: [
-                      { invoice_number: { $contL: value } },
-                      { "sender.name": { $contL: value } },
-                      { "recipient.name": { $contL: value } },
-                    ],
-                  },
+              setSearchFilter({
+                $or: [
+                  { invoice_number: { $contL: value } },
+                  { "sender.name": { $contL: value } },
+                  { "recipient.name": { $contL: value } },
                 ],
-                "replace"
-              );
+              });
             }}
           />
         </Col>

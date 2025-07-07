@@ -111,6 +111,9 @@ export const i18nProvider_ru = {
       "packers.titles.list": "Упаковщики",
       "visiting-group.titles.list": "Выездная группа",
       "tariff.titles.list": "Тарифы",
+      "cash-back.titles.create": "Создать кешбек",
+      "cash-back.titles.show": "Просмотр кешбека",
+      "cash-back.titles.edit": "Редактирование кешбека",
     };
     return translations[key] || key;
   },

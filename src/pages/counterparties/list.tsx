@@ -119,6 +119,13 @@ export const CounterpartyList: React.FC = () => {
         <Table.Column dataIndex="name" title="Фио" />
         <Table.Column dataIndex="phoneNumber" title="Номер телефона" />
         <Table.Column
+          dataIndex="ross_coin"
+          title="Кешбек"
+          render={(value) => {
+            return value ? <span>{value}</span> : "-";
+          }}
+        />
+        <Table.Column
           dataIndex="comment"
           title="Комментарий"
           render={(value) => {

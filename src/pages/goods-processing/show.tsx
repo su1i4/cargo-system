@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { Show, EditButton, DeleteButton, useTable } from "@refinedev/antd";
 import { useShow } from "@refinedev/core";
-import { Typography, Flex, Row, Col, Button } from "antd";
+import { Typography, Flex, Row, Col, Button, Card, Select } from "antd";
 import { PrinterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -28,13 +28,11 @@ export const GoodsShow: React.FC = () => {
     onBeforePrint: async () => {
       const el = printRef.current;
       if (el) {
-        // Базовый размер шрифта в зависимости от количества контента
         const servicesCount = record?.services?.length || 0;
         const productsCount = record?.products?.length || 0;
         const totalItems = servicesCount + productsCount;
 
-        // Динамическое масштабирование шрифта
-        let fontSize = 13; // базовый размер
+        let fontSize = 13;
         if (totalItems > 20) {
           fontSize = 12;
         } else if (totalItems > 15) {
@@ -49,7 +47,6 @@ export const GoodsShow: React.FC = () => {
         el.style.boxSizing = "border-box";
         el.style.paddingLeft = "5px";
 
-        // Дополнительное уменьшение блока с условиями перевозок
         const termsSection = el.querySelectorAll(".terms-section");
         termsSection.forEach((section: any) => {
           section.style.setProperty("font-size", "9px", "important");
@@ -70,8 +67,6 @@ export const GoodsShow: React.FC = () => {
       const el = printRef.current;
       if (el) {
         el.removeAttribute("style");
-
-        // Сброс стилей для блока условий
         const termsSection = el.querySelectorAll(".terms-section");
         termsSection.forEach((section: any) => {
           section.style.removeProperty("font-size");
@@ -653,6 +648,66 @@ export const GoodsShow: React.FC = () => {
       </div>
     );
   };
+
+  const filterContent = (
+    <Card style={{ width: 300, padding: "16px" }}>
+      <div style={{ marginBottom: 8, fontWeight: "bold" }}>Пункт назначения</div>
+      <Select
+        placeholder="Выберите пункт назначения"
+        options={tableProps?.dataSource?.map((branch: any) => ({
+          label: branch.name,
+          value: branch.id,
+        }))}
+        allowClear
+        mode="multiple"
+        onChange={(value) => {
+          // Implement the logic to update filters
+        }}
+        style={{ width: "100%", marginBottom: 16 }}
+      />
+
+      <div style={{ marginBottom: 8, fontWeight: "bold" }}>Оплата</div>
+      <Select
+        placeholder="Оплаченные / Не оплаченные"
+        options={[
+          { label: "Оплаченные", value: true },
+          { label: "Не оплаченные", value: false },
+        ]}
+        allowClear
+        onChange={(value) => {
+          // Implement the logic to update filters
+        }}
+        style={{ width: "100%", marginBottom: 16 }}
+      />
+
+      <div style={{ marginBottom: 8, fontWeight: "bold" }}>Статус</div>
+      <Select
+        placeholder="Выберите статус"
+        options={[
+          { label: "На складе", value: "В складе" },
+          { label: "В пути", value: "В пути" },
+          { label: "Готов к выдаче", value: "Готов к выдаче" },
+          { label: "Выдали", value: "Выдали" },
+        ]}
+        allowClear
+        mode="multiple"
+        onChange={(value) => {
+          // Implement the logic to update filters
+        }}
+        style={{ width: "100%", marginBottom: 16 }}
+      />
+
+      <Button
+        type="default"
+        onClick={() => {
+          // Implement the logic to reset all filters
+        }}
+        style={{ width: "100%" }}
+      >
+        Сбросить все фильтры
+      </Button>
+    </Card>
+  );
 
   return (
     <Show

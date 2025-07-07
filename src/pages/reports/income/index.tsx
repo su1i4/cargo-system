@@ -6,7 +6,6 @@ import {
   Button,
   Row,
   Col,
-  DatePicker,
   Dropdown,
   Card,
   Select,
@@ -14,13 +13,11 @@ import {
 } from "antd";
 import {
   SearchOutlined,
-  CalendarOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
   FilterOutlined,
   FileOutlined,
   FileExcelOutlined,
-  DownloadOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useCustom } from "@refinedev/core";
@@ -75,7 +72,6 @@ export const IncomeReport = () => {
   const buildQueryParams = () => {
     const filters = [...searchFilters];
 
-    // Добавляем фильтр по датам если они заданы
     if (from && to) {
       filters.push({
         created_at: {
@@ -155,6 +151,7 @@ export const IncomeReport = () => {
         ? `${record.recipient.clientPrefix}-${record.recipient.clientCode}`
         : "",
       "Фио получателя": record.recipient?.name || "",
+      "Номер получателя": record.recipient?.phoneNumber || "",
       "Город (с досыслом если есть)": record.destination?.name || "",
       "Вес, кг": record.totalServiceWeight
         ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5)
@@ -294,6 +291,45 @@ export const IncomeReport = () => {
             setFilters([], "replace");
           } else {
             setFilters([{ $or: filters }], "replace");
+          }
+        }}
+        style={{ width: "100%" }}
+      />
+      <Select
+        placeholder="Выберите статус"
+        options={[
+          {
+            label: "На складе",
+            value: "В складе",
+          },
+          {
+            label: "В пути",
+            value: "В пути",
+          },
+          {
+            label: "Готов к выдаче",
+            value: "Готов к выдаче",
+          },
+          {
+            label: "Выдали",
+            value: "Выдали",
+          },
+        ]}
+        allowClear
+        mode="multiple"
+        onChange={(value) => {
+          if (!value || value.length === 0) {
+            // очищено — убираем фильтр по статусу
+            setFilters([]);
+          } else {
+            // добавляем фильтр по статусу с несколькими значениями
+            setFilters([
+              {
+                $or: value.map((status: string) => ({
+                  tracking_status: { $eq: status },
+                })),
+              },
+            ]);
           }
         }}
         style={{ width: "100%" }}
@@ -611,6 +647,11 @@ export const IncomeReport = () => {
           dataIndex="recipient"
           title="Фио получателя"
           render={(value) => value?.name}
+        />
+        <Table.Column
+          dataIndex="recipient"
+          title="Номер получателя"
+          render={(value) => value?.phoneNumber}
         />
         <Table.Column
           dataIndex="destination"

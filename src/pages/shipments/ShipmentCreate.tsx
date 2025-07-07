@@ -480,7 +480,9 @@ const ShipmentCreate = () => {
           <Table.Column
             title="Пункт назначения"
             dataIndex="good"
-            render={(value) => value?.destination?.name}
+            render={(value, record) =>
+              `${value?.destination?.name}, ${record?.good?.sent_back?.name || ""}`
+            }
           />
           <Table.Column title="Штрихкод" dataIndex="barcode" />
           <Table.Column

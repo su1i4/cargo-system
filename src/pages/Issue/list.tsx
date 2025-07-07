@@ -601,7 +601,9 @@ export const IssueProcessingList = () => {
         />
         <Table.Column
           dataIndex="destination"
-          render={(value) => value?.name}
+          render={(value, record) =>
+            `${value?.name}, ${record?.sent_back?.name || ""}`
+          }
           title="Пункт назначения"
         />
         <Table.Column

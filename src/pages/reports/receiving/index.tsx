@@ -4,9 +4,10 @@ import {
   SearchOutlined,
   FileExcelOutlined,
   FileOutlined,
+  FilterOutlined,
 } from "@ant-design/icons";
 import { ArrowUpOutlined } from "@ant-design/icons";
-import { List, useTable } from "@refinedev/antd";
+import { List, useSelect, useTable } from "@refinedev/antd";
 import {
   Button,
   Dropdown,
@@ -17,6 +18,8 @@ import {
   Row,
   Table,
   Space,
+  Card,
+  Select,
 } from "antd";
 import dayjs from "dayjs";
 import * as XLSX from "xlsx";
@@ -151,8 +154,6 @@ export const ShipmentReport = () => {
       },
     ]);
   };
-
-
 
   const handleServicesSearch = (value: string) => {
     setServicesSearchValue(value);
@@ -422,6 +423,69 @@ export const ShipmentReport = () => {
     </div>
   );
 
+  const { selectProps: branchSelectProps } = useSelect({
+    resource: "branch",
+    optionLabel: (item) => `${item.name}`,
+  });
+
+  const { selectProps: productTypeSelectProps } = useSelect({
+    resource: "type-product",
+    optionLabel: (item) => `${item.name}`,
+  });
+
+  const filterContent = (
+    <Card style={{ width: 300, padding: "0px !important" }}>
+      <Select
+        title="Выберите пункт назначения"
+        placeholder="Выберите пункт назначения"
+        {...branchSelectProps}
+        allowClear
+        mode="multiple"
+        onChange={(value: any) => {
+          if (!value || value.length === 0) {
+            setServicesFilters([], "replace");
+          } else {
+            setServicesFilters(
+              [
+                {
+                  field: "good.destination_id",
+                  operator: "in",
+                  value: value,
+                },
+              ],
+              "replace"
+            );
+          }
+        }}
+        style={{ width: "100%", marginBottom: 20 }}
+      />
+      <Select
+        title="Выберите тип товара"
+        placeholder="Выберите тип товара"
+        {...productTypeSelectProps}
+        allowClear
+        mode="multiple"
+        onChange={(value: any) => {
+          if (!value || value.length === 0) {
+            setServicesFilters([], "replace");
+          } else {
+            setServicesFilters(
+              [
+                {
+                  field: "product_type.ide",
+                  operator: "in",
+                  value: value,
+                },
+              ],
+              "replace"
+            );
+          }
+        }}
+        style={{ width: "100%", marginBottom: 20 }}
+      />
+    </Card>
+  );
+
   return (
     <List title="Отчеты по получению" headerButtons={() => false}>
       <Modal
@@ -446,6 +510,13 @@ export const ShipmentReport = () => {
                 {getServicesSortFieldLabel()}
               </Button>
             </Dropdown>
+            <Dropdown
+              overlay={filterContent}
+              trigger={["click"]}
+              placement="bottomLeft"
+            >
+              <Button icon={<FilterOutlined />} />
+            </Dropdown>
             <Input
               prefix={<SearchOutlined />}
               placeholder="Поиск по номеру мешка, отправителю, получателю"
@@ -456,11 +527,7 @@ export const ShipmentReport = () => {
             />
           </Flex>
         </Row>
-        <Table 
-          {...servicesTableProps} 
-          rowKey="id" 
-          scroll={{ x: true }}
-        >
+        <Table {...servicesTableProps} rowKey="id" scroll={{ x: true }}>
           <Table.Column
             title="№"
             dataIndex="number"
@@ -487,7 +554,12 @@ export const ShipmentReport = () => {
             title="Номер мешка"
             dataIndex="bag_number"
             width={120}
-            render={(value) => value.split("|")[1]}
+          />
+          <Table.Column
+            title="Тип товара"
+            dataIndex="product_type"
+            width={120}
+            render={(value) => value?.name}
           />
           <Table.Column
             title="Получатель"
@@ -509,7 +581,9 @@ export const ShipmentReport = () => {
             title="Пункт назначения"
             dataIndex="good"
             width={150}
-            render={(value) => value?.destination?.name}
+            render={(value, record) =>
+              `${value?.destination?.name}, ${record?.good?.sent_back?.name || ""}`
+            }
           />
           <Table.Column title="Штрихкод" dataIndex="barcode" width={150} />
         </Table>
