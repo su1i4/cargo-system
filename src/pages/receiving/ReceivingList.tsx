@@ -243,7 +243,7 @@ const ReceivingList = () => {
           width={50}
           title="Пункт назначения"
           dataIndex="branch"
-          render={(value, record) => value?.name || record?.good?.destination?.name}
+          render={(value, record) => value?.name || record?.send}
         />
         <Table.Column
           width={50}

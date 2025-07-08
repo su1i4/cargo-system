@@ -48,8 +48,13 @@ export const IncomeReport = () => {
     | "destination.name"
     | "counterparty.name"
   >("id");
-  const [searchFilters, setSearchFilters] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  
+  // Отдельные состояния для каждого типа фильтра
+  const [destinationFilter, setDestinationFilter] = useState<any[]>([]);
+  const [paymentFilter, setPaymentFilter] = useState<any[]>([]);
+  const [statusFilter, setStatusFilter] = useState<any[]>([]);
+  const [searchFilter, setSearchFilter] = useState<any[]>([]);
 
   // Состояния для дат
   const [from, setFrom] = useState(
@@ -70,7 +75,12 @@ export const IncomeReport = () => {
   };
 
   const buildQueryParams = () => {
-    const filters = [...searchFilters];
+    const filters = [
+      ...destinationFilter,
+      ...paymentFilter,
+      ...statusFilter,
+      ...searchFilter,
+    ];
 
     if (from && to) {
       filters.push({
@@ -101,17 +111,6 @@ export const IncomeReport = () => {
 
   const [sorterVisible, setSorterVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
-
-  const setFilters = (
-    filters: any[],
-    mode: "replace" | "append" = "append"
-  ) => {
-    if (mode === "replace") {
-      setSearchFilters(filters);
-    } else {
-      setSearchFilters((prevFilters) => [...prevFilters, ...filters]);
-    }
-  };
 
   const { data: branch } = useCustom({
     url: `${API_URL}/branch`,
@@ -232,10 +231,10 @@ export const IncomeReport = () => {
     }
   };
 
-  // Обновляем данные при изменении дат
+  // Обновляем данные при изменении дат и фильтров
   useEffect(() => {
     refetch();
-  }, [from, to, refetch]);
+  }, [from, to, destinationFilter, paymentFilter, statusFilter, searchFilter, refetch]);
 
   const filterContent = (
     <Card style={{ width: 300, padding: "0px !important" }}>
@@ -249,16 +248,17 @@ export const IncomeReport = () => {
         allowClear
         mode="multiple"
         onChange={(value) => {
-          setFilters(
-            [
+          if (!value || value.length === 0) {
+            setDestinationFilter([]);
+          } else {
+            setDestinationFilter([
               {
                 $or: value.map((item: any) => ({
                   destination_id: { $eq: item },
                 })),
               },
-            ],
-            "replace"
-          );
+            ]);
+          }
         }}
         style={{ width: "100%", marginBottom: 20 }}
       />
@@ -280,20 +280,20 @@ export const IncomeReport = () => {
           const filters = [];
 
           if (value.includes("paid")) {
-            filters.push({ operation_id: { $ne: null } });
+            filters.push({ is_payment: { $eq: true } });
           }
 
           if (value.includes("unpaid")) {
-            filters.push({ operation_id: { $eq: null } });
+            filters.push({ is_payment: { $eq: false } });
           }
 
           if (filters.length === 0) {
-            setFilters([], "replace");
+            setPaymentFilter([]);
           } else {
-            setFilters([{ $or: filters }], "replace");
+            setPaymentFilter([{ $or: filters }]);
           }
         }}
-        style={{ width: "100%" }}
+        style={{ width: "100%", marginBottom: 20 }}
       />
       <Select
         placeholder="Выберите статус"
@@ -320,13 +320,13 @@ export const IncomeReport = () => {
         onChange={(value) => {
           if (!value || value.length === 0) {
             // очищено — убираем фильтр по статусу
-            setFilters([]);
+            setStatusFilter([]);
           } else {
             // добавляем фильтр по статусу с несколькими значениями
-            setFilters([
+            setStatusFilter([
               {
                 $or: value.map((status: string) => ({
-                  tracking_status: { $eq: status },
+                  status: { $eq: status },
                 })),
               },
             ]);
@@ -474,24 +474,21 @@ export const IncomeReport = () => {
             onChange={(e) => {
               const value = e.target.value;
               if (!value) {
-                setFilters([{ trackCode: { $contL: "" } }], "replace");
+                setSearchFilter([]);
                 setSearch("");
                 return;
               }
 
               setSearch(value);
-              setFilters(
-                [
-                  {
-                    $or: [
-                      { trackCode: { $contL: value } },
-                      { "counterparty.clientCode": { $contL: value } },
-                      { "counterparty.name": { $contL: value } },
-                    ],
-                  },
-                ],
-                "replace"
-              );
+              setSearchFilter([
+                {
+                  $or: [
+                    { trackCode: { $contL: value } },
+                    { "counterparty.clientCode": { $contL: value } },
+                    { "counterparty.name": { $contL: value } },
+                  ],
+                },
+              ]);
             }}
           />
         </Col>
@@ -657,6 +654,14 @@ export const IncomeReport = () => {
           dataIndex="destination"
           render={(value) => value?.name}
           title="Город (с досыслом если есть)"
+        />
+        <Table.Column
+          dataIndex="services"
+          title="Номера мешков"
+          render={(value) =>
+            value?.map((item: any) => item.bag_number).join(", ") || ""
+          }
+          width={200}
         />
         <Table.Column
           dataIndex="totalServiceWeight"
