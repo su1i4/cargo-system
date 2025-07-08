@@ -28,17 +28,14 @@ export const GoodsShow: React.FC = () => {
     onBeforePrint: async () => {
       const el = printRef.current;
       if (el) {
-        const servicesCount = record?.services?.length || 0;
-        const productsCount = record?.products?.length || 0;
-        const totalItems = servicesCount + productsCount;
 
-        let fontSize = 13;
+        let fontSize = 15;
         if (totalItems > 20) {
-          fontSize = 12;
+          fontSize = 14;
         } else if (totalItems > 15) {
-          fontSize = 11;
+          fontSize = 13;
         } else if (totalItems < 5) {
-          fontSize = 12;
+          fontSize = 15;
         }
 
         el.style.fontSize = `${fontSize}px`;
@@ -47,10 +44,50 @@ export const GoodsShow: React.FC = () => {
         el.style.boxSizing = "border-box";
         el.style.paddingLeft = "5px";
 
+        // Если товаров много, делаем каждую копию на отдельной странице
+        const invoiceCopies = el.querySelectorAll(".invoice-copy");
+        if (isLargeInvoice) {
+          invoiceCopies.forEach((copy: any, index: number) => {
+            copy.style.setProperty("height", "auto", "important");
+            copy.style.setProperty("page-break-before", index === 1 ? "always" : "auto", "important");
+            copy.style.setProperty("page-break-inside", "avoid", "important");
+            copy.style.setProperty("flex", "none", "important");
+          });
+          
+          // Убираем divider если используем отдельные страницы
+          const divider = el.querySelector(".divider");
+          if (divider) {
+            (divider as any).style.display = "none";
+          }
+        } else {
+          // Для небольшого количества товаров оставляем как есть
+          invoiceCopies.forEach((copy: any) => {
+            copy.style.setProperty("height", "49.5vh", "important");
+            copy.style.setProperty("page-break-before", "auto", "important");
+            copy.style.setProperty("flex", "1", "important");
+          });
+          
+          const divider = el.querySelector(".divider");
+          if (divider) {
+            (divider as any).style.display = "block";
+          }
+        }
+
+        const totalSum = el.querySelectorAll(".total-sum-text");
+        totalSum.forEach((section: any) => {
+          section.style.setProperty("font-size", "14px", "important");
+        });
+        
+        const tableText = el.querySelectorAll(".table-text");
+        tableText.forEach((section: any) => {
+          section.style.setProperty("font-size", "10px", "important");
+        });
+
         const termsSection = el.querySelectorAll(".terms-section");
         termsSection.forEach((section: any) => {
-          section.style.setProperty("font-size", "9px", "important");
+          section.style.setProperty("font-size", "7px", "important");
           section.style.setProperty("line-height", "1", "important");
+          section.style.setProperty("font-weight", "300", "important");
           section.style.setProperty("margin", "0", "important");
           section.style.setProperty("padding", "0", "important");
         });
@@ -59,7 +96,7 @@ export const GoodsShow: React.FC = () => {
           ".terms-section-invoice"
         );
         termsSectionInvoice.forEach((section: any) => {
-          section.style.setProperty("font-size", "13px", "important");
+          section.style.setProperty("font-size", "15px", "important");
         });
       }
     },
@@ -67,12 +104,45 @@ export const GoodsShow: React.FC = () => {
       const el = printRef.current;
       if (el) {
         el.removeAttribute("style");
+        
+        // Сбрасываем стили копий накладной
+        const invoiceCopies = el.querySelectorAll(".invoice-copy");
+        invoiceCopies.forEach((copy: any) => {
+          copy.style.removeProperty("height");
+          copy.style.removeProperty("page-break-before");
+          copy.style.removeProperty("page-break-inside");
+          copy.style.removeProperty("flex");
+        });
+        
+        // Возвращаем divider
+        const divider = el.querySelector(".divider");
+        if (divider) {
+          (divider as any).style.removeProperty("display");
+        }
+        
         const termsSection = el.querySelectorAll(".terms-section");
         termsSection.forEach((section: any) => {
           section.style.removeProperty("font-size");
           section.style.removeProperty("line-height");
           section.style.removeProperty("margin");
           section.style.removeProperty("padding");
+        });
+
+        const tableText = el.querySelectorAll(".table-text");
+        tableText.forEach((section: any) => {
+          section.style.removeProperty("font-size");
+        });
+        
+        const totalSum = el.querySelectorAll(".total-sum-text");
+        totalSum.forEach((section: any) => {
+          section.style.removeProperty("font-size");
+        });
+        
+        const termsSectionInvoice = el.querySelectorAll(
+          ".terms-section-invoice"
+        );
+        termsSectionInvoice.forEach((section: any) => {
+          section.style.removeProperty("font-size");
         });
       }
     },
@@ -106,7 +176,7 @@ export const GoodsShow: React.FC = () => {
   const colStyle = {
     borderRight: "1px solid black",
     borderBottom: "1px solid black",
-    padding: "2px 6px",
+    padding: "0px 2px",
   };
 
   const totalPlaces = record?.services?.length || 0;
@@ -180,6 +250,11 @@ export const GoodsShow: React.FC = () => {
 
   const discount = getDiscount();
 
+  const servicesCount = record?.services?.length || 0;
+  const productsCount = record?.products?.length || 0;
+  const totalItems = servicesCount + productsCount;
+  const isLargeInvoice = totalItems > 15;
+
   const InvoiceContent = () => {
     return (
       <div>
@@ -195,7 +270,7 @@ export const GoodsShow: React.FC = () => {
           />
           <Title
             className="terms-section-invoice"
-            style={{ fontSize: "20px", fontWeight: 600, margin: 0 }}
+            style={{ fontSize: "22px", fontWeight: 600, margin: 0 }}
             level={5}
           >
             Накладная №: {record?.invoice_number}
@@ -248,59 +323,65 @@ export const GoodsShow: React.FC = () => {
             marginBottom: "6px",
           }}
         >
-          <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={4}>
-            <Text>Отправитель</Text>
+          <Col
+            style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
+            span={4}
+          >
+            <Text className="table-text">Отправитель</Text>
           </Col>
           <Col style={colStyle} span={8}></Col>
-          <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={4}>
-            <Text>Получатель</Text>
+          <Col
+            style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
+            span={4}
+          >
+            <Text className="table-text">Получатель</Text>
           </Col>
           <Col style={colStyle} span={8}></Col>
 
           <Col style={colStyle} span={4}>
-            <Text>Код</Text>
+            <Text className="table-text">Код</Text>
           </Col>
           <Col style={colStyle} span={8}>
-            <Text>{`${record?.sender?.clientPrefix || ""}-${
-              record?.sender?.clientCode || ""
-            }`}</Text>
+            <Text className="table-text">{`${
+              record?.sender?.clientPrefix || ""
+            }-${record?.sender?.clientCode || ""}`}</Text>
           </Col>
           <Col style={colStyle} span={4}>
-            <Text>Код</Text>
+            <Text className="table-text">Код</Text>
           </Col>
           <Col style={colStyle} span={8}>
-            <Text>{`${record?.recipient?.clientPrefix || ""}-${
-              record?.recipient?.clientCode || ""
-            }`}</Text>
+            <Text className="table-text">{`${
+              record?.recipient?.clientPrefix || ""
+            }-${record?.recipient?.clientCode || ""}`}</Text>
           </Col>
           <Col style={colStyle} span={4}>
-            <Text>Фио</Text>
+            <Text className="table-text">Фио</Text>
           </Col>
           <Col style={colStyle} span={8}>
-            <Text>{record?.sender?.name || ""}</Text>
+            <Text className="table-text">{record?.sender?.name || ""}</Text>
           </Col>
           <Col style={colStyle} span={4}>
-            <Text>Фио</Text>
+            <Text className="table-text">Фио</Text>
           </Col>
           <Col style={colStyle} span={8}>
-            <Text>{record?.recipient?.name || ""}</Text>
+            <Text className="table-text">{record?.recipient?.name || ""}</Text>
           </Col>
 
           <Col style={colStyle} span={4}>
-            <Text>Телефон</Text>
+            <Text className="table-text">Телефон</Text>
           </Col>
           <Col style={colStyle} span={8}>
-            <Text>
+            <Text className="table-text">
               {record?.sender?.phoneNumber
                 ? `+${record?.sender?.phoneNumber}`
                 : ""}
             </Text>
           </Col>
           <Col style={colStyle} span={4}>
-            <Text>Телефон</Text>
+            <Text className="table-text">Телефон</Text>
           </Col>
           <Col style={colStyle} span={8}>
-            <Text>
+            <Text className="table-text">
               {record?.recipient?.phoneNumber
                 ? `+${record?.recipient?.phoneNumber}`
                 : ""}
@@ -308,31 +389,33 @@ export const GoodsShow: React.FC = () => {
           </Col>
 
           <Col style={colStyle} span={4}>
-            <Text>Адрес</Text>
+            <Text className="table-text">Адрес</Text>
           </Col>
           <Col style={colStyle} span={8}>
-            <Text>{`${record?.employee?.branch?.name || ""} ${
-              record?.employee?.under_branch?.address || ""
-            }`}</Text>
+            <Text className="table-text">{`${
+              record?.employee?.branch?.name || ""
+            } ${record?.employee?.under_branch?.address || ""}`}</Text>
           </Col>
           <Col style={colStyle} span={4}>
-            <Text>Город назначения</Text>
+            <Text className="table-text">Город назначения</Text>
           </Col>
           <Col style={colStyle} span={8}>
-            <Text>{record?.destination?.name || ""}</Text>
+            <Text className="table-text">
+              {record?.destination?.name || ""}
+            </Text>
           </Col>
 
           <Col style={{ ...colStyle, borderBottom: "none" }} span={4}>
-            <Text>Комментарий</Text>
+            <Text className="table-text">Комментарий</Text>
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={8}>
-            <Text>{record?.comments || ""}</Text>
+            <Text className="table-text">{record?.comments || ""}</Text>
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={4}>
-            <Text>Досыл</Text>
+            <Text className="table-text">Досыл</Text>
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={8}>
-            <Text>{record?.sent_back?.name || ""}</Text>
+            <Text className="table-text">{record?.sent_back?.name || ""}</Text>
           </Col>
         </Row>
         <Row
@@ -343,14 +426,23 @@ export const GoodsShow: React.FC = () => {
             overflow: "hidden",
           }}
         >
-          <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={4}>
-            <Text>№ Мешка, Коробки</Text>
+          <Col
+            style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
+            span={4}
+          >
+            <Text className="table-text">№ Мешка, Коробки</Text>
           </Col>
-          <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={4}>
-            <Text>Наименование услуги</Text>
+          <Col
+            style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
+            span={4}
+          >
+            <Text className="table-text">Наименование услуги</Text>
           </Col>
-          <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={4}>
-            <Text>Наименование товара клиента</Text>
+          <Col
+            style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
+            span={4}
+          >
+            <Text className="table-text">Наименование товара клиента</Text>
           </Col>
           <Col
             style={{
@@ -365,14 +457,19 @@ export const GoodsShow: React.FC = () => {
               <Col
                 span={24}
                 style={{
-                  borderBottom: "1px solid #EDEDEC",
+                  borderBottom: "1px solid black",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   padding: "8px",
                 }}
               >
-                <p style={{ textAlign: "center", margin: 0 }}>Количество</p>
+                <p
+                  className="table-text"
+                  style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
+                >
+                  Количество
+                </p>
               </Col>
               <Col
                 span={12}
@@ -380,11 +477,16 @@ export const GoodsShow: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  borderRight: "1px solid #EDEDEC",
+                  borderRight: "1px solid black",
                   padding: "8px",
                 }}
               >
-                <p style={{ textAlign: "center", margin: 0 }}>Мест</p>
+                <p
+                  className="table-text"
+                  style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
+                >
+                  Мест
+                </p>
               </Col>
               <Col
                 span={12}
@@ -395,74 +497,103 @@ export const GoodsShow: React.FC = () => {
                   padding: "8px",
                 }}
               >
-                <p style={{ textAlign: "center", margin: 0 }}>шт</p>
+                <p
+                  className="table-text"
+                  style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
+                >
+                  шт
+                </p>
               </Col>
             </Row>
           </Col>
           <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={2}>
-            <Text>Вес, кг</Text>
+            <Text className="table-text" style={{ fontWeight: 600 }}>
+              Вес, кг
+            </Text>
           </Col>
           <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={4}>
-            <Text>Стоимость услуг</Text>
+            <Text className="table-text" style={{ fontWeight: 600 }}>
+              Стоимость услуг
+            </Text>
           </Col>
           <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={2}>
-            <Text>Сумма</Text>
+            <Text className="table-text" style={{ fontWeight: 600 }}>
+              Сумма
+            </Text>
           </Col>
 
           {grouped?.map((service: any, index: number) => (
             <React.Fragment key={index}>
               <Col style={colStyle} span={4}>
-                <Text>{service.bag_number}</Text>
+                <Text className="table-text">{service.bag_number}</Text>
               </Col>
               <Col style={colStyle} span={4}>
                 <Text
-                  style={{ fontSize: 13, lineHeight: "10px", fontWeight: 600 }}
+                  className="table-text"
+                  style={{ fontSize: 13, lineHeight: "5px", fontWeight: 600 }}
                 >
                   Грузоперевозка{" "}
                   {`${record?.employee?.branch?.name} - ${record?.destination?.name}`}
                 </Text>
               </Col>
               <Col style={colStyle} span={4}>
-                <Text>{service.nomenclature?.name}</Text>
+                <Text className="table-text">
+                  {service.nomenclature?.name}
+                </Text>
               </Col>
               <Col style={colStyle} span={2}>
-                <Text>{service.count || 0}</Text>
+                <Text className="table-text">{service.count || 0}</Text>
               </Col>
               <Col style={colStyle} span={2}>
-                <Text>{service.quantity || 0}</Text>
+                <Text className="table-text">{service.quantity || 0}</Text>
               </Col>
               <Col style={colStyle} span={2}>
-                <Text>
+                <Text className="table-text">
                   {String(service.weight).replace(".", ",").slice(0, 5) || 0}
                 </Text>
               </Col>
               <Col style={colStyle} span={4}>
-                <Text>{service.tariff - discount || 0}</Text>
+                <Text className="table-text">
+                  {service.tariff - discount || 0}
+                </Text>
               </Col>
               <Col style={colStyle} span={2}>
-                <Text>{service.sum || 0}</Text>
+                <Text className="table-text">{service.sum || 0}</Text>
               </Col>
             </React.Fragment>
           ))}
           <Col style={{ ...colStyle, borderBottom: "none" }} span={12}>
-            <Text style={{ textAlign: "end", fontWeight: "bold" }}>Итого</Text>
+            <Text
+              className="table-text"
+              style={{ textAlign: "end", fontWeight: "bold" }}
+            >
+              Итого
+            </Text>
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
-            <Text style={{ fontWeight: "bold" }}>{totalPlaces}</Text>
+            <Text className="table-text" style={{ fontWeight: "bold" }}>
+              {totalPlaces}
+            </Text>
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
-            <Text style={{ fontWeight: "bold" }}>{totalQuantity}</Text>
+            <Text className="table-text" style={{ fontWeight: "bold" }}>
+              {totalQuantity}
+            </Text>
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
-            <Text style={{ fontWeight: "bold" }}>
+            <Text className="table-text" style={{ fontWeight: "bold" }}>
               {String(totalWeight).replace(".", ",").slice(0, 5)}
             </Text>
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={4}>
-            <Text style={{ fontWeight: "bold" }}>-</Text>
+            <Text className="table-text" style={{ fontWeight: "bold" }}>
+              -
+            </Text>
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
-            <Text style={{ fontWeight: "bold" }}>{totalSum}</Text>
+            <Text className="table-text" style={{ fontWeight: "bold" }}>
+              {totalSum}
+            </Text>
           </Col>
         </Row>
         {record?.products?.length ? (
@@ -475,14 +606,35 @@ export const GoodsShow: React.FC = () => {
               marginTop: "6px",
             }}
           >
-            <Col span={10} style={{ ...colStyle, backgroundColor: "#F5F5F4" }}>
-              <Text>Номенклатура</Text>
+            <Col
+              span={10}
+              style={{
+                ...colStyle,
+                backgroundColor: "#F5F5F4",
+                fontWeight: 600,
+              }}
+            >
+              <Text className="table-text">Номенклатура</Text>
             </Col>
-            <Col span={4} style={{ ...colStyle, backgroundColor: "#F5F5F4" }}>
-              <Text>Цена</Text>
+            <Col
+              span={4}
+              style={{
+                ...colStyle,
+                backgroundColor: "#F5F5F4",
+                fontWeight: 600,
+              }}
+            >
+              <Text className="table-text">Цена</Text>
             </Col>
-            <Col span={4} style={{ ...colStyle, backgroundColor: "#F5F5F4" }}>
-              <Text>Количество, шт</Text>
+            <Col
+              span={4}
+              style={{
+                ...colStyle,
+                backgroundColor: "#F5F5F4",
+                fontWeight: 600,
+              }}
+            >
+              <Text className="table-text">Количество, шт</Text>
             </Col>
             <Col
               span={6}
@@ -492,38 +644,49 @@ export const GoodsShow: React.FC = () => {
                 borderRight: "none",
               }}
             >
-              <Text>Сумма</Text>
+              <Text className="table-text" style={{ fontWeight: 600 }}>
+                Сумма
+              </Text>
             </Col>
 
             {record?.products?.map(
               ({ id, name, price, quantity, sum }: any) => (
                 <React.Fragment key={id}>
                   <Col span={10} style={colStyle}>
-                    <Text>{name}</Text>
+                    <Text className="table-text">{name}</Text>
                   </Col>
                   <Col span={4} style={colStyle}>
-                    <Text>{price}</Text>
+                    <Text className="table-text">{price}</Text>
                   </Col>
                   <Col span={4} style={colStyle}>
-                    <Text>{quantity}</Text>
+                    <Text className="table-text">{quantity}</Text>
                   </Col>
                   <Col span={6} style={{ ...colStyle, borderRight: "none" }}>
-                    <Text>{sum}</Text>
+                    <Text className="table-text">{sum}</Text>
                   </Col>
                 </React.Fragment>
               )
             )}
             <Col span={10} style={{ ...colStyle, borderBottom: "none" }}>
-              <Text style={{ fontWeight: "bold" }}>Итого</Text>
+              <Text className="table-text" style={{ fontWeight: "bold" }}>
+                Итого
+              </Text>
             </Col>
             <Col span={4} style={{ ...colStyle, borderBottom: "none" }}>
-              <Text style={{ fontWeight: "bold" }}></Text>
+              <Text
+                className="table-text"
+                style={{ fontWeight: "bold" }}
+              ></Text>
             </Col>
             <Col span={4} style={{ ...colStyle, borderBottom: "none" }}>
-              <Text style={{ fontWeight: "bold" }}>{totalProdQty}</Text>
+              <Text className="table-text" style={{ fontWeight: "bold" }}>
+                {totalProdQty}
+              </Text>
             </Col>
             <Col span={6} style={{ ...colStyle, border: "none" }}>
-              <Text style={{ fontWeight: "bold" }}>{totalProdSum}</Text>
+              <Text className="table-text" style={{ fontWeight: "bold" }}>
+                {totalProdSum}
+              </Text>
             </Col>
           </Row>
         ) : (
@@ -533,22 +696,23 @@ export const GoodsShow: React.FC = () => {
           justify="space-between"
           align="center"
           style={{ marginTop: "6px" }}
-        > 
-          <Text style={{ fontWeight: "bold", fontSize: "1.2em", margin: 0 }}>
+        >
+          <Text className="total-sum-text" style={{ fontWeight: "bold", fontSize: "20px", margin: 0 }}>
             Сумма заказа
           </Text>
           <Flex vertical align="flex-end" style={{ width: "350px" }}>
             <Text
               style={{
                 fontWeight: "bold",
-                fontSize: "1.2em",
+                fontSize: "20px",
                 borderBottom: "1px solid black",
                 margin: 0,
               }}
+              className="total-sum-text"
             >
               Итого к оплате: {record?.amount} RUB
             </Text>
-            <Text style={{ fontWeight: "bold", fontSize: "1.2em", margin: 0 }}>
+            <Text className="total-sum-text" style={{ fontWeight: "bold", fontSize: "14px", margin: 0 }}>
               {((record?.amount || 0) * Number(som?.rate)).toFixed(2)} KGS
             </Text>
           </Flex>
@@ -576,9 +740,10 @@ export const GoodsShow: React.FC = () => {
               className="terms-section"
               style={{
                 fontSize: "0.8em",
-                fontWeight: 600,
+                fontWeight: '600 !important',
                 margin: "1px 0",
                 lineHeight: "1.0",
+
               }}
             >
               2. В случае пропажи или порчи товара, или пожара Клиенту
@@ -627,19 +792,19 @@ export const GoodsShow: React.FC = () => {
           style={{ marginTop: "4px" }}
         >
           <Flex vertical>
-            <Text style={{ margin: 0, fontSize: "1em" }}>
+            <Text style={{ margin: 0, fontSize: "1.1em" }}>
               Принял(а): _______________________
             </Text>
-            <Text style={{ margin: 0, fontSize: "1em" }}>
+            <Text style={{ margin: 0, fontSize: "1.1em" }}>
               Менеджер: {record?.employee?.firstName}{" "}
               {record?.employee?.lastName}
             </Text>
           </Flex>
           <Flex vertical>
-            <Text style={{ margin: 0, fontSize: "1em" }}>
+            <Text style={{ margin: 0, fontSize: "1.1em" }}>
               Сдал(а): _____________________________________
             </Text>
-            <Text style={{ margin: 0, fontSize: "1em" }}>
+            <Text style={{ margin: 0, fontSize: "1.1em" }}>
               ФИО клиента / представителя клиента{" "}
               <span style={{ marginLeft: "20px" }}>подпись</span>
             </Text>
@@ -651,7 +816,9 @@ export const GoodsShow: React.FC = () => {
 
   const filterContent = (
     <Card style={{ width: 300, padding: "16px" }}>
-      <div style={{ marginBottom: 8, fontWeight: "bold" }}>Пункт назначения</div>
+      <div style={{ marginBottom: 8, fontWeight: "bold" }}>
+        Пункт назначения
+      </div>
       <Select
         placeholder="Выберите пункт назначения"
         options={tableProps?.dataSource?.map((branch: any) => ({
@@ -729,7 +896,10 @@ export const GoodsShow: React.FC = () => {
         </>
       )}
     >
-      <div ref={printRef} className="print-container">
+      <div 
+        ref={printRef} 
+        className={`print-container ${isLargeInvoice ? 'large-invoice' : ''}`}
+      >
         <div className="invoice-copy">
           <InvoiceContent />
         </div>

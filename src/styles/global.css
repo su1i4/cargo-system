@@ -158,6 +158,40 @@
 
   @page {
     size: A4 portrait;
-    padding: 3mm;
+    padding: 0mm 8mm;
+  }
+
+  /* Стили для больших накладных с автоматическим переносом */
+  .print-container.large-invoice {
+    height: auto;
+  }
+
+  .print-container.large-invoice .invoice-copy {
+    height: auto !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .print-container.large-invoice .invoice-copy:nth-child(2) {
+    page-break-before: always;
+  }
+
+  .print-container.large-invoice .divider {
+    display: none;
+  }
+
+  /* Улучшенные стили для таблиц при печати */
+  .print-container .ant-row {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .print-container .ant-table {
+    page-break-inside: auto;
+  }
+
+  .print-container .ant-table-tbody > tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 }
