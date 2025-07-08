@@ -152,6 +152,7 @@ export const IncomeReport = () => {
       "Фио получателя": record.recipient?.name || "",
       "Номер получателя": record.recipient?.phoneNumber || "",
       "Город (с досыслом если есть)": record.destination?.name || "",
+      "Номер мешков": record.services?.map((item: any) => item.bag_number).join(", ") || "",
       "Вес, кг": record.totalServiceWeight
         ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5)
         : "",
