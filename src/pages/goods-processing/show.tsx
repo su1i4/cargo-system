@@ -549,7 +549,7 @@ export const GoodsShow: React.FC = () => {
               </Col>
               <Col style={colStyle} span={2}>
                 <Text className="table-text">
-                  {Number(String(service.weight).replace(".", ",") || 0).toFixed(2)}
+                  {String(service.weight).replace(".", ",") || 0}
                 </Text>
               </Col>
               <Col style={colStyle} span={4}>
@@ -582,7 +582,7 @@ export const GoodsShow: React.FC = () => {
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
             <Text className="table-text" style={{ fontWeight: "bold" }}>
-              {Number(String(totalWeight).replace(".", ",") || 0).toFixed(2)}
+              {String(totalWeight).replace(".", ",") || 0}
             </Text>
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={4}>
