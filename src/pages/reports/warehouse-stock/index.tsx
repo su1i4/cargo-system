@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useApiUrl, useCustom } from "@refinedev/core";
-import { List } from "@refinedev/antd";
+import { List, useSelect } from "@refinedev/antd";
 import {
   Table,
   Button,
   Space,
   message,
+  Select,
 } from "antd";
 import {
   FileExcelOutlined,
@@ -31,8 +32,10 @@ export const WarehouseStockReport = () => {
   const [nomenclatures, setNomenclatures] = useState<WarehouseReportItem[]>([]);
   const apiUrl = useApiUrl();
 
+  const [branchId, setBranchId] = useState<number | null>(null);
+
   const { data, isLoading, refetch } = useCustom<WarehouseReportItem[]>({
-    url: `${apiUrl}/report/reportInWarehouse`,
+    url: `${apiUrl}/report/reportInWarehouse${branchId ? `?branch_id=${branchId}` : ''}`,
     method: "get",
   });
 
@@ -42,6 +45,11 @@ export const WarehouseStockReport = () => {
     }
   }, [data]);
 
+  useEffect(() => {
+    if (branchId) {
+      refetch();
+    }
+  }, [branchId]);
 
 
   // Функция для скачивания CSV
@@ -146,7 +154,11 @@ export const WarehouseStockReport = () => {
     }
   };
 
-
+  const {selectProps} = useSelect({
+    resource: "branch",
+    optionLabel: "name",
+    optionValue: "id",
+  });
 
   return (
     <List
@@ -154,6 +166,16 @@ export const WarehouseStockReport = () => {
       headerButtons={() => {
         return (
           <Space>
+            <Select
+              placeholder="Выберите пункт назначения"
+              {...selectProps}
+              onChange={(value) => {
+                setBranchId(value as unknown as number);
+              }}
+              style={{
+                width: 200,
+              }}
+            />
             <Button
               icon={<FileExcelOutlined />}
               type="primary"
