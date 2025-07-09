@@ -13,6 +13,7 @@ import {
   message,
   Input,
   Tooltip,
+  Checkbox,
 } from "antd";
 import dayjs from "dayjs";
 
@@ -45,6 +46,7 @@ interface GoodItem {
   updated?: boolean; // Флаг, указывающий, что услуга была изменена
   is_created?: boolean; // Флаг, указывающий, что услуга была создана
   bag_number?: string;
+  is_price_editable?: boolean;
 }
 
 interface TypeProduct {
@@ -171,6 +173,7 @@ export const GoodsEdit = () => {
             nomenclature_id: service.nomenclature.id || null,
             deleted: false,
             type_id: service.product_type.id || null,
+            is_price_editable: service.is_price_editable || false,
           }))
         );
 
@@ -279,6 +282,7 @@ export const GoodsEdit = () => {
       barcode: generateBarcode(),
       bag_number: "",
       is_created: true, // Отмечаем, что товар новый
+      is_price_editable: false,
     };
     setServices([...services, newItem]);
     setNextId(nextId + 1);
@@ -303,6 +307,7 @@ export const GoodsEdit = () => {
         id: newId,
         barcode: generateBarcode(),
         is_created: true, // Отмечаем, что это копия (новый товар)
+        is_price_editable: item.is_price_editable || false,
       };
     });
 
@@ -358,7 +363,7 @@ export const GoodsEdit = () => {
     setServices(
       services.map((item) => {
         if (item.id === id) {
-          const newItem = { ...item, [field]: value };
+          const newItem = { ...item, [field]: value, updated: true };
 
           if (field === "type_id" || field === "weight") {
             const selectedType = tariffTableProps?.dataSource?.find(
@@ -370,14 +375,23 @@ export const GoodsEdit = () => {
 
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
-              newItem.price = Number(selectedType.tariff) - discount;
+              
+              // Обновляем цену только если ручное редактирование отключено
+              if (!item.is_price_editable) {
+                newItem.price = Number(selectedType.tariff) - discount;
+              }
+              
+              // Пересчитываем сумму с учетом текущей цены (может быть пользовательской)
               if (newItem.weight) {
-                newItem.sum = calculateSum(
-                  newItem.weight,
-                  Number(selectedType.tariff - discount)
-                );
+                const priceToUse = item.is_price_editable ? newItem.price : Number(selectedType.tariff) - discount;
+                newItem.sum = calculateSum(newItem.weight, priceToUse);
               }
             }
+          }
+
+          // Если изменяется цена вручную и включено ручное редактирование, пересчитываем сумму
+          if (field === "price" && item.is_price_editable && newItem.weight) {
+            newItem.sum = calculateSum(newItem.weight, value);
           }
 
           return newItem;
@@ -402,10 +416,15 @@ export const GoodsEdit = () => {
             if (tariffValue > 0) {
               const newItem = { ...item, updated: true };
               newItem.tariff = tariffValue;
-              newItem.price = tariffValue;
+              
+              // Обновляем цену только если ручное редактирование отключено
+              if (!item.is_price_editable) {
+                newItem.price = tariffValue;
+              }
 
               if (newItem.weight) {
-                newItem.sum = calculateSum(newItem.weight, tariffValue);
+                const priceToUse = item.is_price_editable ? newItem.price : tariffValue;
+                newItem.sum = calculateSum(newItem.weight, priceToUse);
               }
 
               return newItem;
@@ -416,6 +435,35 @@ export const GoodsEdit = () => {
       );
     }
   }, [values?.destination_id, tariffs]);
+
+  // Обработка изменения скидки
+  useEffect(() => {
+    if (services?.length > 0) {
+      const newServices = services.map((item) => {
+        const selectedType = tariffTableProps?.dataSource?.find(
+          (type: any) =>
+            type.branch_id === values?.destination_id &&
+            type.product_type_id === Number(item.type_id)
+        );
+        
+        const newItem = { ...item, updated: true };
+        
+        // Обновляем цену только если ручное редактирование отключено
+        if (!item.is_price_editable && selectedType?.tariff) {
+          newItem.price = Number(selectedType.tariff) - discount;
+        }
+        
+        // Пересчитываем сумму с учетом текущей цены
+        if (newItem.weight && selectedType?.tariff) {
+          const priceToUse = item.is_price_editable ? newItem.price : Number(selectedType.tariff) - discount;
+          newItem.sum = calculateSum(Number(newItem.weight), priceToUse);
+        }
+        
+        return newItem;
+      });
+      setServices(newServices);
+    }
+  }, [discount, values?.destination_id]);
 
   // Обновление данных товара из бэкенда
   const updateProductField = (
@@ -508,17 +556,19 @@ export const GoodsEdit = () => {
     }
 
     // Рассчитываем базовую сумму (услуги + товары)
-    const baseAmount = services.reduce(
-      (accumulator, currentValue) => accumulator + Number(currentValue.sum),
-      0
-    ) + products.reduce(
-      (accumulator, currentValue) => accumulator + Number(currentValue.sum),
-      0
-    );
+    const baseAmount =
+      services.reduce(
+        (accumulator, currentValue) => accumulator + Number(currentValue.sum),
+        0
+      ) +
+      products.reduce(
+        (accumulator, currentValue) => accumulator + Number(currentValue.sum),
+        0
+      );
 
     // Добавляем наценку к базовой сумме
     const markup = Number(values.markup) || 0;
-    const finalAmount = baseAmount + (baseAmount * markup / 100);
+    const finalAmount = baseAmount + (baseAmount * markup) / 100;
 
     const submitValues = {
       ...values,
@@ -767,26 +817,62 @@ export const GoodsEdit = () => {
       return;
     }
 
-    const newItems = Array.from({ length: count }, (_, i) => {
-      const newId = nextId + i;
-      return {
-        id: newId,
-        name: "Новый товар",
-        barcode: generateBarcode(),
-        bag_number: "",
-      };
-    });
+    let newItems: GoodItem[] = [];
+
+    if (selectedRowKeys.length > 0) {
+      const selectedItems = services.filter((item) =>
+        selectedRowKeys.includes(item.id)
+      );
+
+      for (let i = 0; i < count; i++) {
+        const itemsToAdd = selectedItems.map((item, index) => {
+          const newId = nextId + i * selectedItems.length + index;
+          return {
+            ...item,
+            id: newId,
+            barcode: generateBarcode(),
+            is_created: true,
+            is_price_editable: item.is_price_editable || false,
+          };
+        });
+        newItems = [...newItems, ...itemsToAdd];
+      }
+
+      setNextId(nextId + count * selectedItems.length);
+    } else {
+      // Если нет выделенных товаров, создаем пустые
+      newItems = Array.from({ length: count }, (_, i) => {
+        const newId = nextId + i;
+        return {
+          id: newId,
+          barcode: generateBarcode(),
+          bag_number: "",
+          is_created: true,
+          is_price_editable: false,
+        };
+      });
+
+      setNextId(nextId + count);
+    }
 
     setServices([...services, ...newItems]);
-    setNextId(nextId + count);
+    setSelectedRowKeys([]); // Сбрасываем выделение
   };
 
   const copyWhileCount = () => {
-    createItemsByCount();
-    message.success(`Создано ${copyCount} новых товаров`);
-  };
+    const count = Number(copyCount || 0);
+    const hasSelectedItems = selectedRowKeys.length > 0;
 
-  console.log(services);
+    createItemsByCount();
+
+    if (hasSelectedItems) {
+      message.success(
+        `Скопировано ${selectedRowKeys.length} товаров ${count} раз(а)`
+      );
+    } else {
+      message.success(`Создано ${count} новых товаров`);
+    }
+  };
 
   return (
     <Edit headerButtons={() => null} saveButtonProps={saveButtonProps}>
@@ -843,10 +929,7 @@ export const GoodsEdit = () => {
               label="Получатель"
               name="recipient_id"
             >
-              <Select
-                {...counterpartySelectPropsReceiver}
-                allowClear
-              />
+              <Select {...counterpartySelectPropsReceiver} allowClear />
             </Form.Item>
           </Col>
           <Col span={6}>
@@ -1019,29 +1102,6 @@ export const GoodsEdit = () => {
               )
             }
           />
-          {/* <Table.Column
-            title="Страна"
-            dataIndex="country"
-            render={(value, record: any, index: number) =>
-              index < services.length && (
-                <Select
-                  style={{ width: 200 }}
-                  options={countries}
-                  value={value}
-                  onChange={(val) => updateItemField(record.id, "country", val)}
-                  allowClear
-                  showSearch
-                  onSearch={(val) => [
-                    {
-                      field: "name",
-                      operator: "contains",
-                      value: val,
-                    },
-                  ]}
-                />
-              )
-            }
-          /> */}
           <Table.Column
             title="Тип товара"
             dataIndex="type_id"
@@ -1124,7 +1184,11 @@ export const GoodsEdit = () => {
                   min={0}
                   precision={2}
                   value={value}
-                  disabled
+                  disabled={!record.is_price_editable}
+                  onChange={(val) => {
+                    updateItemField(record.id, "price", val);
+                    updateItemField(record.id, "sum", val * record.weight);
+                  }}
                 />
               )
             }
@@ -1156,12 +1220,27 @@ export const GoodsEdit = () => {
             key="action"
             render={(_, record: any, index: number) =>
               index < services.length && (
-                <Space size="middle">
+                <Space size="small">
                   <Button
                     type="text"
                     danger
                     icon={<DeleteOutlined />}
                     onClick={() => removeItem(record.id)}
+                  />
+                  <Button
+                    type="text"
+                    icon={
+                      <Checkbox
+                        checked={record.is_price_editable || false}
+                        onChange={(e) =>
+                          updateItemField(
+                            record.id,
+                            "is_price_editable",
+                            e.target.checked
+                          )
+                        }
+                      />
+                    }
                   />
                 </Space>
               )
@@ -1253,47 +1332,85 @@ export const GoodsEdit = () => {
         </Row>
         <Row gutter={16} style={{ marginTop: 16 }}>
           <Col span={24}>
-            <div style={{ 
-              padding: '16px', 
-              backgroundColor: '#f5f5f5', 
-              borderRadius: '6px',
-              border: '1px solid #d9d9d9'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div
+              style={{
+                padding: "16px",
+                backgroundColor: "#f5f5f5",
+                borderRadius: "6px",
+                border: "1px solid #d9d9d9",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: "8px",
+                }}
+              >
                 <span>Базовая сумма:</span>
-                <span style={{ fontWeight: 'bold' }}>
+                <span style={{ fontWeight: "bold" }}>
                   {(
-                    services.reduce((acc, item) => acc + Number(item.sum || 0), 0) +
-                    products.reduce((acc, item) => acc + Number(item.sum || 0), 0)
-                  ).toFixed(2)} руб.
+                    services.reduce(
+                      (acc, item) => acc + Number(item.sum || 0),
+                      0
+                    ) +
+                    products.reduce(
+                      (acc, item) => acc + Number(item.sum || 0),
+                      0
+                    )
+                  ).toFixed(2)}{" "}
+                  руб.
                 </span>
               </div>
               {values?.markup && Number(values.markup) > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: "8px",
+                  }}
+                >
                   <span>Наценка ({values.markup}%):</span>
-                  <span style={{ fontWeight: 'bold', color: '#1890ff' }}>
+                  <span style={{ fontWeight: "bold", color: "#1890ff" }}>
                     {(
-                      (services.reduce((acc, item) => acc + Number(item.sum || 0), 0) +
-                       products.reduce((acc, item) => acc + Number(item.sum || 0), 0)) *
-                      Number(values.markup) / 100
-                    ).toFixed(2)} руб.
+                      ((services.reduce(
+                        (acc, item) => acc + Number(item.sum || 0),
+                        0
+                      ) +
+                        products.reduce(
+                          (acc, item) => acc + Number(item.sum || 0),
+                          0
+                        )) *
+                        Number(values.markup)) /
+                      100
+                    ).toFixed(2)}{" "}
+                    руб.
                   </span>
                 </div>
               )}
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                borderTop: '1px solid #d9d9d9',
-                paddingTop: '8px',
-                fontSize: '16px'
-              }}>
-                <span style={{ fontWeight: 'bold' }}>Итоговая сумма:</span>
-                <span style={{ fontWeight: 'bold', color: '#52c41a' }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  borderTop: "1px solid #d9d9d9",
+                  paddingTop: "8px",
+                  fontSize: "16px",
+                }}
+              >
+                <span style={{ fontWeight: "bold" }}>Итоговая сумма:</span>
+                <span style={{ fontWeight: "bold", color: "#52c41a" }}>
                   {(
-                    (services.reduce((acc, item) => acc + Number(item.sum || 0), 0) +
-                     products.reduce((acc, item) => acc + Number(item.sum || 0), 0)) *
+                    (services.reduce(
+                      (acc, item) => acc + Number(item.sum || 0),
+                      0
+                    ) +
+                      products.reduce(
+                        (acc, item) => acc + Number(item.sum || 0),
+                        0
+                      )) *
                     (1 + (Number(values?.markup) || 0) / 100)
-                  ).toFixed(2)} руб.
+                  ).toFixed(2)}{" "}
+                  руб.
                 </span>
               </div>
             </div>

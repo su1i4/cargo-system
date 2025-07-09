@@ -232,6 +232,8 @@ export const CashDeskList: React.FC = () => {
                           { "good.invoice_number": { $contL: value } },
                           { "good.sender.name": { $contL: value } },
                           { "good.recipient.name": { $contL: value } },
+                          { "good.sender.clientCode": { $contL: value } },
+                          { "good.recipient.clientCode": { $contL: value } },
                         ],
                       },
                     ],

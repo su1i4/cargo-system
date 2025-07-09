@@ -13,6 +13,7 @@ import {
   message,
   Input,
   Tooltip,
+  Checkbox,
 } from "antd";
 import dayjs from "dayjs";
 
@@ -43,6 +44,7 @@ interface GoodItem {
   sum?: number;
   barcode: string;
   bag_number?: string;
+  is_price_editable?: boolean;
 }
 
 interface TypeProduct {
@@ -105,14 +107,12 @@ export const GoodsCreate = () => {
   const [services, setServices] = useState<GoodItem[]>([]);
   const [nextId, setNextId] = useState(1);
   const [discount, setDiscount] = useState(0);
-  const [typeProducts, setTypeProducts] = useState<TypeProduct[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [tariffs, setTariffs] = useState<TariffItem[]>([]);
   const [copyCount, setCopyCount] = useState(0);
   const [sentCityData, setSentCityData] = useState<any[]>([]);
 
-  const [senderData, setSenderData] = useState<any>(null);
   const values: any = Form.useWatch([], form);
 
   const currentDateDayjs = dayjs().tz("Asia/Bishkek");
@@ -212,6 +212,7 @@ export const GoodsCreate = () => {
       id: nextId,
       barcode: generateBarcode(),
       bag_number: "",
+      is_price_editable: false,
     };
     setServices([...services, newItem]);
     setNextId(nextId + 1);
@@ -249,24 +250,60 @@ export const GoodsCreate = () => {
       return;
     }
 
-    const newItems = Array.from({ length: count }, (_, i) => {
-      const newId = nextId + i;
+    let newItems: GoodItem[] = [];
 
-      return {
-        id: newId,
-        name: "Новый товар",
-        barcode: generateBarcode(),
-        bag_number: "",
-      };
-    });
+    // Если есть выделенные товары, копируем их
+    if (selectedRowKeys.length > 0) {
+      const selectedItems = services.filter((item) =>
+        selectedRowKeys.includes(item.id)
+      );
+
+      for (let i = 0; i < count; i++) {
+        const itemsToAdd = selectedItems.map((item, index) => {
+          const newId = nextId + i * selectedItems.length + index;
+          return {
+            ...item,
+            id: newId,
+            barcode: generateBarcode(),
+            is_price_editable: item.is_price_editable || false,
+          };
+        });
+        newItems = [...newItems, ...itemsToAdd];
+      }
+
+      setNextId(nextId + count * selectedItems.length);
+    } else {
+      // Если нет выделенных товаров, создаем пустые
+      newItems = Array.from({ length: count }, (_, i) => {
+        const newId = nextId + i;
+        return {
+          id: newId,
+          barcode: generateBarcode(),
+          bag_number: "",
+          is_price_editable: false,
+        };
+      });
+
+      setNextId(nextId + count);
+    }
 
     setServices([...services, ...newItems]);
-    setNextId(nextId + count);
+    setSelectedRowKeys([]); // Сбрасываем выделение
   };
 
   const copyWhileCount = () => {
+    const count = Number(copyCount || 0);
+    const hasSelectedItems = selectedRowKeys.length > 0;
+
     createItemsByCount();
-    message.success(`Создано ${copyCount} новых товаров`);
+
+    if (hasSelectedItems) {
+      message.success(
+        `Скопировано ${selectedRowKeys.length} товаров ${count} раз(а)`
+      );
+    } else {
+      message.success(`Создано ${count} новых товаров`);
+    }
   };
 
   const removeSelectedItems = () => {
@@ -312,14 +349,23 @@ export const GoodsCreate = () => {
 
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
-              newItem.price = Number(selectedType.tariff) - discount;
+              
+              // Обновляем цену только если ручное редактирование отключено
+              if (!item.is_price_editable) {
+                newItem.price = Number(selectedType.tariff) - discount;
+              }
+              
+              // Пересчитываем сумму с учетом текущей цены (может быть пользовательской)
               if (newItem.weight) {
-                newItem.sum = calculateSum(
-                  newItem.weight,
-                  Number(selectedType.tariff - discount)
-                );
+                const priceToUse = item.is_price_editable ? newItem.price : Number(selectedType.tariff) - discount;
+                newItem.sum = calculateSum(newItem.weight, priceToUse);
               }
             }
+          }
+
+          // Если изменяется цена вручную и включено ручное редактирование, пересчитываем сумму
+          if (field === "price" && item.is_price_editable && newItem.weight) {
+            newItem.sum = calculateSum(newItem.weight, value);
           }
 
           return newItem;
@@ -438,7 +484,6 @@ export const GoodsCreate = () => {
       return;
     }
 
-    // Рассчитываем базовую сумму (услуги + товары)
     const baseAmount =
       services.reduce(
         (accumulator, currentValue) => accumulator + Number(currentValue.sum),
@@ -449,7 +494,6 @@ export const GoodsCreate = () => {
         0
       );
 
-    // Добавляем наценку к базовой сумме
     const markup = Number(values.markup) || 0;
     const finalAmount = baseAmount + (baseAmount * markup) / 100;
 
@@ -488,17 +532,6 @@ export const GoodsCreate = () => {
       formProps.onFinish(submitValues);
     }
   };
-
-  useEffect(() => {
-    if (values?.sender_id && counterpartySelectPropsSender?.options) {
-      const selectedSender = counterpartySelectPropsSender.options.find(
-        (item: any) => item.value === values.sender_id
-      );
-      if (selectedSender) {
-        setSenderData(selectedSender);
-      }
-    }
-  }, [values?.sender_id]);
 
   const { selectProps: counterpartySelectPropsSender } = useSelect({
     resource: "counterparty",
@@ -654,16 +687,6 @@ export const GoodsCreate = () => {
         value,
       },
     ],
-    queryOptions: {
-      onSuccess: (data: any) => {
-        const typeProductsData = data?.data?.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          tariff: item.tariff,
-        }));
-        setTypeProducts(typeProductsData || []);
-      },
-    },
   });
 
   const { selectProps: packerSelectProps } = useSelect({
@@ -722,14 +745,21 @@ export const GoodsCreate = () => {
             type.branch_id === values?.destination_id &&
             type.product_type_id === Number(item.type_id)
         );
-        return {
-          ...item,
-          price: Number(selectedType?.tariff) - discount,
-          sum: calculateSum(
-            Number(item.weight),
-            Number(Number(selectedType?.tariff) - discount)
-          ),
-        };
+        
+        const newItem = { ...item };
+        
+        // Обновляем цену только если ручное редактирование отключено
+        if (!item.is_price_editable && selectedType?.tariff) {
+          newItem.price = Number(selectedType.tariff) - discount;
+        }
+        
+        // Пересчитываем сумму с учетом текущей цены
+        if (newItem.weight && selectedType?.tariff) {
+          const priceToUse = item.is_price_editable ? newItem.price : Number(selectedType.tariff) - discount;
+          newItem.sum = calculateSum(Number(newItem.weight), priceToUse);
+        }
+        
+        return newItem;
       });
       setServices(newServices);
     }
@@ -756,6 +786,8 @@ export const GoodsCreate = () => {
       sum: products.reduce((acc, item) => acc + Number(item.sum || 0), 0),
     },
   ];
+
+  console.log(services);
 
   return (
     <Create saveButtonProps={saveButtonProps}>
@@ -822,29 +854,6 @@ export const GoodsCreate = () => {
               <Select {...branchSelectPropsIsSent} allowClear />
             </Form.Item>
           </Col>
-          {/* <Col span={6}>
-            <Form.Item
-              rules={[{ required: true, message: "Оплачивает" }]}
-              label="Оплачивает"
-              name="pays"
-              initialValue="recipient"
-            >
-              <Select
-                showSearch
-                allowClear
-                placeholder="Выберите"
-                options={[
-                  { label: "Получатель", value: "recipient" },
-                  { label: "Отправитель", value: "sender" },
-                ]}
-                filterOption={(input, option) =>
-                  (option?.label ?? "")
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-              />
-            </Form.Item>
-          </Col> */}
           <Col span={6}>
             <Form.Item
               rules={[{ required: true, message: "Способ оплаты обязателен" }]}
@@ -906,6 +915,7 @@ export const GoodsCreate = () => {
             <Input
               style={{ width: "100%" }}
               min={0}
+              max={20}
               type="number"
               value={copyCount}
               onChange={(e: any) => setCopyCount(e.target.value)}
@@ -913,19 +923,23 @@ export const GoodsCreate = () => {
             />
           </Col>
           <Col xs={12} sm={10} md={8} lg={6}>
-            <Button
-              disabled={
-                Number(copyCount || 0) === 0 ||
-                values?.destination_id === undefined ||
-                values?.sender_id === undefined ||
-                values?.recipient_id === undefined
+            <Tooltip
+              title={
+                selectedRowKeys.length > 0
+                  ? `Скопировать выделенные товары (${selectedRowKeys.length}) указанное количество раз`
+                  : "Создать новые пустые товары в указанном количестве"
               }
-              onClick={copyWhileCount}
-              icon={<CopyOutlined />}
-              style={{ width: "100%" }}
             >
-              Копировать: ({copyCount})
-            </Button>
+              <Button
+                disabled={Number(copyCount || 0) === 0}
+                onClick={copyWhileCount}
+                icon={<CopyOutlined />}
+                style={{ width: "100%" }}
+              >
+                {selectedRowKeys.length > 0 ? "Копировать" : "Создать"}: (
+                {copyCount})
+              </Button>
+            </Tooltip>
           </Col>
           <Col xs={12} sm={8} md={6} lg={5}>
             <Button
@@ -982,29 +996,6 @@ export const GoodsCreate = () => {
               )
             }
           />
-          {/* <Table.Column
-            title="Страна"
-            dataIndex="country"
-            render={(value, record: any, index: number) =>
-              index < services.length && (
-                <Select
-                  style={{ width: 200 }}
-                  options={countries}
-                  value={value}
-                  onChange={(val) => updateItemField(record.id, "country", val)}
-                  allowClear
-                  showSearch
-                  onSearch={(val) => [
-                    {
-                      field: "name",
-                      operator: "contains",
-                      value: val,
-                    },
-                  ]}
-                />
-              )
-            }
-          /> */}
           <Table.Column
             title="Тип товара"
             dataIndex="type_id"
@@ -1087,7 +1078,10 @@ export const GoodsCreate = () => {
                   min={0}
                   precision={2}
                   value={value}
-                  disabled
+                  onChange={(val) => {
+                    updateItemField(record.id, "price", val);
+                  }}
+                  disabled={!record.is_price_editable}
                 />
               )
             }
@@ -1119,12 +1113,27 @@ export const GoodsCreate = () => {
             key="action"
             render={(_, record: any, index: number) =>
               index < services.length && (
-                <Space size="middle">
+                <Space size="small">
                   <Button
                     type="text"
                     danger
                     icon={<DeleteOutlined />}
                     onClick={() => removeItem(record.id)}
+                  />
+                  <Button
+                    type="text"
+                    icon={
+                      <Checkbox
+                        checked={record.is_price_editable || false}
+                        onChange={(e) =>
+                          updateItemField(
+                            record.id,
+                            "is_price_editable",
+                            e.target.checked
+                          )
+                        }
+                      />
+                    }
                   />
                 </Space>
               )
@@ -1163,10 +1172,7 @@ export const GoodsCreate = () => {
                 style={{ width: 100 }}
                 min={0}
                 value={value}
-                disabled={index >= products.length}
-                onChange={(val) =>
-                  updateProductField(record.id, "quantity", val)
-                }
+                disabled
               />
             )}
           />
@@ -1180,7 +1186,10 @@ export const GoodsCreate = () => {
                   min={0}
                   precision={2}
                   value={value}
-                  disabled
+                  onChange={(val) =>
+                    updateProductField(record.id, "price", val)
+                  }
+                  disabled={!record.is_price_editable}
                 />
               )
             }
@@ -1213,23 +1222,6 @@ export const GoodsCreate = () => {
               <InputNumber style={{ width: "100%" }} min={0} addonAfter="%" />
             </Form.Item>
           </Col>
-          {/* <Col span={8}>
-            <Form.Item
-              initialValue={"sender"}
-              label="Кешбек"
-              name="cash_back_target"
-              rules={[{ required: true, message: "Выберите кому выплачивать кешбек" }]}
-            >
-              <Select
-                options={[
-                  { label: "Отправитель", value: "sender" },
-                  { label: "Получатель", value: "receiver" },
-                ]}
-                style={{ width: "100%" }}
-                placeholder="Выберите кому выплачивать кешбек"
-              />
-            </Form.Item>
-          </Col> */}
         </Row>
         <Row gutter={16} style={{ marginTop: 16 }}>
           <Col span={24}>
