@@ -37,6 +37,9 @@ export const WarehouseStockReport = () => {
   const { data, isLoading, refetch } = useCustom<WarehouseReportItem[]>({
     url: `${apiUrl}/report/reportInWarehouse${branchId ? `?branch_id=${branchId}` : ''}`,
     method: "get",
+    queryOptions: {
+      
+    }
   });
 
   useEffect(() => {
@@ -207,7 +210,7 @@ export const WarehouseStockReport = () => {
         );
       }}
     >
-      <Table loading={isLoading} dataSource={nomenclatures}>
+      <Table loading={isLoading} dataSource={nomenclatures} pagination={false}>
         <Table.Column
           width={10}
           title="№"
