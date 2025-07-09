@@ -213,7 +213,7 @@ export const CashDeskList: React.FC = () => {
         </Col>
         <Col flex="auto">
           <Input
-            placeholder="Поиск по трек-коду или коду клиента"
+            placeholder="Поиск по номеру накладной, Фио клиента"
             prefix={<SearchOutlined />}
             onChange={(e) => {
               const value = e.target.value;
@@ -229,8 +229,9 @@ export const CashDeskList: React.FC = () => {
                       { type: { $eq: "income" } },
                       {
                         $or: [
-                          { trackCode: { $contL: value } },
-                          { "counterparty.clientCode": { $contL: value } },
+                          { "good.invoice_number": { $contL: value } },
+                          { "good.sender.name": { $contL: value } },
+                          { "good.recipient.name": { $contL: value } },
                         ],
                       },
                     ],
