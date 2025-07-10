@@ -549,7 +549,7 @@ export const GoodsShow: React.FC = () => {
               </Col>
               <Col style={colStyle} span={2}>
                 <Text className="table-text">
-                  {String(service.weight).replace(".", ",") || 0}
+                  {String(service.weight?.toFixed(2)).replace(".", ",") || 0}
                 </Text>
               </Col>
               <Col style={colStyle} span={4}>
@@ -558,7 +558,7 @@ export const GoodsShow: React.FC = () => {
                 </Text>
               </Col>
               <Col style={colStyle} span={2}>
-                <Text className="table-text">{service.sum || 0}</Text>
+                <Text className="table-text">{service.sum?.toFixed(2) || 0}</Text>
               </Col>
             </React.Fragment>
           ))}
@@ -582,7 +582,7 @@ export const GoodsShow: React.FC = () => {
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
             <Text className="table-text" style={{ fontWeight: "bold" }}>
-              {String(totalWeight).replace(".", ",") || 0}
+              {String(totalWeight?.toFixed(2)).replace(".", ",") || 0}
             </Text>
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={4}>
@@ -592,7 +592,7 @@ export const GoodsShow: React.FC = () => {
           </Col>
           <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
             <Text className="table-text" style={{ fontWeight: "bold" }}>
-              {totalSum}
+              {totalSum?.toFixed(2)}
             </Text>
           </Col>
         </Row>
