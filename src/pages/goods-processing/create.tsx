@@ -1172,7 +1172,9 @@ export const GoodsCreate = () => {
                 style={{ width: 100 }}
                 min={0}
                 value={value}
-                disabled
+                onChange={(val) =>
+                  updateProductField(record.id, "quantity", val)
+                }
               />
             )}
           />
@@ -1186,10 +1188,7 @@ export const GoodsCreate = () => {
                   min={0}
                   precision={2}
                   value={value}
-                  onChange={(val) =>
-                    updateProductField(record.id, "price", val)
-                  }
-                  disabled={!record.is_price_editable}
+                  disabled
                 />
               )
             }
