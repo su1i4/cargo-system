@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { Show, EditButton, DeleteButton, useTable } from "@refinedev/antd";
 import { useShow } from "@refinedev/core";
-import { Typography, Flex, Row, Col, Button, Card, Select } from "antd";
+import { Typography, Flex, Row, Col, Button } from "antd";
 import { PrinterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -236,6 +236,32 @@ export const GoodsShow: React.FC = () => {
   const som = currencyTableProps?.dataSource?.find(
     (item: any) => item.name === "Сом"
   );
+
+  const getHistoricalRate = (currency: any, targetDate: string) => {
+    if (!currency?.currency_history || !targetDate) {
+      return currency?.rate || 1;
+    }
+
+    // Сортируем историю по дате (по убыванию)
+    const sortedHistory = [...currency.currency_history].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    const targetDateTime = new Date(targetDate).getTime();
+
+    // Ищем курс, который был актуален на дату создания накладной
+    for (const historyRecord of sortedHistory) {
+      const historyDateTime = new Date(historyRecord.created_at).getTime();
+      if (historyDateTime <= targetDateTime) {
+        return historyRecord.rate;
+      }
+    }
+
+    // Если не нашли подходящий исторический курс, берем самый ранний
+    return sortedHistory[sortedHistory.length - 1]?.rate || currency?.rate || 1;
+  };
+
+  const somRate = getHistoricalRate(som, record?.created_at);
 
   const getDiscount = () => {
     if (record?.discount_id) {
@@ -713,7 +739,7 @@ export const GoodsShow: React.FC = () => {
               Итого к оплате: {record?.amount} RUB
             </Text>
             <Text className="total-sum-text" style={{ fontWeight: "bold", fontSize: "14px", margin: 0 }}>
-              {((record?.amount || 0) * Number(som?.rate)).toFixed(2)} KGS
+              {((record?.amount || 0) * Number(somRate)).toFixed(2)} KGS
             </Text>
           </Flex>
         </Flex>
@@ -813,68 +839,6 @@ export const GoodsShow: React.FC = () => {
       </div>
     );
   };
-
-  const filterContent = (
-    <Card style={{ width: 300, padding: "16px" }}>
-      <div style={{ marginBottom: 8, fontWeight: "bold" }}>
-        Пункт назначения
-      </div>
-      <Select
-        placeholder="Выберите пункт назначения"
-        options={tableProps?.dataSource?.map((branch: any) => ({
-          label: branch.name,
-          value: branch.id,
-        }))}
-        allowClear
-        mode="multiple"
-        onChange={(value) => {
-          // Implement the logic to update filters
-        }}
-        style={{ width: "100%", marginBottom: 16 }}
-      />
-
-      <div style={{ marginBottom: 8, fontWeight: "bold" }}>Оплата</div>
-      <Select
-        placeholder="Оплаченные / Не оплаченные"
-        options={[
-          { label: "Оплаченные", value: true },
-          { label: "Не оплаченные", value: false },
-        ]}
-        allowClear
-        onChange={(value) => {
-          // Implement the logic to update filters
-        }}
-        style={{ width: "100%", marginBottom: 16 }}
-      />
-
-      <div style={{ marginBottom: 8, fontWeight: "bold" }}>Статус</div>
-      <Select
-        placeholder="Выберите статус"
-        options={[
-          { label: "На складе", value: "В складе" },
-          { label: "В пути", value: "В пути" },
-          { label: "Готов к выдаче", value: "Готов к выдаче" },
-          { label: "Выдали", value: "Выдали" },
-        ]}
-        allowClear
-        mode="multiple"
-        onChange={(value) => {
-          // Implement the logic to update filters
-        }}
-        style={{ width: "100%", marginBottom: 16 }}
-      />
-
-      <Button
-        type="default"
-        onClick={() => {
-          // Implement the logic to reset all filters
-        }}
-        style={{ width: "100%" }}
-      >
-        Сбросить все фильтры
-      </Button>
-    </Card>
-  );
 
   return (
     <Show

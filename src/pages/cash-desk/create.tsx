@@ -83,11 +83,15 @@ export const CashDeskCreate: React.FC = () => {
       duration: 3,
     });
 
-    // Вычисляем курс валюты
+    // Вычисляем курс валюты с учетом даты
     let rate = 0;
     const selectedCurrency = formValues.type_currency;
     if (selectedCurrency) {
-      rate = currency.data?.find((item: any) => item.name === selectedCurrency)?.rate || 0;
+      const currencyItem = currency.data?.find((item: any) => item.name === selectedCurrency);
+      if (currencyItem) {
+        const formDate = formValues.date?.format("YYYY-MM-DD HH:mm:ss");
+        rate = getHistoricalRate(currencyItem, formDate);
+      }
     }
 
     for (const good of selectedRows) {
@@ -349,9 +353,11 @@ export const CashDeskCreate: React.FC = () => {
         let rate = 0;
         const currentValue: any = formProps.form.getFieldValue("type_currency");
         if (currentValue) {
-          rate =
-            currency.data?.find((item: any) => item.name === currentValue)
-              ?.rate || 0;
+          const currencyItem = currency.data?.find((item: any) => item.name === currentValue);
+          if (currencyItem) {
+            const formDate = formProps.form.getFieldValue("date")?.format("YYYY-MM-DD HH:mm:ss");
+            rate = getHistoricalRate(currencyItem, formDate);
+          }
         }
 
         // Calculate total amounts from selected goods (services + products)
@@ -423,7 +429,7 @@ export const CashDeskCreate: React.FC = () => {
         formProps.form.setFieldsValue(resetValues);
       }
     }
-  }, [isAgent, selectedRows, currency.data, change, bolik, selectedCurrency]); // Added selectedCurrency to dependencies
+  }, [isAgent, selectedRows, currency.data, change, bolik, selectedCurrency, formProps.form]); // Added selectedCurrency and form to dependencies
 
   // Select properties for the bank dropdown
   const { selectProps: bankSelectProps } = useSelect({
@@ -431,11 +437,42 @@ export const CashDeskCreate: React.FC = () => {
     optionLabel: "name",
   });
 
-  // Function to convert amount based on selected currency
-  const convertAmount = (amount: number, targetCurrency: string) => {
+  // Function to get historical rate based on date
+  const getHistoricalRate = (currency: any, targetDate: string) => {
+    if (!currency?.currency_history || !targetDate) {
+      return currency?.rate || 1;
+    }
+
+    // Сортируем историю по дате (по убыванию)
+    const sortedHistory = [...currency.currency_history].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    const targetDateTime = new Date(targetDate).getTime();
+
+    // Ищем курс, который был актуален на выбранную дату
+    for (const historyRecord of sortedHistory) {
+      const historyDateTime = new Date(historyRecord.created_at).getTime();
+      if (historyDateTime <= targetDateTime) {
+        return historyRecord.rate;
+      }
+    }
+
+    // Если не нашли подходящий исторический курс, берем самый ранний
+    return sortedHistory[sortedHistory.length - 1]?.rate || currency?.rate || 1;
+  };
+
+  // Function to convert amount based on selected currency with historical rate
+  const convertAmount = (amount: number, targetCurrency: string, date?: string) => {
     if (!targetCurrency || !currency.data) return amount;
     
-    const rate = currency.data.find((item: any) => item.name === targetCurrency)?.rate || 0;
+    const currencyItem = currency.data.find((item: any) => item.name === targetCurrency);
+    if (!currencyItem) return amount;
+
+    // Используем дату из формы или текущую дату
+    const formDate = date || formProps.form?.getFieldValue("date")?.format("YYYY-MM-DD HH:mm:ss");
+    const rate = getHistoricalRate(currencyItem, formDate);
+    
     // Convert from rubles to target currency
     return rate * amount;
   };

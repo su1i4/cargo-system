@@ -217,6 +217,11 @@ const ShipmentList = () => {
         />
         <Table.Column
           width={50}
+          title="Водитель"
+          dataIndex="driver"
+        />
+        <Table.Column
+          width={50}
           title="Сотрудник"
           dataIndex="employee"
           render={(value) => `${value?.firstName} ${value?.lastName}`}

@@ -312,6 +312,10 @@ const ShipmentShow = () => {
           <Title level={5}>Статус</Title>
           <TextField value={translateStatus(record?.status)} />
         </Col>
+        <Col xs={24} md={6}>
+          <Title level={5}>Водитель</Title>
+          <TextField value={record?.driver} />
+        </Col>
       </Row>
 
       <Title level={4} style={{ marginTop: 24 }}>

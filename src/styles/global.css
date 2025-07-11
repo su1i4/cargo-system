@@ -115,11 +115,11 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    height: 49.5vh;
+    height: 50vh;
     overflow: hidden;
     page-break-inside: avoid;
     break-inside: avoid;
-    padding: 3;
+    padding: 0;
     transform-origin: top left;
   }
 
@@ -131,7 +131,7 @@
 
   .invoice-copy .ant-typography {
     font-size: inherit !important;
-    line-height: 1.2 !important;
+    line-height: 1 !important;
     margin: 0 !important;
   }
 
@@ -146,7 +146,7 @@
 
   .divider {
     border-top: 1px dashed #999;
-    margin: 1vh 0;
+    /* margin: 1vh 0; */
     height: 1px;
     flex-shrink: 0;
   }
