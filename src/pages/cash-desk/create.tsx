@@ -43,6 +43,31 @@ import { useSearchParams } from "react-router";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+// Функция для получения исторического курса валюты на конкретную дату
+const getHistoricalRate = (currency: any, targetDate: string) => {
+  if (!currency?.currency_history || !targetDate) {
+    return currency?.rate || 1;
+  }
+
+  // Сортируем историю по дате (по убыванию)
+  const sortedHistory = [...currency.currency_history].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  const targetDateTime = new Date(targetDate).getTime();
+
+  // Ищем курс, который был актуален на дату создания товара
+  for (const historyRecord of sortedHistory) {
+    const historyDateTime = new Date(historyRecord.created_at).getTime();
+    if (historyDateTime <= targetDateTime) {
+      return historyRecord.rate;
+    }
+  }
+
+  // Если не нашли подходящий исторический курс, берем самый ранний
+  return sortedHistory[sortedHistory.length - 1]?.rate || currency?.rate || 1;
+};
+
 export enum CurrencyType {
   Usd = "Доллар",
   Rub = "Рубль",
@@ -83,18 +108,13 @@ export const CashDeskCreate: React.FC = () => {
       duration: 3,
     });
 
-    // Вычисляем курс валюты с учетом даты
-    let rate = 0;
     const selectedCurrency = formValues.type_currency;
-    if (selectedCurrency) {
-      const currencyItem = currency.data?.find((item: any) => item.name === selectedCurrency);
-      if (currencyItem) {
-        const formDate = formValues.date?.format("YYYY-MM-DD HH:mm:ss");
-        rate = getHistoricalRate(currencyItem, formDate);
-      }
-    }
+    const selectedCurrencyData = currency.data?.find((item: any) => item.name === selectedCurrency);
 
     for (const good of selectedRows) {
+      // Получаем исторический курс валюты на дату создания товара
+      const historicalRate = getHistoricalRate(selectedCurrencyData, good.created_at);
+
       // Вычисляем сумму для каждого товара отдельно
       const totalServiceAmount = good.services.reduce(
         (acc: number, service: any) => acc + Number(service.sum || 0),
@@ -105,7 +125,7 @@ export const CashDeskCreate: React.FC = () => {
         0
       );
       const totalGoodAmount = totalServiceAmount + totalProductAmount;
-      const transformAmount = rate > 0 ? rate * totalGoodAmount : totalGoodAmount;
+      const transformAmount = historicalRate > 0 ? historicalRate * totalGoodAmount : totalGoodAmount;
       const remainingToPay = transformAmount - (good?.paid_sum || 0);
 
       // Создаем отдельную cash-desk запись для каждого товара
@@ -350,51 +370,38 @@ export const CashDeskCreate: React.FC = () => {
   useEffect(() => {
     if (formProps.form) {
       if (isAgent) {
-        let rate = 0;
         const currentValue: any = formProps.form.getFieldValue("type_currency");
-        if (currentValue) {
-          const currencyItem = currency.data?.find((item: any) => item.name === currentValue);
-          if (currencyItem) {
-            const formDate = formProps.form.getFieldValue("date")?.format("YYYY-MM-DD HH:mm:ss");
-            rate = getHistoricalRate(currencyItem, formDate);
-          }
-        }
+        const selectedCurrencyData = currency.data?.find((item: any) => item.name === currentValue);
 
-        // Calculate total amounts from selected goods (services + products)
-        const totalServiceAmount = selectedRows.reduce(
-          (total: number, item: any) => {
-            const localAmount = item.services.reduce(
-              (acc: number, service: any) => acc + Number(service.sum || 0),
-              0
-            );
-            return total + localAmount;
-          },
-          0
-        );
-        const totalProductAmount = selectedRows.reduce(
-          (total: number, item: any) => {
-            const localAmount = item.products.reduce(
-              (acc: number, service: any) => acc + Number(service.sum || 0),
-              0
-            );
-            return total + localAmount;
-          },
-          0
-        );
-        const totalAmount = totalProductAmount + totalServiceAmount;
-        // Transform amount based on currency rate
-        const transformAmount = rate > 0 ? rate * totalAmount : totalAmount;
+        // Calculate total amounts from selected goods using historical rates for each good
+        let totalTransformedAmount = 0;
+        let totalPaidSumInCurrentCurrency = 0;
 
-        // Calculate the remaining amount to be paid
-        // Convert paid_sum to current currency before subtracting
-        const paidSumInCurrentCurrency = selectedRows.length > 0 
-          ? convertAmount(selectedRows[0]?.paid_sum || 0, currentValue)
-          : 0;
-        
-        const remainingToPay =
-          selectedRows.length > 0
-            ? transformAmount - paidSumInCurrentCurrency
-            : 0;
+        selectedRows.forEach((item: any) => {
+          // Получаем исторический курс для каждого товара на дату его создания
+          const historicalRate = getHistoricalRate(selectedCurrencyData, item.created_at);
+
+          // Рассчитываем сумму для каждого товара отдельно
+          const serviceAmount = item.services.reduce(
+            (acc: number, service: any) => acc + Number(service.sum || 0),
+            0
+          );
+          const productAmount = item.products.reduce(
+            (acc: number, product: any) => acc + Number(product.sum || 0),
+            0
+          );
+          const itemTotalAmount = serviceAmount + productAmount;
+          
+          // Применяем исторический курс к сумме товара
+          const itemTransformedAmount = historicalRate > 0 ? historicalRate * itemTotalAmount : itemTotalAmount;
+          totalTransformedAmount += itemTransformedAmount;
+
+          // Конвертируем paid_sum с учетом исторического курса
+          const itemPaidSum = convertAmount(item.paid_sum || 0, currentValue, item.created_at);
+          totalPaidSumInCurrentCurrency += itemPaidSum;
+        });
+
+        const remainingToPay = totalTransformedAmount - totalPaidSumInCurrentCurrency;
 
         // Set form fields: 'amount' and 'paid_sum'
         formProps.form.setFieldsValue({
@@ -429,7 +436,7 @@ export const CashDeskCreate: React.FC = () => {
         formProps.form.setFieldsValue(resetValues);
       }
     }
-  }, [isAgent, selectedRows, currency.data, change, bolik, selectedCurrency, formProps.form]); // Added selectedCurrency and form to dependencies
+  }, [isAgent, selectedRows, currency.data, change, bolik, selectedCurrency]); // Added selectedCurrency to dependencies
 
   // Select properties for the bank dropdown
   const { selectProps: bankSelectProps } = useSelect({
@@ -437,41 +444,16 @@ export const CashDeskCreate: React.FC = () => {
     optionLabel: "name",
   });
 
-  // Function to get historical rate based on date
-  const getHistoricalRate = (currency: any, targetDate: string) => {
-    if (!currency?.currency_history || !targetDate) {
-      return currency?.rate || 1;
-    }
-
-    // Сортируем историю по дате (по убыванию)
-    const sortedHistory = [...currency.currency_history].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-
-    const targetDateTime = new Date(targetDate).getTime();
-
-    // Ищем курс, который был актуален на выбранную дату
-    for (const historyRecord of sortedHistory) {
-      const historyDateTime = new Date(historyRecord.created_at).getTime();
-      if (historyDateTime <= targetDateTime) {
-        return historyRecord.rate;
-      }
-    }
-
-    // Если не нашли подходящий исторический курс, берем самый ранний
-    return sortedHistory[sortedHistory.length - 1]?.rate || currency?.rate || 1;
-  };
-
-  // Function to convert amount based on selected currency with historical rate
-  const convertAmount = (amount: number, targetCurrency: string, date?: string) => {
+  // Function to convert amount based on selected currency and optional date for historical rate
+  const convertAmount = (amount: number, targetCurrency: string, createdAt?: string) => {
     if (!targetCurrency || !currency.data) return amount;
     
-    const currencyItem = currency.data.find((item: any) => item.name === targetCurrency);
-    if (!currencyItem) return amount;
-
-    // Используем дату из формы или текущую дату
-    const formDate = date || formProps.form?.getFieldValue("date")?.format("YYYY-MM-DD HH:mm:ss");
-    const rate = getHistoricalRate(currencyItem, formDate);
+    const currencyData = currency.data.find((item: any) => item.name === targetCurrency);
+    
+    // Если передана дата, используем исторический курс, иначе текущий
+    const rate = createdAt 
+      ? getHistoricalRate(currencyData, createdAt)
+      : currencyData?.rate || 0;
     
     // Convert from rubles to target currency
     return rate * amount;
@@ -1216,7 +1198,7 @@ export const CashDeskCreate: React.FC = () => {
               title="Сумма"
               render={(_, record: any) => {
                 const totalAmount = Number(record.totalServiceAmountSum) + Number(record.totalProductAmountSum);
-                const convertedAmount = convertAmount(totalAmount, selectedCurrency);
+                const convertedAmount = convertAmount(totalAmount, selectedCurrency, record.created_at);
                 const currencySymbol = selectedCurrency === "Доллар" ? "USD" : 
                                      selectedCurrency === "Рубль" ? "руб" : "сом";
                 return `${convertedAmount.toFixed(2)} ${currencySymbol}`;
@@ -1225,9 +1207,9 @@ export const CashDeskCreate: React.FC = () => {
             <Table.Column
               dataIndex="paid_sum"
               title="Оплачено"
-              render={(value) => {
+              render={(value, record: any) => {
                 const paidAmount = value || 0;
-                const convertedPaidAmount = convertAmount(paidAmount, selectedCurrency);
+                const convertedPaidAmount = convertAmount(paidAmount, selectedCurrency, record.created_at);
                 const currencySymbol = selectedCurrency === "Доллар" ? "USD" : 
                                      selectedCurrency === "Рубль" ? "руб" : "сом";
                 return `${convertedPaidAmount.toFixed(2)} ${currencySymbol}`;
