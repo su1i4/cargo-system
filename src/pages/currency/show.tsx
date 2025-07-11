@@ -1,9 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import {
-  List,
-  useTable,
   EditButton,
-  ShowButton,
   DeleteButton,
   Show,
   TextField,
@@ -11,7 +8,12 @@ import {
 } from "@refinedev/antd";
 import { Table, Typography } from "antd";
 import { useShow } from "@refinedev/core";
-import { EditOutlined } from "@ant-design/icons";
+
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const { Title } = Typography;
 
@@ -53,7 +55,11 @@ export const CurrencyShow: React.FC = () => {
         pagination={false}
         style={{ marginTop: 16 }}
       >
-        <Table.Column dataIndex="created_at" title="Дата изменения" render={(value) => new Date(value).toLocaleDateString()} />
+        <Table.Column
+          dataIndex="created_at"
+          title="Дата изменения"
+          render={(value) => dayjs(value).utc().format("DD.MM.YYYY HH:mm")}
+        />
         <Table.Column dataIndex="rate" title="Курс" />
       </Table>
     </Show>

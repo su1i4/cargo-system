@@ -1,20 +1,11 @@
-import React, { useState } from "react";
-import {
-  List,
-  useTable,
-  EditButton,
-  ShowButton,
-  DeleteButton,
-} from "@refinedev/antd";
-import { Col, Row, Space, Table, Button, Input, Select } from "antd";
+import React from "react";
+import { List, useTable } from "@refinedev/antd";
+import { Row, Table, Button } from "antd";
 import { FileAddOutlined } from "@ant-design/icons";
-import { UnorderedListOutlined } from "@ant-design/icons";
-import { SearchOutlined } from "@ant-design/icons";
-import { SyncOutlined } from "@ant-design/icons";
-import { BaseRecord, useNavigation } from "@refinedev/core";
+import { useNavigation } from "@refinedev/core";
 
 export const CurrencyList: React.FC = () => {
-  const { tableProps, setFilters } = useTable({
+  const { tableProps } = useTable({
     resource: "currency",
     syncWithLocation: false,
     pagination: {
@@ -27,47 +18,11 @@ export const CurrencyList: React.FC = () => {
   return (
     <List headerButtons={() => null}>
       <Row gutter={[16, 16]} align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Button
-            icon={<FileAddOutlined />}
-            style={{}}
-            onClick={() => push("/currency/create")}
-          />
-        </Col>
-        {/* <Col>
-          <Input
-            style={{ width: 500 }}
-            placeholder="Поиск по коду клиента, фио контрагента"
-            prefix={<SearchOutlined />}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (!value) {
-                setFilters([], "replace");
-                return;
-              }
-              setFilters(
-                [
-                  {
-                    operator: "or",
-                    value: [
-                      {
-                        field: "counter_party.clientCode",
-                        operator: "contains",
-                        value,
-                      },
-                      {
-                        field: "counter_party.name",
-                        operator: "contains",
-                        value,
-                      },
-                    ],
-                  },
-                ],
-                "replace"
-              );
-            }}
-          />
-        </Col> */}
+        <Button
+          icon={<FileAddOutlined />}
+          style={{}}
+          onClick={() => push("/currency/create")}
+        />
       </Row>
       <Table
         onRow={(record) => ({

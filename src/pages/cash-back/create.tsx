@@ -1,7 +1,6 @@
 import React from "react";
 import { Create, useForm, useSelect } from "@refinedev/antd";
-import { Form, Input, InputNumber, Select } from "antd";
-import InputMask from "react-input-mask";
+import { Form, InputNumber, Select } from "antd";
 
 export const CashBackCreate: React.FC = () => {
   const { formProps, saveButtonProps } = useForm({
@@ -10,14 +9,7 @@ export const CashBackCreate: React.FC = () => {
 
   const { selectProps: counterpartySelectProps } = useSelect({
     resource: "counterparty",
-    optionLabel: (item) => `${item.name}`,
-    // filters: [
-    //   {
-    //     field: "discount_id",
-    //     operator: "eq",
-    //     value: null,
-    //   },
-    // ],
+    optionLabel: (item) => `${item.name}`, 
   });
 
   return (

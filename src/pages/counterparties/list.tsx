@@ -120,7 +120,7 @@ export const CounterpartyList: React.FC = () => {
         <Table.Column dataIndex="phoneNumber" title="Номер телефона" />
         <Table.Column
           dataIndex="ross_coin"
-          title="Кешбек"
+          title="Баланс"
           render={(value) => {
             return value ? <span>{value}</span> : "-";
           }}

@@ -20,6 +20,7 @@ import {
   Dropdown,
   Typography,
   Modal,
+  Select,
 } from "antd";
 import {
   SearchOutlined,
@@ -27,6 +28,7 @@ import {
   ArrowUpOutlined,
   ArrowDownOutlined,
   CalendarOutlined,
+  FilterOutlined,
 } from "@ant-design/icons";
 import { useState, useEffect } from "react";
 import dayjs from "dayjs";
@@ -46,11 +48,17 @@ interface Filter {
     trackCode?: { $contL: string };
     "counterparty.clientCode"?: { $contL: string };
     "counterparty.name"?: { $contL: string };
+    invoice_number?: { $contL: string };
+    "sender.name"?: { $contL: string };
+    "recipient.name"?: { $contL: string };
   }>;
   created_at?: {
     $gte: string;
     $lte: string;
   };
+  destination_id?: { $eq: any };
+  is_payment?: { $eq: boolean };
+  [key: string]: any; // Добавляем индексную сигнатуру для гибкости
 }
 
 export const IssueProcessingList = () => {
@@ -58,6 +66,14 @@ export const IssueProcessingList = () => {
   const [printData, setPrintData] = useState([]);
   const [printOpen, setPrintOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Добавляем недостающие состояния для фильтрации и сортировки
+  const [sorterVisible, setSorterVisible] = useState(false);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [destinationFilter, setDestinationFilter] = useState<any>(null);
+  const [paymentFilter, setPaymentFilter] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<any>(null);
+
   const handlePrint = useReactToPrint({
     //@ts-ignore
     contentRef,
@@ -71,8 +87,15 @@ export const IssueProcessingList = () => {
   };
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
+  // Исправляем тип sortField для включения всех нужных полей
   const [sortField, setSortField] = useState<
-    "id" | "counterparty.name" | "updated_at"
+    | "id"
+    | "counterparty.name"
+    | "updated_at"
+    | "created_at"
+    | "sender.clientCode"
+    | "sender.name"
+    | "destination.name"
   >("updated_at");
   const [searchFilters, setSearchFilters] = useState<any[]>([
     { status: { $eq: "Готов к выдаче" } },
@@ -80,9 +103,30 @@ export const IssueProcessingList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(200);
 
+  // Добавляем запрос для получения филиалов
+  const { data: branch } = useCustom<any>({
+    url: `${API_URL}/branch`,
+    method: "get",
+  });
+
   const buildQueryParams = () => {
+    // Собираем все фильтры
+    const allFilters = [...searchFilters];
+
+    if (destinationFilter) {
+      allFilters.push(destinationFilter);
+    }
+
+    if (paymentFilter) {
+      allFilters.push(paymentFilter);
+    }
+
+    if (statusFilter) {
+      allFilters.push(statusFilter);
+    }
+
     return {
-      s: JSON.stringify({ $and: searchFilters }),
+      s: JSON.stringify({ $and: allFilters }),
       sort: `${sortField},${sortDirection}`,
       limit: pageSize,
       page: currentPage,
@@ -145,7 +189,16 @@ export const IssueProcessingList = () => {
       setPageSize(Number(size));
     }
     refetch();
-  }, [sortDirection, currentPage, pageSize]);
+  }, [
+    sortDirection,
+    sortField,
+    currentPage,
+    pageSize,
+    destinationFilter,
+    paymentFilter,
+    statusFilter,
+    searchFilters,
+  ]);
 
   const filteredByIds = async (ids: number[]) => {
     const token = localStorage.getItem("cargo-system-token");
@@ -239,7 +292,7 @@ export const IssueProcessingList = () => {
   const { push } = useNavigation();
 
   const sortContent = (
-    <Card style={{ width: 200, padding: "0px" }}>
+    <Card style={{ width: 200, padding: "0px !important" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <div
           style={{
@@ -251,50 +304,156 @@ export const IssueProcessingList = () => {
         >
           Сортировать по
         </div>
+
         <Button
           type="text"
           style={{
             textAlign: "left",
-            fontWeight: sortField === "id" ? "bold" : "normal",
+            fontWeight: sortField === "created_at" ? "bold" : "normal",
           }}
           onClick={() => {
-            setSortField("id");
+            setSortField("created_at");
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
           Дате создания{" "}
-          {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
+          {sortField === "created_at" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
+
         <Button
           type="text"
           style={{
             textAlign: "left",
-            fontWeight: sortField === "counterparty.name" ? "bold" : "normal",
+            fontWeight: sortField === "sender.clientCode" ? "bold" : "normal",
           }}
           onClick={() => {
-            setSortField("counterparty.name");
+            setSortField("sender.clientCode");
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
-          По фио{" "}
-          {sortField === "counterparty.name" &&
+          По коду отправителя{" "}
+          {sortField === "sender.clientCode" &&
             (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
+
         <Button
           type="text"
           style={{
             textAlign: "left",
-            fontWeight: sortField === "updated_at" ? "bold" : "normal",
+            fontWeight: sortField === "sender.name" ? "bold" : "normal",
           }}
           onClick={() => {
-            setSortField("updated_at");
+            setSortField("sender.name");
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
-          По дате обновления{" "}
-          {sortField === "updated_at" && (sortDirection === "ASC" ? "↑" : "↓")}
+          По фио отправителя{" "}
+          {sortField === "sender.name" && (sortDirection === "ASC" ? "↑" : "↓")}
+        </Button>
+
+        <Button
+          type="text"
+          style={{
+            textAlign: "left",
+            fontWeight: sortField === "destination.name" ? "bold" : "normal",
+          }}
+          onClick={() => {
+            setSortField("destination.name");
+            setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
+          }}
+        >
+          По пункту назначения{" "}
+          {sortField === "destination.name" &&
+            (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
       </div>
+    </Card>
+  );
+
+  const filterContent = (
+    <Card style={{ width: 300, padding: "0px !important" }}>
+      <Select
+        title="Выберите пункт назначения"
+        placeholder="Выберите пункт назначения"
+        options={branch?.data?.map((branch: any) => ({
+          label: branch.name,
+          value: branch.id,
+        }))}
+        allowClear
+        mode="multiple"
+        onChange={(value) => {
+          if (!value || value.length === 0) {
+            setDestinationFilter(null);
+          } else {
+            setDestinationFilter({
+              $or: value.map((item: any) => ({
+                destination_id: { $eq: item },
+              })),
+            });
+          }
+        }}
+        style={{ width: "100%", marginBottom: 20 }}
+      />
+      <Select
+        placeholder="Оплаченные / Не оплаченные"
+        options={[
+          {
+            label: "Оплаченные",
+            value: true,
+          },
+          {
+            label: "Не оплаченные",
+            value: false,
+          },
+        ]}
+        allowClear
+        onChange={(value) => {
+          if (value === undefined || value === null) {
+            // очищено — убираем фильтр
+            setPaymentFilter(null);
+          } else {
+            setPaymentFilter({ is_payment: { $eq: value } });
+          }
+        }}
+        style={{ width: "100%", marginBottom: 20 }}
+      />
+      <Select
+        placeholder="Выберите статус"
+        options={[
+          {
+            label: "На складе",
+            value: "В складе",
+          },
+          {
+            label: "В пути",
+            value: "В пути",
+          },
+          {
+            label: "Готов к выдаче",
+            value: "Готов к выдаче",
+          },
+          {
+            label: "Выдали",
+            value: "Выдали",
+          },
+        ]}
+        allowClear
+        mode="multiple"
+        onChange={(value) => {
+          if (!value || value.length === 0) {
+            // очищено — убираем фильтр по статусу
+            setStatusFilter(null);
+          } else {
+            // добавляем фильтр по статусу с несколькими значениями
+            setStatusFilter({
+              $or: value.map((status: string) => ({
+                status: { $eq: status },
+              })),
+            });
+          }
+        }}
+        style={{ width: "100%" }}
+      />
     </Card>
   );
 
@@ -304,16 +463,41 @@ export const IssueProcessingList = () => {
       placeholder={["Начальная дата", "Конечная дата"]}
       onChange={(dates, dateStrings) => {
         if (dates && dateStrings[0] && dateStrings[1]) {
-          // Fixed: Use consistent filter format
-          setSearchFilters([
-            ...searchFilters,
-            {
-              created_at: {
-                $gte: dateStrings[0],
-                $lte: dateStrings[1],
-              },
+          // Обновляем фильтры, заменяя предыдущий фильтр по дате
+          const baseFilters: any[] = [{ status: { $eq: "Готов к выдаче" } }];
+          const existingSearchFilter = searchFilters.find(
+            (filter) =>
+              filter.$or &&
+              filter.$or.some(
+                (orFilter: any) =>
+                  orFilter.invoice_number ||
+                  orFilter["sender.name"] ||
+                  orFilter["recipient.name"]
+              )
+          );
+
+          if (existingSearchFilter) {
+            baseFilters.push(existingSearchFilter);
+          }
+
+          baseFilters.push({
+            created_at: {
+              $gte: dateStrings[0],
+              $lte: dateStrings[1],
             },
-          ]);
+          } as any);
+
+          setSearchFilters(baseFilters);
+        } else {
+          // Убираем фильтр по дате, если даты очищены
+          const filteredFilters = searchFilters.filter(
+            (filter) => !filter.created_at
+          );
+          setSearchFilters(
+            filteredFilters.length
+              ? filteredFilters
+              : [{ status: { $eq: "Готов к выдаче" } }]
+          );
         }
       }}
     />
@@ -321,11 +505,6 @@ export const IssueProcessingList = () => {
 
   // Получаем актуальные данные из хука useCustom
   const dataSource = data?.data?.data || [];
-
-  const totalAmount = selectedRows.reduce(
-    (acc, row) => acc + Number(row?.amount),
-    0
-  );
 
   const totalWeight = selectedRows.reduce(
     (acc, row) => acc + Number(row?.weight),
@@ -427,9 +606,17 @@ export const IssueProcessingList = () => {
         <Col span={24}>
           <Form layout="inline" onFinish={handleFilter}>
             <CustomTooltip title="Сортировка">
-              <Dropdown overlay={sortContent} trigger={["click"]}>
+              <Dropdown
+                overlay={sortContent}
+                trigger={["click"]}
+                placement="bottomLeft"
+                open={sorterVisible}
+                onOpenChange={(visible) => {
+                  setSorterVisible(visible);
+                }}
+              >
                 <Button
-                  style={{ marginRight: 8 }}
+                  style={{ marginRight: 10 }}
                   icon={
                     sortDirection === "ASC" ? (
                       <ArrowUpOutlined />
@@ -437,7 +624,20 @@ export const IssueProcessingList = () => {
                       <ArrowDownOutlined />
                     )
                   }
-                ></Button>
+                />
+              </Dropdown>
+            </CustomTooltip>
+            <CustomTooltip title="Фильтры">
+              <Dropdown
+                overlay={filterContent}
+                trigger={["click"]}
+                placement="bottomLeft"
+                open={filterVisible}
+                onOpenChange={(visible) => {
+                  setFilterVisible(visible);
+                }}
+              >
+                <Button style={{ marginRight: 10 }} icon={<FilterOutlined />} />
               </Dropdown>
             </CustomTooltip>
             <Form.Item name="trackCode">

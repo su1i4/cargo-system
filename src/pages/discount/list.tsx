@@ -1,17 +1,15 @@
-import React, { useState } from "react";
-import {
-  List,
-  useTable,
-  EditButton,
-  ShowButton,
-  DeleteButton,
-} from "@refinedev/antd";
-import { Col, Row, Space, Table, Button, Input, Select } from "antd";
+import React from "react";
+import { List, useTable } from "@refinedev/antd";
+import { Col, Row, Table, Button, Input, Checkbox } from "antd";
 import { FileAddOutlined } from "@ant-design/icons";
-import { UnorderedListOutlined } from "@ant-design/icons";
 import { SearchOutlined } from "@ant-design/icons";
-import { SyncOutlined } from "@ant-design/icons";
-import { BaseRecord, useNavigation } from "@refinedev/core";
+import { BaseRecord, useNavigation, useUpdate } from "@refinedev/core";
+
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export const DiscountList: React.FC = () => {
   const { tableProps, setFilters } = useTable({
@@ -21,6 +19,8 @@ export const DiscountList: React.FC = () => {
       mode: "off",
     },
   });
+
+  const { mutate, isLoading: isUpdating } = useUpdate();
 
   const { show, push } = useNavigation();
 
@@ -76,6 +76,11 @@ export const DiscountList: React.FC = () => {
         {...tableProps}
       >
         <Table.Column
+          title="Дата создания"
+          dataIndex="created_at"
+          render={(value) => dayjs(value).utc().format("DD.MM.YYYY HH:mm")}
+        />
+        <Table.Column
           dataIndex="counter_party"
           title="Код клиента"
           render={(value) => {
@@ -85,16 +90,31 @@ export const DiscountList: React.FC = () => {
         />
         <Table.Column
           dataIndex="counter_party"
-          title="Фио Контрагент"
+          title="Фио клиента"
           render={(_, record: BaseRecord) => {
             return record.counter_party.name;
           }}
         />
         <Table.Column dataIndex="discount" title="Скидка" />
-        {/* <Table.Column dataIndex="created_at" title="Дата создания" />
-        <Table.Column dataIndex="updated_at" title="Дата обновления" />
-        <Table.Column dataIndex="status" title="Статус" />
-        <Table.Column dataIndex="action" title="Действие" /> */}
+        <Table.Column
+          dataIndex="is_active"
+          title="Активен"
+          render={(value, record: { id: React.Key }) => (
+            <Checkbox
+              checked={value}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                mutate({
+                  resource: "discount",
+                  id: String(record.id),
+                  values: {
+                    is_active: e.target.checked,
+                  },
+                });
+              }}
+            />
+          )}
+        />
       </Table>
     </List>
   );

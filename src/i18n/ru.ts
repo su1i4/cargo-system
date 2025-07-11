@@ -59,6 +59,7 @@ export const i18nProvider_ru = {
       "buttons.confirm": "Подтвердить",
       "issued.titles.list": "Выданные посылки",
       "notifications.createSuccess": "Успешно создано",
+      "notifications.createError": "Ошибка создания",
       "outcome.titles.list": "Расход",
       "reports.titles.list": "Отчеты",
       "reports.titles.cargoReceived": "Полученные грузы",
