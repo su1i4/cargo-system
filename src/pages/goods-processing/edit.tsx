@@ -308,7 +308,7 @@ export const GoodsEdit = () => {
             nomenclature_id: service.nomenclature.id || null,
             deleted: false,
             type_id: service.product_type.id || null,
-            is_price_editable: service.is_price_editable || false,
+            is_price_editable: false,
           }))
         );
 
@@ -511,14 +511,14 @@ export const GoodsEdit = () => {
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
               
-              // Обновляем цену только если ручное редактирование отключено
-              if (!item.is_price_editable) {
+              // Обновляем цену только если ручное редактирование отключено И это новая услуга
+              if (!item.is_price_editable && item.is_created) {
                 newItem.price = Number(selectedType.tariff) - discount;
               }
               
               // Пересчитываем сумму с учетом текущей цены (может быть пользовательской)
               if (newItem.weight) {
-                const priceToUse = item.is_price_editable ? newItem.price : Number(selectedType.tariff) - discount;
+                const priceToUse = item.is_price_editable || !item.is_created ? newItem.price : Number(selectedType.tariff) - discount;
                 newItem.sum = calculateSum(newItem.weight, priceToUse);
               }
             }
@@ -552,13 +552,13 @@ export const GoodsEdit = () => {
               const newItem = { ...item, updated: true };
               newItem.tariff = tariffValue;
               
-              // Обновляем цену только если ручное редактирование отключено
-              if (!item.is_price_editable) {
+              // Обновляем цену только если ручное редактирование отключено И это новая услуга
+              if (!item.is_price_editable && item.is_created) {
                 newItem.price = tariffValue;
               }
 
               if (newItem.weight) {
-                const priceToUse = item.is_price_editable ? newItem.price : tariffValue;
+                const priceToUse = item.is_price_editable || !item.is_created ? newItem.price : tariffValue;
                 newItem.sum = calculateSum(newItem.weight, priceToUse);
               }
 
@@ -583,14 +583,14 @@ export const GoodsEdit = () => {
         
         const newItem = { ...item, updated: true };
         
-        // Обновляем цену только если ручное редактирование отключено
-        if (!item.is_price_editable && selectedType?.tariff) {
+        // Обновляем цену только если ручное редактирование отключено И это новая услуга
+        if (!item.is_price_editable && item.is_created && selectedType?.tariff) {
           newItem.price = Number(selectedType.tariff) - discount;
         }
         
         // Пересчитываем сумму с учетом текущей цены
         if (newItem.weight && selectedType?.tariff) {
-          const priceToUse = item.is_price_editable ? newItem.price : Number(selectedType.tariff) - discount;
+          const priceToUse = item.is_price_editable || !item.is_created ? newItem.price : Number(selectedType.tariff) - discount;
           newItem.sum = calculateSum(Number(newItem.weight), priceToUse);
         }
         
@@ -851,26 +851,7 @@ export const GoodsEdit = () => {
     },
   });
 
-  useEffect(() => {
-    if (services?.length > 0) {
-      const newServices = services.map((item) => {
-        const selectedType = tariffTableProps?.dataSource?.find(
-          (type: any) =>
-            type.branch_id === values?.destination_id &&
-            type.product_type_id === Number(item.type_id)
-        );
-        return {
-          ...item,
-          price: Number(selectedType?.tariff) - discount,
-          sum: calculateSum(
-            Number(item.weight),
-            Number(Number(selectedType?.tariff) - discount)
-          ),
-        };
-      });
-      setServices(newServices);
-    }
-  }, [discount, values?.destination_id]);
+
 
   const lastGoods = [
     {
