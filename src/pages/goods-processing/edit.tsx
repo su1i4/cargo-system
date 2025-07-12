@@ -1077,29 +1077,6 @@ export const GoodsEdit = () => {
               <Select {...branchSelectPropsIsSent} allowClear />
             </Form.Item>
           </Col>
-          {/* <Col span={6}>
-            <Form.Item
-              rules={[{ required: true, message: "Оплачивает" }]}
-              label="Оплачивает"
-              name="pays"
-              initialValue="recipient"
-            >
-              <Select
-                showSearch
-                allowClear
-                placeholder="Выберите"
-                options={[
-                  { label: "Получатель", value: "recipient" },
-                  { label: "Отправитель", value: "sender" },
-                ]}
-                filterOption={(input, option) =>
-                  (option?.label ?? "")
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-              />
-            </Form.Item>
-          </Col> */}
           <Col span={6}>
             <Form.Item
               rules={[{ required: true, message: "Способ оплаты обязателен" }]}
@@ -1360,7 +1337,6 @@ export const GoodsEdit = () => {
                   disabled={!record.is_price_editable}
                   onChange={(val) => {
                     updateItemField(record.id, "price", val);
-                    updateItemField(record.id, "sum", val * record.weight);
                   }}
                 />
               )

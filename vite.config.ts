@@ -9,7 +9,7 @@ export default defineConfig({
   },
   server: {
     host: true,
-    port: Number(process.env.PORT) || 5174,
+    port: Number(process.env.PORT) || 5173,
     allowedHosts: ["dev.systemcargo.ru", "systemcargo.ru"],
   },
 });
