@@ -10,6 +10,6 @@ export default defineConfig({
   server: {
     host: true,
     port: Number(process.env.PORT) || 5174,
-    allowedHosts: ["systemcargo.ru"],
+    allowedHosts: ["dev.systemcargo.ru", "systemcargo.ru"],
   },
 });
