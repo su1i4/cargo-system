@@ -205,10 +205,10 @@ export const GoodsShow: React.FC = () => {
 
   const grouped = Object.values(
     record?.services?.reduce((acc: any, service: any) => {
-      const id = service.product_type.id;
+      const key = `${service.product_type.id}_${service.price}`;
 
-      if (!acc[id]) {
-        acc[id] = {
+      if (!acc[key]) {
+        acc[key] = {
           ...service,
           quantity: 0,
           sum: 0,
@@ -218,14 +218,14 @@ export const GoodsShow: React.FC = () => {
         };
       }
 
-      acc[id].quantity += service.quantity;
-      acc[id].sum += parseFloat(service.sum);
-      acc[id].weight += parseFloat(service.weight);
-      acc[id].count += 1;
+      acc[key].quantity += service.quantity;
+      acc[key].sum += parseFloat(service.sum);
+      acc[key].weight += parseFloat(service.weight);
+      acc[key].count += 1;
 
       if (service.bag_number) {
-        acc[id].bag_number = acc[id].bag_number
-          ? acc[id].bag_number + ", " + service.bag_number
+        acc[key].bag_number = acc[key].bag_number
+          ? acc[key].bag_number + ", " + service.bag_number
           : service.bag_number;
       }
 
@@ -580,7 +580,7 @@ export const GoodsShow: React.FC = () => {
               </Col>
               <Col style={colStyle} span={4}>
                 <Text className="table-text">
-                  {service.tariff - discount || 0}
+                  {service.price - discount || 0}
                 </Text>
               </Col>
               <Col style={colStyle} span={2}>
