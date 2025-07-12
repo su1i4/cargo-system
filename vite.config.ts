@@ -8,8 +8,8 @@ export default defineConfig({
     "process.env": {},
   },
   server: {
-    host: true, // позволяет доступ извне, включая через домен
-    port: 5173, // (если нужно явно указать порт)
-    allowedHosts: ['systemcargo.ru'], // ✅ разрешён ваш домен
+    host: true,
+    port: Number(process.env.PORT) || 5174,
+    allowedHosts: ["systemcargo.ru"],
   },
 });

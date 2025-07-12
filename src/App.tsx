@@ -110,6 +110,7 @@ import { CashDeskReport } from "./pages/reports/cash-desk";
 import { CashDeskIncomeReport } from "./pages/reports/cash-desk-income";
 import { CashDeskOutcomeReport } from "./pages/reports/cash-desk-outcome";
 import { WarehouseStockReport } from "./pages/reports/warehouse-stock";
+
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
 function App() {
