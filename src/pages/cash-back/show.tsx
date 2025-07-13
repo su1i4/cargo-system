@@ -27,6 +27,7 @@ export const CashBackShow: React.FC = () => {
         s: JSON.stringify({
           $and: [{ "counterparty.id": record?.counterparty?.id }],
         }),
+        sort: `created_at,DESC  `,
       },
     },
     queryOptions: {

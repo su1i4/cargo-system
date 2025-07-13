@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useModalForm, useSelect } from "@refinedev/antd";
 import { useOne } from "@refinedev/core";
-import { DatePicker, Form, Input, Modal, Select, Upload, AutoComplete } from "antd";
+import {
+  DatePicker,
+  Form,
+  Input,
+  Modal,
+  Select,
+  Upload,
+  AutoComplete,
+  message,
+} from "antd";
 import { API_URL } from "../../../App";
 import { PaperClipOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -12,7 +21,7 @@ export const MyCreateModalOutcome: React.FC<{
   onClose: () => void;
   onSuccess: () => void;
 }> = ({ open, onClose, onSuccess }) => {
-  const { modalProps, formProps, submit } = useModalForm({
+  const { modalProps, formProps, submit, form } = useModalForm({
     resource: "cash-desk",
     action: "create",
     onMutationSuccess: () => {
@@ -21,30 +30,32 @@ export const MyCreateModalOutcome: React.FC<{
     },
   });
 
-  const { selectProps: counterpartySelectProps } = useSelect({
-    resource: "counterparty",
-    optionLabel: "code",
-  });
-
   const { selectProps: bankSelectProps } = useSelect({
     resource: "bank",
     optionLabel: "name",
-  });
-
-  const { selectProps: goodSelectProps } = useSelect({
-    resource: "goods-processing",
-    optionLabel: "name",
-  });
-
-  const { selectProps: userSelectProps } = useSelect({
-    resource: "users",
-    optionLabel: "firstName",
   });
 
   // Сохраняем выбранный id клиента
   const [selectedCounterpartyId, setSelectedCounterpartyId] = useState<
     string | null
   >(null);
+  const [isBalanceOperation, setIsBalanceOperation] = useState(false);
+
+  const { selectProps: counterpartySelectProps } = useSelect({
+    resource: "counterparty",
+    optionLabel: (item) =>
+      `${item.name} ${item.clientPrefix}-${item.clientCode}`,
+    onSearch: (value) => [
+      {
+        operator: "or",
+        value: [
+          { field: "name", operator: "contains", value },
+          { field: "clientCode", operator: "contains", value },
+          { field: "clientPrefix", operator: "contains", value },
+        ],
+      },
+    ],
+  });
 
   // Получаем данные клиента по выбранному id с помощью useOne
   const {
@@ -69,11 +80,6 @@ export const MyCreateModalOutcome: React.FC<{
     }
   }, [counterpartyData, formProps.form]);
 
-  // Обработчик выбора клиента в Select
-  const handleCounterpartyChange = (value: string, option: any) => {
-    setSelectedCounterpartyId(value);
-  };
-
   const expenseTypes = [
     { value: "Оплата поставщику", label: "Оплата поставщику" },
     { value: "Оплата за ремонт", label: "Оплата за ремонт" },
@@ -96,6 +102,7 @@ export const MyCreateModalOutcome: React.FC<{
     { value: "Мешки", label: "Мешки" },
     { value: "Электроэнергия", label: "Электроэнергия" },
     { value: "Оплата за мусор", label: "Оплата за мусор" },
+    { value: "Контрагент с баланса", label: "Контрагент с баланса" },
   ];
 
   const incomeTypes = [{ value: "cash", label: "Оплата наличными" }];
@@ -110,7 +117,6 @@ export const MyCreateModalOutcome: React.FC<{
     }
   }, [open, formProps.form]);
 
-  // Custom styles for form with reduced gap
   const formItemStyle = {
     marginBottom: 8, // Reduced margin between form items
   };
@@ -162,29 +168,13 @@ export const MyCreateModalOutcome: React.FC<{
         </Form.Item>
 
         <Form.Item
-          name="type_currency"
-          label="Валюта"
-          rules={[{ required: true, message: "Выберите Валюту" }]}
-          style={formItemStyle}
-        >
-          <Select
-            showSearch
-            filterOption={(input, option) =>
-              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-            }
-            placeholder="Выберите валюту"
-            options={Object.values(CurrencyType).map((item: any) => ({
-              label: `${item}`,
-              value: item,
-            }))}
-          />
-        </Form.Item>
-
-        <Form.Item
           label="Статья расходов"
           name="type_operation"
           rules={[
-            { required: false, message: "Пожалуйста, выберите или введите статью расходов" },
+            {
+              required: true,
+              message: "Пожалуйста, выберите или введите статью расходов",
+            },
           ]}
           style={formItemStyle}
         >
@@ -193,7 +183,76 @@ export const MyCreateModalOutcome: React.FC<{
             placeholder="Выберите или введите статью расходов"
             style={{ width: "100%" }}
             filterOption={(inputValue, option) =>
-              option?.label?.toLowerCase().indexOf(inputValue.toLowerCase()) !== -1
+              option?.label?.toLowerCase().indexOf(inputValue.toLowerCase()) !==
+              -1
+            }
+            onSelect={(value) => {
+              if (value === "Контрагент с баланса") {
+                setIsBalanceOperation(true);
+                form.setFieldValue("type_currency", "Рубль");
+              } else {
+                setIsBalanceOperation(false);
+              }
+            }}
+          />
+        </Form.Item>
+
+        {isBalanceOperation && (
+          <>
+            <Form.Item
+              label="Код клиента"
+              name="counterparty_id"
+              rules={[
+                { required: true, message: "Пожалуйста, выберите клиента" },
+              ]}
+              style={formItemStyle}
+            >
+              <Select
+                {...counterpartySelectProps}
+                placeholder="Выберите клиента"
+                style={{ width: "100%" }}
+                showSearch
+                filterOption={false}
+                onChange={(value) => setSelectedCounterpartyId(String(value))}
+              />
+            </Form.Item>
+            {counterpartyData?.data?.ross_coin !== undefined && (
+              <div
+                style={{
+                  padding: "8px 12px",
+                  backgroundColor: "#f0f2f5",
+                  borderRadius: "6px",
+                  marginBottom: "8px",
+                  fontSize: "14px",
+                }}
+              >
+                <strong>Баланс контрагента:</strong>{" "}
+                {counterpartyData.data.ross_coin || 0} руб
+              </div>
+            )}
+          </>
+        )}
+
+        <Form.Item
+          name="type_currency"
+          label="Валюта"
+          rules={[{ required: true, message: "Выберите Валюту" }]}
+          style={formItemStyle}
+        >
+          <Select
+            showSearch
+            disabled={isBalanceOperation}
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+            placeholder="Выберите валюту"
+            options={
+              isBalanceOperation
+                ? [{ label: "Рубль", value: "Рубль" }]
+                : Object.values(CurrencyType).map((item: any) => ({
+                    label: `${item}`,
+                    value: item,
+                  }))
             }
           />
         </Form.Item>
@@ -210,11 +269,46 @@ export const MyCreateModalOutcome: React.FC<{
         <Form.Item
           label="Сумма"
           name="amount"
-          rules={[{ required: true, message: "Укажите сумму" }]}
+          rules={[
+            { required: true, message: "Укажите сумму" },
+            {
+              validator: (_, value) => {
+                if (isBalanceOperation) {
+                  const balance = Number(
+                    counterpartyData?.data?.ross_coin || 0
+                  );
+                  if (Number(value) > balance) {
+                    return Promise.reject(
+                      new Error(
+                        "Сумма расхода не может превышать баланс контрагента."
+                      )
+                    );
+                  }
+                  if (Number(value) <= 0) {
+                    return Promise.reject(
+                      new Error("Сумма расхода должна быть больше нуля.")
+                    );
+                  }
+                }
+                return Promise.resolve();
+              },
+            },
+          ]}
           style={formItemStyle}
         >
           <Input
-            placeholder="Введите сумму прихода"
+            type="number"
+            onKeyPress={(event) => {
+              if (!/[0-9]/.test(event.key)) {
+                event.preventDefault();
+              }
+            }}
+            max={
+              isBalanceOperation && counterpartyData?.data?.ross_coin !== undefined
+                ? Number(counterpartyData.data.ross_coin)
+                : undefined
+            }
+            placeholder="Введите сумму расхода"
             style={{ width: "100%" }}
           />
         </Form.Item>
@@ -235,6 +329,27 @@ export const MyCreateModalOutcome: React.FC<{
               action={`${API_URL}/file-upload`}
               listType="picture"
               accept=".png,.jpg,.jpeg"
+              beforeUpload={(file) => {
+                const formData = new FormData();
+                formData.append("file", file);
+                fetch(`${API_URL}/file-upload`, {
+                  method: "POST",
+                  body: formData,
+                })
+                  .then((response) => response.json())
+                  .then((data) => {
+                    const filePath = data.path || data.url || data.filePath;
+                    if (formProps.form) {
+                      formProps.form.setFieldsValue({
+                        photo: filePath,
+                      });
+                    }
+                  })
+                  .catch((error) => {
+                    console.error("Ошибка загрузки файла:", error);
+                  });
+                return false;
+              }}
             >
               <p className="ant-upload-text">
                 <PaperClipOutlined /> Прикрепить чек
