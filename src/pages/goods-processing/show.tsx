@@ -443,7 +443,7 @@ export const GoodsShow: React.FC = () => {
             <Text className="table-text">Город назначения</Text>
           </Col>
           <Col style={colStyle} span={8}>
-            <Text className="table-text">
+            <Text className="table-text" style={{ fontWeight: 700 }}>
               {record?.destination?.name || ""}
             </Text>
           </Col>

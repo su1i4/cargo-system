@@ -30,6 +30,8 @@ export const MyCreateModalOutcome: React.FC<{
     },
   });
 
+  const role = localStorage.getItem("cargo-system-role");
+
   const { selectProps: bankSelectProps } = useSelect({
     resource: "bank",
     optionLabel: "name",
@@ -123,8 +125,6 @@ export const MyCreateModalOutcome: React.FC<{
     { value: "Погрузка", label: "Погрузка" },
   ];
 
-  const incomeTypes = [{ value: "cash", label: "Оплата наличными" }];
-
   const currentDateDayjs = dayjs();
 
   useEffect(() => {
@@ -165,7 +165,7 @@ export const MyCreateModalOutcome: React.FC<{
       >
         <Form.Item label="Дата расход" name="date" style={formItemStyle}>
           <DatePicker
-            disabled={true}
+            disabled={role === "admin" ? false : true}
             style={{ width: "100%" }}
             format="YYYY-MM-DD HH:mm:ss"
             showTime
