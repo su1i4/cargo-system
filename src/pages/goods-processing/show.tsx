@@ -29,7 +29,6 @@ export const GoodsShow: React.FC = () => {
     onBeforePrint: async () => {
       const el = printRef.current;
       if (el) {
-
         let fontSize = 15;
         if (totalItems > 20) {
           fontSize = 14;
@@ -50,11 +49,15 @@ export const GoodsShow: React.FC = () => {
         if (isLargeInvoice) {
           invoiceCopies.forEach((copy: any, index: number) => {
             copy.style.setProperty("height", "auto", "important");
-            copy.style.setProperty("page-break-before", index === 1 ? "always" : "auto", "important");
+            copy.style.setProperty(
+              "page-break-before",
+              index === 1 ? "always" : "auto",
+              "important"
+            );
             copy.style.setProperty("page-break-inside", "avoid", "important");
             copy.style.setProperty("flex", "none", "important");
           });
-          
+
           // Убираем divider если используем отдельные страницы
           const divider = el.querySelector(".divider");
           if (divider) {
@@ -67,7 +70,7 @@ export const GoodsShow: React.FC = () => {
             copy.style.setProperty("page-break-before", "auto", "important");
             copy.style.setProperty("flex", "1", "important");
           });
-          
+
           const divider = el.querySelector(".divider");
           if (divider) {
             (divider as any).style.display = "block";
@@ -78,7 +81,7 @@ export const GoodsShow: React.FC = () => {
         totalSum.forEach((section: any) => {
           section.style.setProperty("font-size", "14px", "important");
         });
-        
+
         const tableText = el.querySelectorAll(".table-text");
         tableText.forEach((section: any) => {
           section.style.setProperty("font-size", "10px", "important");
@@ -105,7 +108,7 @@ export const GoodsShow: React.FC = () => {
       const el = printRef.current;
       if (el) {
         el.removeAttribute("style");
-        
+
         // Сбрасываем стили копий накладной
         const invoiceCopies = el.querySelectorAll(".invoice-copy");
         invoiceCopies.forEach((copy: any) => {
@@ -114,13 +117,13 @@ export const GoodsShow: React.FC = () => {
           copy.style.removeProperty("page-break-inside");
           copy.style.removeProperty("flex");
         });
-        
+
         // Возвращаем divider
         const divider = el.querySelector(".divider");
         if (divider) {
           (divider as any).style.removeProperty("display");
         }
-        
+
         const termsSection = el.querySelectorAll(".terms-section");
         termsSection.forEach((section: any) => {
           section.style.removeProperty("font-size");
@@ -133,12 +136,12 @@ export const GoodsShow: React.FC = () => {
         tableText.forEach((section: any) => {
           section.style.removeProperty("font-size");
         });
-        
+
         const totalSum = el.querySelectorAll(".total-sum-text");
         totalSum.forEach((section: any) => {
           section.style.removeProperty("font-size");
         });
-        
+
         const termsSectionInvoice = el.querySelectorAll(
           ".terms-section-invoice"
         );
@@ -245,7 +248,8 @@ export const GoodsShow: React.FC = () => {
 
     // Сортируем историю по дате (по убыванию)
     const sortedHistory = [...currency.currency_history].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
     const targetDateTime = new Date(targetDate).getTime();
@@ -287,19 +291,52 @@ export const GoodsShow: React.FC = () => {
       <div>
         <Flex
           justify="space-between"
-          align="center"
           style={{ marginBottom: "4px" }}
         >
-          <img
-            src="/rosscargo.png"
-            style={{ width: "70px", height: "40px", objectFit: "contain" }}
-            alt="photo"
-          />
-          <Flex align="center" gap="16px">
-            <QRCode
-              value={`https://rosscargo.kg/?trackingNumber=${record?.invoice_number}`}
-              size={40}
+          <Flex vertical>
+            <img
+              src="/rosscargo.png"
+              style={{ width: "70px", height: "40px", objectFit: "contain" }}
+              alt="photo"
             />
+            <Flex
+              justify="space-between"
+              align="center"
+              style={{ marginBottom: "2px" }}
+            >
+              <Text style={{ fontSize: "15px" }}>
+                Call-center: +996 509 003 003
+              </Text>
+            </Flex>
+            <Text style={{ fontSize: "15px", color: "#010801", margin: 0 }}>
+              Досыл, услуги грузчиков и адресная доставка оплачивается отдельно
+            </Text>
+            <Text style={{ fontSize: "15px", color: "#010101", margin: 0 }}>
+              Адрес склада:{" "}
+              {
+                tableProps?.dataSource?.find(
+                  (item: any) => item.id === record?.destination_id
+                )?.name
+              }
+              ,
+              {
+                tableProps?.dataSource?.find(
+                  (item: any) => item.id === record?.destination_id
+                )?.address
+              }{" "}
+              Тел. Whatsapp:{" "}
+              {
+                tableProps?.dataSource?.find(
+                  (item: any) => item.id === record?.destination_id
+                )?.phone
+              }
+            </Text>
+          </Flex>
+          <QRCode
+            value={`https://rosscargo.kg/?trackingNumber=${record?.invoice_number}`}
+            size={55}
+          />
+          <Flex vertical align="end" gap="10px">
             <Title
               className="terms-section-invoice"
               style={{ fontSize: "22px", fontWeight: 600, margin: 0 }}
@@ -307,44 +344,10 @@ export const GoodsShow: React.FC = () => {
             >
               Накладная №: {record?.invoice_number}
             </Title>
+            <Text style={{ fontSize: "15px" }}>
+              {dayjs(record?.created_at).utc().format("DD.MM.YYYY HH:mm")}
+            </Text>
           </Flex>
-        </Flex>
-        <Flex
-          justify="space-between"
-          align="center"
-          style={{ marginBottom: "2px" }}
-        >
-          <Text style={{ fontSize: "15px" }}>
-            Call-center: +996 509 003 003
-          </Text>
-          <Text style={{ fontSize: "15px" }}>
-            {dayjs(record?.created_at).utc().format("DD.MM.YYYY HH:mm")}
-          </Text>
-        </Flex>
-        <Flex vertical style={{ marginBottom: "6px" }}>
-          <Text style={{ fontSize: "15px", color: "#010801", margin: 0 }}>
-            Досыл, услуги грузчиков и адресная доставка оплачивается отдельно
-          </Text>
-          <Text style={{ fontSize: "15px", color: "#010101", margin: 0 }}>
-            Адрес склада:{" "}
-            {
-              tableProps?.dataSource?.find(
-                (item: any) => item.id === record?.destination_id
-              )?.name
-            }
-            ,
-            {
-              tableProps?.dataSource?.find(
-                (item: any) => item.id === record?.destination_id
-              )?.address
-            }{" "}
-            Тел. Whatsapp:{" "}
-            {
-              tableProps?.dataSource?.find(
-                (item: any) => item.id === record?.destination_id
-              )?.phone
-            }
-          </Text>
         </Flex>
 
         <Row
@@ -570,9 +573,7 @@ export const GoodsShow: React.FC = () => {
                 </Text>
               </Col>
               <Col style={colStyle} span={4}>
-                <Text className="table-text">
-                  {service.nomenclature?.name}
-                </Text>
+                <Text className="table-text">{service.nomenclature?.name}</Text>
               </Col>
               <Col style={colStyle} span={2}>
                 <Text className="table-text">{service.count || 0}</Text>
@@ -591,7 +592,9 @@ export const GoodsShow: React.FC = () => {
                 </Text>
               </Col>
               <Col style={colStyle} span={2}>
-                <Text className="table-text">{service.sum?.toFixed(2) || 0}</Text>
+                <Text className="table-text">
+                  {service.sum?.toFixed(2) || 0}
+                </Text>
               </Col>
             </React.Fragment>
           ))}
@@ -730,7 +733,10 @@ export const GoodsShow: React.FC = () => {
           align="center"
           style={{ marginTop: "6px" }}
         >
-          <Text className="total-sum-text" style={{ fontWeight: "bold", fontSize: "20px", margin: 0 }}>
+          <Text
+            className="total-sum-text"
+            style={{ fontWeight: "bold", fontSize: "20px", margin: 0 }}
+          >
             Сумма заказа
           </Text>
           <Flex vertical align="flex-end" style={{ width: "350px" }}>
@@ -745,7 +751,10 @@ export const GoodsShow: React.FC = () => {
             >
               Итого к оплате: {record?.amount} RUB
             </Text>
-            <Text className="total-sum-text" style={{ fontWeight: "bold", fontSize: "14px", margin: 0 }}>
+            <Text
+              className="total-sum-text"
+              style={{ fontWeight: "bold", fontSize: "14px", margin: 0 }}
+            >
               {((record?.amount || 0) * Number(somRate)).toFixed(2)} KGS
             </Text>
           </Flex>
@@ -773,10 +782,9 @@ export const GoodsShow: React.FC = () => {
               className="terms-section"
               style={{
                 fontSize: "0.8em",
-                fontWeight: '600 !important',
+                fontWeight: "600 !important",
                 margin: "1px 0",
                 lineHeight: "1.0",
-
               }}
             >
               2. В случае пропажи или порчи товара, или пожара Клиенту
@@ -867,9 +875,9 @@ export const GoodsShow: React.FC = () => {
         </>
       )}
     >
-      <div 
-        ref={printRef} 
-        className={`print-container ${isLargeInvoice ? 'large-invoice' : ''}`}
+      <div
+        ref={printRef}
+        className={`print-container ${isLargeInvoice ? "large-invoice" : ""}`}
       >
         <div className="invoice-copy">
           <InvoiceContent />

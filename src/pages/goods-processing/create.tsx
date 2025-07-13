@@ -985,6 +985,11 @@ export const GoodsCreate = () => {
             </Form.Item>
           </Col>
           <Col span={6}>
+            <Form.Item label="Комментарий" name="comments">
+              <Input />
+            </Form.Item>
+          </Col>
+          <Col span={6}>
             <Form.Item label="Досыльные города" name="sent_back_id">
               <Select {...branchSelectPropsIsSent} allowClear />
             </Form.Item>
@@ -1013,7 +1018,7 @@ export const GoodsCreate = () => {
               />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col span={6}>
             <Form.Item label="Скидка/Кешбек" name="discount_cashback_id">
               <Select
                 placeholder="Выберите скидку или кешбек"
@@ -1396,11 +1401,6 @@ export const GoodsCreate = () => {
           <Col span={8}>
             <Form.Item label="Процент наценки" name="markup">
               <InputNumber style={{ width: "100%" }} min={0} addonAfter="%" />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="Комментарий" name="comments">
-              <Input />
             </Form.Item>
           </Col>
         </Row>
