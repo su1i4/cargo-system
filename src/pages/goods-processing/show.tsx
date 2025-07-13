@@ -79,7 +79,7 @@ export const GoodsShow: React.FC = () => {
 
         const totalSum = el.querySelectorAll(".total-sum-text");
         totalSum.forEach((section: any) => {
-          section.style.setProperty("font-size", "14px", "important");
+          section.style.setProperty("font-size", "13px", "important");
         });
 
         const tableText = el.querySelectorAll(".table-text");
@@ -100,7 +100,7 @@ export const GoodsShow: React.FC = () => {
           ".terms-section-invoice"
         );
         termsSectionInvoice.forEach((section: any) => {
-          section.style.setProperty("font-size", "15px", "important");
+          section.style.setProperty("font-size", "14px", "important");
         });
       }
     },
@@ -289,10 +289,7 @@ export const GoodsShow: React.FC = () => {
   const InvoiceContent = () => {
     return (
       <div>
-        <Flex
-          justify="space-between"
-          style={{ marginBottom: "4px" }}
-        >
+        <Flex justify="space-between" style={{ marginBottom: "4px" }}>
           <Flex vertical>
             <img
               src="/rosscargo.png"
@@ -332,14 +329,24 @@ export const GoodsShow: React.FC = () => {
               }
             </Text>
           </Flex>
-          <QRCode
-            value={`https://rosscargo.kg/?trackingNumber=${record?.invoice_number}`}
-            size={55}
-          />
+          <Flex vertical align="center" gap='3px'>
+            <QRCode
+              value={`https://rosscargo.kg/?trackingNumber=${record?.invoice_number}`}
+              size={55}
+            />
+            <Text style={{ fontSize: "15px", whiteSpace: "nowrap" }}>
+              Сканируй и отслеживай
+            </Text>
+          </Flex>
           <Flex vertical align="end" gap="10px">
             <Title
               className="terms-section-invoice"
-              style={{ fontSize: "22px", fontWeight: 600, margin: 0 }}
+              style={{
+                fontSize: "20px",
+                fontWeight: 600,
+                margin: 0,
+                whiteSpace: "nowrap",
+              }}
               level={5}
             >
               Накладная №: {record?.invoice_number}
