@@ -4,6 +4,7 @@ import { useShow } from "@refinedev/core";
 import { Typography, Flex, Row, Col, Button } from "antd";
 import { PrinterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import QRCode from "react-qr-code";
 
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
@@ -294,13 +295,19 @@ export const GoodsShow: React.FC = () => {
             style={{ width: "70px", height: "40px", objectFit: "contain" }}
             alt="photo"
           />
-          <Title
-            className="terms-section-invoice"
-            style={{ fontSize: "22px", fontWeight: 600, margin: 0 }}
-            level={5}
-          >
-            Накладная №: {record?.invoice_number}
-          </Title>
+          <Flex align="center" gap="16px">
+            <QRCode
+              value={`https://rosscargo.kg/?trackingNumber=${record?.invoice_number}`}
+              size={40}
+            />
+            <Title
+              className="terms-section-invoice"
+              style={{ fontSize: "22px", fontWeight: 600, margin: 0 }}
+              level={5}
+            >
+              Накладная №: {record?.invoice_number}
+            </Title>
+          </Flex>
         </Flex>
         <Flex
           justify="space-between"

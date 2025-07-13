@@ -83,7 +83,11 @@ export const MyCreateModalOutcome: React.FC<{
   const expenseTypes = [
     { value: "Оплата поставщику", label: "Оплата поставщику" },
     { value: "Оплата за ремонт", label: "Оплата за ремонт" },
-    { value: "Выплата заработной платы работнику", label: "Выплата заработной платы работнику" },
+    { value: "Контрагент с баланса", label: "Контрагент с баланса" },
+    {
+      value: "Выплата заработной платы работнику",
+      label: "Выплата заработной платы работнику",
+    },
     { value: "Выдача подотчет", label: "Выдача подотчет" },
     { value: "Фрахт", label: "Фрахт" },
     { value: "Проходы КЗ", label: "Проходы КЗ" },
@@ -102,7 +106,21 @@ export const MyCreateModalOutcome: React.FC<{
     { value: "Мешки", label: "Мешки" },
     { value: "Электроэнергия", label: "Электроэнергия" },
     { value: "Оплата за мусор", label: "Оплата за мусор" },
-    { value: "Контрагент с баланса", label: "Контрагент с баланса" },
+    { value: "Фрахт стандарт", label: "Фрахт стандарт" },
+    { value: "Фрахт за экспресс", label: "Фракт за экспресс" },
+    { value: "Граница", label: "Граница" },
+    { value: "Документы", label: "Документы" },
+    { value: "Обратная дорога экспресс", label: "Обратная дорога экспресс" },
+    { value: "Обслуживание ТС", label: "Обслуживание ТС" },
+    { value: "ГСМ", label: "ГСМ" },
+    { value: "Склад", label: "Склад" },
+    { value: "Аренда", label: "Аренда" },
+    { value: "Коммунальные Услуги", label: "Коммунальные Услуги" },
+    { value: "Охрана", label: "Охрана" },
+    { value: "Хоз товары", label: "Хоз товары" },
+    { value: "Канц товары", label: "Канц товары" },
+    { value: "Зп сотрудникам", label: "Зп сотрудникам" },
+    { value: "Погрузка", label: "Погрузка" },
   ];
 
   const incomeTypes = [{ value: "cash", label: "Оплата наличными" }];
@@ -304,7 +322,8 @@ export const MyCreateModalOutcome: React.FC<{
               }
             }}
             max={
-              isBalanceOperation && counterpartyData?.data?.ross_coin !== undefined
+              isBalanceOperation &&
+              counterpartyData?.data?.ross_coin !== undefined
                 ? Number(counterpartyData.data.ross_coin)
                 : undefined
             }

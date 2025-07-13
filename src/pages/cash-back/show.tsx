@@ -27,7 +27,7 @@ export const CashBackShow: React.FC = () => {
         s: JSON.stringify({
           $and: [{ "counterparty.id": record?.counterparty?.id }],
         }),
-        sort: `created_at,DESC  `,
+        sort: `created_at,DESC`,
       },
     },
     queryOptions: {
@@ -74,7 +74,16 @@ export const CashBackShow: React.FC = () => {
           dataIndex="good"
           title="Дата приемки"
           render={(value) =>
-            dayjs(value?.created_at).utc().format("DD.MM.YYYY HH:mm")
+            value?.created_at
+              ? dayjs(value?.created_at).utc().format("DD.MM.YYYY HH:mm")
+              : ""
+          }
+        />
+        <Table.Column
+          dataIndex="created_at"
+          title="Дата операции"
+          render={(value) =>
+            value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
           }
         />
         <Table.Column
@@ -86,9 +95,9 @@ export const CashBackShow: React.FC = () => {
           dataIndex="good"
           title="Код отправителя"
           render={(value) => {
-            return (
-              value?.sender?.clientPrefix + "-" + value?.sender?.clientCode
-            );
+            return `${value?.sender?.clientPrefix || ""}-${
+              value?.sender?.clientCode || ""
+            }`;
           }}
         />
         <Table.Column
@@ -100,11 +109,9 @@ export const CashBackShow: React.FC = () => {
           dataIndex="good"
           title="Код получателя"
           render={(value) => {
-            return (
-              value?.recipient?.clientPrefix +
-              "-" +
-              value?.recipient?.clientCode
-            );
+            return `${value?.recipient?.clientPrefix || ""}-${
+              value?.recipient?.clientCode || ""
+            }`;
           }}
         />
         <Table.Column
@@ -121,13 +128,20 @@ export const CashBackShow: React.FC = () => {
           dataIndex="good"
           title="Вес"
           render={(value) =>
-            String(value?.weight).replace(".", ",").slice(0, 5) + " кг"
+            value
+              ? String(value?.weight).replace(".", ",").slice(0, 5) + " кг"
+              : ""
           }
         />
         <Table.Column
           dataIndex="good"
           title="Сумма"
           render={(_, record: any) => `${Number(record.amount)} ₽`}
+        />
+        <Table.Column
+          dataIndex="counterparty"
+          title="Клиент операции"
+          render={(value) => value?.name}
         />
         <Table.Column
           dataIndex="movement_type"
