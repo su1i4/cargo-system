@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Create, useForm, useSelect, useTable } from "@refinedev/antd";
 import { useApiUrl, useCustom } from "@refinedev/core";
 import {
@@ -59,6 +59,7 @@ interface ProductItem {
   price: number;
   quantity?: number;
   sum?: number;
+  edit?: boolean; // Флаг разрешения редактирования товара
   isSelected?: boolean;
 }
 
@@ -143,6 +144,9 @@ export const GoodsCreate = () => {
   const [counterpartiesWithDiscounts, setCounterpartiesWithDiscounts] =
     useState<any[]>([]);
 
+  // Добавляем состояние для доступных продуктов филиала
+  const [branchNomenclature, setBranchNomenclature] = useState<any>(null);
+
   const values: any = Form.useWatch([], form);
 
   const currentDateDayjs = dayjs().tz("Asia/Bishkek");
@@ -192,6 +196,22 @@ export const GoodsCreate = () => {
     },
   });
 
+  // Добавляем запрос к branch-nomenclature
+  const { refetch: refetchBranchNomenclature } = useCustom({
+    url: `${apiUrl}/branch-nomenclature`,
+    method: "get",
+    queryOptions: {
+      onSuccess: (data: any) => {
+        // Находим запись для выбранного филиала назначения
+        const branchRecord = (data?.data || []).find(
+          (item: any) => item.destination_id === values?.destination_id
+        );
+        setBranchNomenclature(branchRecord);
+      },
+      enabled: !!values?.destination_id,
+    },
+  });
+
   useEffect(() => {
     refetchTariffs();
     refetchSentCity();
@@ -205,6 +225,15 @@ export const GoodsCreate = () => {
       refetchCounterpartiesWithDiscounts();
     }
   }, [values?.sender_id, values?.recipient_id]);
+
+  // Добавляем эффект для обновления данных о номенклатуре филиала
+  useEffect(() => {
+    if (values?.destination_id) {
+      refetchBranchNomenclature();
+    } else {
+      setBranchNomenclature(null);
+    }
+  }, [values?.destination_id]);
 
   const findTariff = (branchId: number, productTypeId: number): number => {
     const foundTariff = tariffs.find(
@@ -230,20 +259,6 @@ export const GoodsCreate = () => {
       });
     }
   }, []);
-
-  useEffect(() => {
-    if (tableProps.dataSource) {
-      const formattedProducts = tableProps.dataSource.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: Number(item.price) || 0,
-        quantity: 0,
-        sum: 0,
-        isSelected: false,
-      }));
-      setProducts(formattedProducts);
-    }
-  }, [tableProps.dataSource]);
 
   useEffect(() => {
     if (values?.declared_value && values?.commission) {
@@ -469,6 +484,21 @@ export const GoodsCreate = () => {
     }
   }, [values?.destination_id, tariffs]);
 
+  // Функция для проверки доступности продукта для филиала
+  const isProductAvailableForBranch = (product: ProductItem): boolean => {
+    // Если нет данных о номенклатуре филиала, разрешаем редактирование всех продуктов
+    if (!branchNomenclature || !branchNomenclature.product_types) {
+      return true;
+    }
+
+    // Проверяем, есть ли продукт в списке доступных для филиала
+    return branchNomenclature.product_types.some(
+      (availableProduct: any) =>
+        availableProduct.id === product.id ||
+        availableProduct.name === product.name
+    );
+  };
+
   const updateProductField = (
     id: string | number,
     field: string,
@@ -479,8 +509,11 @@ export const GoodsCreate = () => {
         if (item.id === id) {
           const newItem = { ...item, [field]: value };
 
+          // Если изменяется количество или цена, пересчитываем сумму
           if (field === "quantity") {
             newItem.sum = value * item.price;
+          } else if (field === "price") {
+            newItem.sum = value * (item.quantity || 0);
           }
 
           return newItem;
@@ -689,6 +722,49 @@ export const GoodsCreate = () => {
     ],
   });
 
+  const { tableProps: branchNomenclatureTableProps } = useTable({
+    resource: "branch-nomenclature",
+    filters: {
+      permanent: [
+        {
+          field: "destination_id",
+          operator: "eq",
+          value: values?.destination_id,
+        },
+      ],
+    },
+    queryOptions: {
+      enabled: !!values?.destination_id,
+    },
+  });
+
+  const branchProducts = useMemo(() => {
+    if (!branchNomenclatureTableProps?.dataSource) return [];
+
+    const allProductTypes = branchNomenclatureTableProps.dataSource.flatMap(
+      (item: any) => item?.product_types || []
+    );
+
+    return allProductTypes;
+  }, [branchNomenclatureTableProps?.dataSource]);
+
+  useEffect(() => {
+    if (branchProducts.length > 0) {
+      const formattedProducts = branchProducts.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        price: Number(item.price) || 0,
+        quantity: 0,
+        sum: 0,
+        edit: item.edit || false, // Добавляем поле edit
+        isSelected: false,
+      }));
+      setProducts(formattedProducts);
+    } else {
+      setProducts([]);
+    }
+  }, [branchProducts]);
+
   const { selectProps: branchSelectPropsIsSent } = useSelect({
     resource: "sent-the-city",
     optionLabel: (record: any) => `${record?.sent_city?.name}`,
@@ -827,19 +903,16 @@ export const GoodsCreate = () => {
     values?.recipient_id,
   ]);
 
-  // Автоматически выбираем скидку или кешбек при изменении контрагентов
   useEffect(() => {
     if (
       discountCashBackOptions.length > 0 &&
       (values?.sender_id || values?.recipient_id)
     ) {
-      // Сначала ищем кешбек
       const cashBackOption = discountCashBackOptions.find(
         (option) => option.type === "cashback"
       );
 
       if (cashBackOption) {
-        // Если есть кешбек - выбираем его
         setSelectedDiscountType(cashBackOption.type);
         setDiscount(0);
         const cashBackTarget =
@@ -905,6 +978,7 @@ export const GoodsCreate = () => {
       });
       setServices(newServices);
     }
+    setProducts([]);
   }, [discount, values?.destination_id]);
 
   const lastGoods = [
@@ -1322,9 +1396,15 @@ export const GoodsCreate = () => {
             }
           />
         </Table>
-        <Title style={{ marginTop: 30 }} level={5}>
-          Товары
-        </Title>
+        <div style={{ marginTop: 30 }}>
+          <Title level={5} style={{ margin: 0 }}>
+            Товары
+          </Title>
+          <div style={{ fontSize: "12px", color: "#666", marginTop: 4 }}>
+            Доступны для редактирования товары с разрешением или разрешенные для
+            филиала назначения
+          </div>
+        </div>
         <Table
           dataSource={[...products, ...lastProducts]}
           style={{ marginTop: 10 }}
@@ -1357,6 +1437,10 @@ export const GoodsCreate = () => {
                 onChange={(val) =>
                   updateProductField(record.id, "quantity", val)
                 }
+                disabled={
+                  index >= products.length ||
+                  (!record.edit && !isProductAvailableForBranch(record))
+                }
               />
             )}
           />
@@ -1370,7 +1454,10 @@ export const GoodsCreate = () => {
                   min={0}
                   precision={2}
                   value={value}
-                  disabled
+                  disabled={!record.edit}
+                  onChange={(val) =>
+                    updateProductField(record.id, "price", val)
+                  }
                 />
               )
             }

@@ -235,9 +235,13 @@ const ShipmentHistory = () => {
         />
         <Table.Column
           width={50}
-          title="Вес"
+          title="Вес (кг)"
           dataIndex="totalServiceWeight"
-          render={(value) => String(value).replace(".", ",").slice(0, 5)}
+        />
+        <Table.Column
+          width={50}
+          title="Водитель"
+          dataIndex="driver"
         />
         <Table.Column
           width={50}

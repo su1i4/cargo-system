@@ -98,6 +98,10 @@ import { TrackList } from "./pages/track/list";
 import { CustomLayout } from "./components/layout";
 import { SentTheCityList } from "./pages/sent-the-city";
 import { ReportList } from "./pages/reports/list";
+import { BranchNomenclatureList } from "./pages/branch-nomenclature/list";
+import { BranchNomenclatureCreate } from "./pages/branch-nomenclature/create";
+import { BranchNomenclatureEdit } from "./pages/branch-nomenclature/edit";
+import { BranchNomenclatureShow } from "./pages/branch-nomenclature/show";
 import { CargoReceivedReport } from "./pages/reports/cargo-received";
 import { IncomeReport } from "./pages/reports/income";
 import { CargoTypesReport } from "./pages/reports/cargo-types";
@@ -271,6 +275,13 @@ function App() {
                     <Route path="create" element={<UnderBranchCreate />} />
                     <Route path="edit/:id" element={<UnderBranchEdit />} />
                     <Route path="show/:id" element={<UnderBranchShow />} />
+                  </Route>
+
+                  <Route path="/branch-nomenclature">
+                    <Route index element={<BranchNomenclatureList />} />
+                    <Route path="create" element={<BranchNomenclatureCreate />} />
+                    <Route path="edit/:id" element={<BranchNomenclatureEdit />} />
+                    <Route path="show/:id" element={<BranchNomenclatureShow />} />
                   </Route>
 
                   <Route path="/users">

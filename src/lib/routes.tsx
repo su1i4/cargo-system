@@ -139,6 +139,18 @@ export const routes = [
     },
   },
   {
+    name: "branch-nomenclature",
+    list: "/branch-nomenclature",
+    create: "/branch-nomenclature/create",
+    edit: "/branch-nomenclature/edit/:id",
+    show: "/branch-nomenclature/show/:id",
+    meta: {
+      canDelete: true,
+      label: "Товары филиалов",
+      parent: "Настройки",
+    },
+  },
+  {
     name: "shipment",
     list: "/shipments/show/:id/adding",
     meta: {

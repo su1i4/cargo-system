@@ -1,6 +1,6 @@
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { List, useTable, useModalForm, CreateButton } from "@refinedev/antd";
-import { useDelete } from "@refinedev/core";
+import { useDelete, useUpdate } from "@refinedev/core";
 import {
   Table,
   Modal,
@@ -10,6 +10,7 @@ import {
   Space,
   Popconfirm,
   InputNumber,
+  Checkbox,
 } from "antd";
 
 export const ProductsList = () => {
@@ -38,11 +39,31 @@ export const ProductsList = () => {
   });
 
   const { mutate: deleteOne } = useDelete();
+  const { mutate, isLoading: isUpdating } = useUpdate();
 
   return (
     <List headerButtons={<CreateButton onClick={() => showCreateModal()} />}>
       <Table {...tableProps} rowKey="id">
         <Table.Column dataIndex="name" title="Наименование" />
+        <Table.Column
+          dataIndex="edit"
+          title="Активен"
+          render={(value, record: { id: React.Key }) => (
+            <Checkbox
+              checked={value}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                mutate({
+                  resource: "products",
+                  id: String(record.id),
+                  values: {
+                    edit: e.target.checked,
+                  },
+                });
+              }}
+            />
+          )}
+        />
         <Table.Column<any>
           title="Действия"
           render={(record) => (

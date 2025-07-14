@@ -1,17 +1,8 @@
 import { useEffect, useState } from "react";
 import { useApiUrl, useCustom } from "@refinedev/core";
 import { List, useSelect } from "@refinedev/antd";
-import {
-  Table,
-  Button,
-  Space,
-  message,
-  Select,
-} from "antd";
-import {
-  FileExcelOutlined,
-  FileOutlined,
-} from "@ant-design/icons";
+import { Table, Button, Space, message, Select } from "antd";
+import { FileExcelOutlined, FileOutlined } from "@ant-design/icons";
 
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
@@ -35,11 +26,11 @@ export const WarehouseStockReport = () => {
   const [branchId, setBranchId] = useState<number | null>(null);
 
   const { data, isLoading, refetch } = useCustom<WarehouseReportItem[]>({
-    url: `${apiUrl}/report/reportInWarehouse${branchId ? `?branch_id=${branchId}` : ''}`,
+    url: `${apiUrl}/report/reportInWarehouse${
+      branchId ? `?branch_id=${branchId}` : ""
+    }`,
     method: "get",
-    queryOptions: {
-      
-    }
+    queryOptions: {},
   });
 
   useEffect(() => {
@@ -53,7 +44,6 @@ export const WarehouseStockReport = () => {
       refetch();
     }
   }, [branchId]);
-
 
   // Функция для скачивания CSV
   const downloadCSV = () => {
@@ -76,7 +66,7 @@ export const WarehouseStockReport = () => {
         [
           `${index + 1}`,
           `"${item.name}"`,
-            item.totalQuantity,
+          item.totalQuantity,
           item.totalWeight,
           item.packageCount,
         ].join(";")
@@ -145,9 +135,15 @@ export const WarehouseStockReport = () => {
       ];
       worksheet["!cols"] = columnWidths;
 
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Номенклатуры на складе");
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Номенклатуры на складе"
+      );
 
-      const fileName = `отчет-товары-на-складе-${dayjs().format("DD-MM-YYYY")}.xlsx`;
+      const fileName = `отчет-товары-на-складе-${dayjs().format(
+        "DD-MM-YYYY"
+      )}.xlsx`;
       XLSX.writeFile(workbook, fileName);
 
       message.success("XLSX файл скачан успешно");
@@ -157,7 +153,7 @@ export const WarehouseStockReport = () => {
     }
   };
 
-  const {selectProps} = useSelect({
+  const { selectProps } = useSelect({
     resource: "branch",
     optionLabel: "name",
     optionValue: "id",
@@ -222,7 +218,11 @@ export const WarehouseStockReport = () => {
           title="Наименование товара, артикул, состав, размер"
         />
         <Table.Column dataIndex="totalQuantity" title="Общ количество" />
-        <Table.Column dataIndex="totalWeight" title="Общ вес" render={(value) => `${value} кг`} />
+        <Table.Column
+          dataIndex="totalWeight"
+          title="Общ вес"
+          render={(value) => `${value} кг`}
+        />
         <Table.Column
           dataIndex="packageCount"
           title="Количество мест, коробки, мешки"
@@ -230,4 +230,4 @@ export const WarehouseStockReport = () => {
       </Table>
     </List>
   );
-}; 
+};

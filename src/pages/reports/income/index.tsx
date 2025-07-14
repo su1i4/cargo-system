@@ -18,6 +18,8 @@ import {
   FilterOutlined,
   FileOutlined,
   FileExcelOutlined,
+  PlusOutlined,
+  MinusOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useCustom } from "@refinedev/core";
@@ -120,51 +122,92 @@ export const IncomeReport = () => {
   // Функция для подготовки данных для экспорта
   const prepareExportData = () => {
     const dataSource = data?.data?.data || [];
+    const exportData: any[] = [];
 
-    return dataSource.map((record: any, index: number) => ({
-      "№": index + 1,
-      "Дата приемки": record.created_at
-        ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
-        : "",
-      "Дата отправки": record.created_at
-        ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
-        : "",
-      "Дата получения": record.created_at
-        ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
-        : "",
-      "Дата выдачи": (() => {
-        const issuedStatus = Array.isArray(record.tracking_status)
-          ? record.tracking_status.find((item: any) => item.status === "Выдали")
-          : null;
-        return issuedStatus?.createdAt
-          ? dayjs(issuedStatus.createdAt).utc().format("DD.MM.YYYY HH:mm")
-          : "";
-      })(),
-      "Номер машины": record.truck_number || "",
-      "№ накладной": record.invoice_number || "",
-      "Код отправителя": record.sender
-        ? `${record.sender.clientPrefix}-${record.sender.clientCode}`
-        : "",
-      "Фио отправителя": record.sender?.name || "",
-      "Код получателя": record.recipient
-        ? `${record.recipient.clientPrefix}-${record.recipient.clientCode}`
-        : "",
-      "Фио получателя": record.recipient?.name || "",
-      "Номер получателя": record.recipient?.phoneNumber || "",
-      "Город (с досыслом если есть)": record.destination?.name || "",
-      "Номер мешков": record.services?.map((item: any) => item.bag_number).join(", ") || "",
-      "Вес, кг": record.totalServiceWeight
-        ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5)
-        : "",
-      "Кол-во мешков": record.services?.length || 0,
-      Сумма: record.totalServiceAmountSum || 0,
-      "Сумма за мешки": record.totalProductAmountSum || 0,
-      Оплачено: record.paid_sum || 0,
-      Долг:
-        Number(record.totalServiceAmountSum || 0) +
-        Number(record.totalProductAmountSum || 0) -
-        Number(record.paid_sum || 0),
-    }));
+    dataSource.forEach((record: any, index: number) => {
+      // Основная строка товара
+      const mainRow = {
+        "№": index + 1,
+        "Дата приемки": record.created_at
+          ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
+          : "",
+        "Дата отправки": record.created_at
+          ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
+          : "",
+        "Дата получения": record.created_at
+          ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
+          : "",
+        "Дата выдачи": (() => {
+          const issuedStatus = Array.isArray(record.tracking_status)
+            ? record.tracking_status.find((item: any) => item.status === "Выдали")
+            : null;
+          return issuedStatus?.createdAt
+            ? dayjs(issuedStatus.createdAt).utc().format("DD.MM.YYYY HH:mm")
+            : "";
+        })(),
+        "Номер машины": record.truck_number || "",
+        "№ накладной": record.invoice_number || "",
+        "Код отправителя": record.sender
+          ? `${record.sender.clientPrefix}-${record.sender.clientCode}`
+          : "",
+        "Фио отправителя": record.sender?.name || "",
+        "Код получателя": record.recipient
+          ? `${record.recipient.clientPrefix}-${record.recipient.clientCode}`
+          : "",
+        "Фио получателя": record.recipient?.name || "",
+        "Номер получателя": record.recipient?.phoneNumber || "",
+        "Город (с досыслом если есть)": record.destination?.name || "",
+        "Номер мешков": record.services?.map((item: any) => item.bag_number).join(", ") || "",
+        "Вес, кг": record.totalServiceWeight
+          ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5)
+          : "",
+        "Кол-во мешков": record.services?.length || 0,
+        Сумма: record.totalServiceAmountSum || 0,
+        "Сумма за мешки": record.totalProductAmountSum || 0,
+        Оплачено: record.paid_sum || 0,
+        Долг:
+          Number(record.totalServiceAmountSum || 0) +
+          Number(record.totalProductAmountSum || 0) -
+          Number(record.paid_sum || 0),
+        "Тип строки": "Основная",
+      };
+
+      exportData.push(mainRow);
+
+      // Детали мешков
+      if (record.services && record.services.length > 0) {
+        record.services.forEach((service: any, serviceIndex: number) => {
+          const serviceRow = {
+            "№": `${index + 1}.${serviceIndex + 1}`,
+            "Дата приемки": "",
+            "Дата отправки": "",
+            "Дата получения": "",
+            "Дата выдачи": "",
+            "Номер машины": "",
+            "№ накладной": "",
+            "Код отправителя": "",
+            "Фио отправителя": "",
+            "Код получателя": "",
+            "Фио получателя": "",
+            "Номер получателя": "",
+            "Город (с досыслом если есть)": "",
+            "Номер мешков": service.bag_number || "",
+            "Вес, кг": service.weight
+              ? String(service.weight).replace(".", ",").slice(0, 5)
+              : "",
+            "Кол-во мешков": 1,
+            Сумма: service.sum || 0,
+            "Сумма за мешки": 0,
+            Оплачено: 0,
+            Долг: 0,
+            "Тип строки": "Детали мешка",
+          };
+          exportData.push(serviceRow);
+        });
+      }
+    });
+
+    return exportData;
   };
 
   // Функция для скачивания XLSX
@@ -578,6 +621,66 @@ export const IncomeReport = () => {
         pagination={false}
         rowKey="id"
         scroll={{ x: 1000 }}
+        expandable={{
+          expandedRowRender: (record: any) => {
+            if (!record.services || record.services.length === 0) {
+              return <div style={{ padding: '10px', color: '#666' }}>Нет информации о мешках</div>;
+            }
+
+            const columns = [
+              {
+                title: '№',
+                key: 'index',
+                render: (_: any, __: any, index: number) => index + 1,
+                width: 50,
+              },
+              {
+                title: 'Номер мешка',
+                dataIndex: 'bag_number',
+                key: 'bag_number',
+                width: 120,
+              },
+              {
+                title: 'Вес, кг',
+                dataIndex: 'weight',
+                key: 'weight',
+                render: (value: any) => value ? String(value).replace(".", ",").slice(0, 5) : '',
+                width: 100,
+              },
+              {
+                title: 'Сумма',
+                dataIndex: 'sum',
+                key: 'sum',
+                width: 100,
+              },
+              {
+                title: 'Описание',
+                dataIndex: 'description',
+                key: 'description',
+                render: (value: any) => value || '-',
+              },
+            ];
+
+            return (
+              <Table
+                columns={columns}
+                dataSource={record.services}
+                pagination={false}
+                rowKey={(item: any) => `${record.id}-${item.bag_number}`}
+                size="small"
+                style={{ margin: '10px 0' }}
+              />
+            );
+          },
+          expandIcon: ({ expanded, onExpand, record }: any) => (
+            <Button
+              type="text"
+              size="small"
+              icon={expanded ? <MinusOutlined /> : <PlusOutlined />}
+              onClick={(e) => onExpand(record, e)}
+            />
+          ),
+        }}
       >
         <Table.Column
           title="№"
