@@ -1,4 +1,4 @@
-import { List, useTable } from "@refinedev/antd";
+import { List, useTable, useSelect } from "@refinedev/antd";
 import {
   Table,
   Image,
@@ -10,7 +10,9 @@ import {
   Form,
   Dropdown,
   Input,
+  Select,
 } from "antd";
+import type { SelectProps } from 'antd';
 import { API_URL } from "../../App";
 import { useState } from "react";
 import { useCustom } from "@refinedev/core";
@@ -36,10 +38,27 @@ export const IssueProcessingListReceived = () => {
   const [searchFilters, setSearchFilters] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(200);
+  const [selectedCities, setSelectedCities] = useState<(string | number)[]>([]);
+
+  const { selectProps: branchSelectProps } = useSelect({
+    resource: "branch",
+    optionLabel: "name",
+  });
+
   const buildQueryParams = () => {
+    const filters = [...searchFilters];
+    
+    if (selectedCities.length > 0) {
+      filters.push({
+        "destination.id": {
+          $in: selectedCities
+        }
+      });
+    }
+
     return {
       s: JSON.stringify({
-        $and: [...searchFilters, { status: { $eq: "Выдали" } }],
+        $and: [...filters, { status: { $eq: "Выдали" } }],
       }),
       sort: `${sortField},${sortDirection}`,
       limit: pageSize,
@@ -190,6 +209,19 @@ export const IssueProcessingListReceived = () => {
                     },
                   ]);
                 }}
+              />
+            </Form.Item>
+            <Form.Item name="cities">
+              <Select
+                mode="multiple"
+                style={{ width: 300 }}
+                placeholder="Выберите города"
+                {...(branchSelectProps as SelectProps)}
+                value={selectedCities}
+                onChange={(values) => {
+                  setSelectedCities(values);
+                }}
+                allowClear
               />
             </Form.Item>
             <Form.Item name="dateRange">
