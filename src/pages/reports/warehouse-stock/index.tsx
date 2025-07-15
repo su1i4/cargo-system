@@ -23,12 +23,20 @@ export const WarehouseStockReport = () => {
   const [nomenclatures, setNomenclatures] = useState<WarehouseReportItem[]>([]);
   const apiUrl = useApiUrl();
 
-  const [branchId, setBranchId] = useState<number | null>(null);
+  const [branchIds, setBranchIds] = useState<number[]>([]);
+
+  // Формируем URL с параметрами branch_ids
+  const buildUrl = () => {
+    const baseUrl = `${apiUrl}/report/reportInWarehouse`;
+    if (branchIds.length > 0) {
+      const params = branchIds.map(id => `branch_ids=${id}`).join('&');
+      return `${baseUrl}?${params}`;
+    }
+    return baseUrl;
+  };
 
   const { data, isLoading, refetch } = useCustom<WarehouseReportItem[]>({
-    url: `${apiUrl}/report/reportInWarehouse${
-      branchId ? `?branch_id=${branchId}` : ""
-    }`,
+    url: buildUrl(),
     method: "get",
     queryOptions: {},
   });
@@ -40,10 +48,8 @@ export const WarehouseStockReport = () => {
   }, [data]);
 
   useEffect(() => {
-    if (branchId) {
-      refetch();
-    }
-  }, [branchId]);
+    refetch();
+  }, [branchIds]);
 
   // Функция для скачивания CSV
   const downloadCSV = () => {
@@ -166,14 +172,16 @@ export const WarehouseStockReport = () => {
         return (
           <Space>
             <Select
-              placeholder="Выберите пункт назначения"
+              mode="multiple"
+              placeholder="Выберите пункты назначения"
               {...selectProps}
               onChange={(value) => {
-                setBranchId(value as unknown as number);
+                setBranchIds(value as unknown as number[]);
               }}
               style={{
-                width: 200,
+                width: 300,
               }}
+              allowClear
             />
             <Button
               icon={<FileExcelOutlined />}
