@@ -209,8 +209,6 @@ const ShipmentCreate = () => {
     />
   );
 
-
-
   const handleSearch = (value: string) => {
     setSearchValue(value);
 
@@ -303,16 +301,13 @@ const ShipmentCreate = () => {
         }))}
         style={{ width: "100%", marginBottom: 20 }}
         onChange={(value) => {
-          setFilters(
-            [
-              {
-                field: "good.destination_id",
-                operator: "eq",
-                value: value,
-              },
-            ],
-            "replace"
-          );
+          setFilters([
+            {
+              field: "good.destination_id",
+              operator: "eq",
+              value: value,
+            },
+          ]);
         }}
         allowClear
       />
@@ -325,16 +320,13 @@ const ShipmentCreate = () => {
         }))}
         allowClear
         onChange={(value) => {
-          setFilters(
-            [
-              {
-                field: "product_type.id",
-                operator: "eq",
-                value: value,
-              },
-            ],
-            "replace"
-          );
+          setFilters([
+            {
+              field: "product_type.id",
+              operator: "eq",
+              value: value,
+            },
+          ]);
         }}
         style={{ width: "100%" }}
       />
@@ -481,7 +473,9 @@ const ShipmentCreate = () => {
             title="Пункт назначения"
             dataIndex="good"
             render={(value, record) =>
-              `${value?.destination?.name}, ${record?.good?.sent_back?.name || ""}`
+              `${value?.destination?.name}, ${
+                record?.good?.sent_back?.name || ""
+              }`
             }
           />
           <Table.Column title="Штрихкод" dataIndex="barcode" />
