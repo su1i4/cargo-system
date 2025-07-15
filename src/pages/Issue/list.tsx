@@ -741,17 +741,26 @@ export const IssueProcessingList = () => {
         }}
         scroll={{ x: 1000 }}
         onRow={(record) => ({
-          onClick: () => {
+          onClick: (e) => {
             const id = record.id;
             if (id === undefined || id === null) return;
-            setSelectedRowKeys((prev) => {
-              if (prev.includes(id)) {
-                return prev.filter((key) => key !== id);
-              } else {
-                return [...prev, id];
-              }
-            });
+            
+            // Если клик был на чекбокс, обрабатываем только выбор
+            if ((e.target as HTMLElement).closest('.ant-checkbox-wrapper')) {
+              setSelectedRowKeys((prev) => {
+                if (prev.includes(id)) {
+                  return prev.filter((key) => key !== id);
+                } else {
+                  return [...prev, id];
+                }
+              });
+              return;
+            }
+            
+            // В противном случае перенаправляем на страницу просмотра
+            push(`/goods-processing/show/${id}`);
           },
+          style: { cursor: 'pointer' }
         })}
       >
         <Table.Column
