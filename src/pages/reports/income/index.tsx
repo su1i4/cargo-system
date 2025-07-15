@@ -10,6 +10,7 @@ import {
   Card,
   Select,
   message,
+  Checkbox,
 } from "antd";
 import {
   SearchOutlined,
@@ -57,6 +58,9 @@ export const IncomeReport = () => {
   const [paymentFilter, setPaymentFilter] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<any[]>([]);
   const [searchFilter, setSearchFilter] = useState<any[]>([]);
+  
+  // Состояние для отображения мешков (по умолчанию отключено)
+  const [showBags, setShowBags] = useState(false);
 
   // Состояния для дат
   const [from, setFrom] = useState(
@@ -174,8 +178,8 @@ export const IncomeReport = () => {
 
       exportData.push(mainRow);
 
-      // Детали мешков
-      if (record.services && record.services.length > 0) {
+      // Детали мешков (только если включена галочка)
+      if (showBags && record.services && record.services.length > 0) {
         record.services.forEach((service: any, serviceIndex: number) => {
           const serviceRow = {
             "№": `${index + 1}.${serviceIndex + 1}`,
@@ -537,6 +541,15 @@ export const IncomeReport = () => {
           />
         </Col>
         <Col>
+          <Checkbox 
+            checked={showBags} 
+            onChange={(e) => setShowBags(e.target.checked)}
+            style={{ marginRight: 8 }}
+          >
+            Показать мешки
+          </Checkbox>
+        </Col>
+        <Col>
           <Button
             icon={<FileExcelOutlined />}
             type="primary"
@@ -621,7 +634,7 @@ export const IncomeReport = () => {
         pagination={false}
         rowKey="id"
         scroll={{ x: 1000 }}
-        expandable={{
+        expandable={showBags ? {
           expandedRowRender: (record: any) => {
             if (!record.services || record.services.length === 0) {
               return <div style={{ padding: '10px', color: '#666' }}>Нет информации о мешках</div>;
@@ -680,7 +693,7 @@ export const IncomeReport = () => {
               onClick={(e) => onExpand(record, e)}
             />
           ),
-        }}
+        } : undefined}
       >
         <Table.Column
           title="№"
