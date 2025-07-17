@@ -88,6 +88,13 @@ export const ReportList = () => {
       icon: <CargoReceivedIcon3 />,
       link: "warehouse-stock",
     },
+    {
+      id: "warehouse-stock-goods",
+      title: "Отчет по задолженности представительств по рейсам",
+      description: "Отчёт показывает задолженности представительств по рейсам",
+      icon: <CargoReceivedIcon3 />,
+      link: "warehouse-stock-goods",
+    },
   ];
 
   const { push } = useNavigation();

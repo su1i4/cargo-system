@@ -50,7 +50,12 @@ import ReceivingShow from "./pages/receiving/ReceivingShow";
 import ReceivingEdit from "./pages/receiving/ReceivingEdit";
 import { i18nProvider_ru } from "./i18n/ru";
 import { IssueProcessingList } from "./pages/Issue";
-import { CashBackCreate, CashBackList, CashBackShow, CashBackEdit } from "./pages/cash-back";
+import {
+  CashBackCreate,
+  CashBackList,
+  CashBackShow,
+  CashBackEdit,
+} from "./pages/cash-back";
 import { BankCreate, BankEdit, BankList, BankShow } from "./pages/bank";
 import { BankPermissionList } from "./pages/bank-permission/list";
 import { BankPermissionCreate } from "./pages/bank-permission/create";
@@ -115,6 +120,7 @@ import { CashDeskIncomeReport } from "./pages/reports/cash-desk-income";
 import { CashDeskOutcomeReport } from "./pages/reports/cash-desk-outcome";
 import { WarehouseStockReport } from "./pages/reports/warehouse-stock";
 import { GoodsProcessingCreate } from "./pages/goods-processing/create/index";
+import { WarehouseStockGoodsReport } from "./pages/reports/shipment-lam";
 
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
@@ -280,9 +286,18 @@ function App() {
 
                   <Route path="/branch-nomenclature">
                     <Route index element={<BranchNomenclatureList />} />
-                    <Route path="create" element={<BranchNomenclatureCreate />} />
-                    <Route path="edit/:id" element={<BranchNomenclatureEdit />} />
-                    <Route path="show/:id" element={<BranchNomenclatureShow />} />
+                    <Route
+                      path="create"
+                      element={<BranchNomenclatureCreate />}
+                    />
+                    <Route
+                      path="edit/:id"
+                      element={<BranchNomenclatureEdit />}
+                    />
+                    <Route
+                      path="show/:id"
+                      element={<BranchNomenclatureShow />}
+                    />
                   </Route>
 
                   <Route path="/users">
@@ -362,9 +377,22 @@ function App() {
                     <Route path="bank" element={<BankReport />} />
                     <Route path="receiving" element={<ShipmentReport />} />
                     <Route path="cash-desk" element={<CashDeskReport />} />
-                    <Route path="cash-desk-income" element={<CashDeskIncomeReport />} />
-                    <Route path="cash-desk-outcome" element={<CashDeskOutcomeReport />} />
-                    <Route path="warehouse-stock" element={<WarehouseStockReport />} />
+                    <Route
+                      path="cash-desk-income"
+                      element={<CashDeskIncomeReport />}
+                    />
+                    <Route
+                      path="cash-desk-outcome"
+                      element={<CashDeskOutcomeReport />}
+                    />
+                    <Route
+                      path="warehouse-stock"
+                      element={<WarehouseStockReport />}
+                    />
+                    <Route
+                      path="warehouse-stock-goods"
+                      element={<WarehouseStockGoodsReport />}
+                    />
                   </Route>
 
                   <Route path="/notification">

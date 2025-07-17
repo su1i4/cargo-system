@@ -1,15 +1,12 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Show, useTable, useSelect } from "@refinedev/antd";
-import { useUpdateMany, useNavigation } from "@refinedev/core";
+import { useUpdateMany, useNavigation, useCustom } from "@refinedev/core";
 import {
   Input,
-  Row,
-  Col,
   Table,
   Button,
   Dropdown,
   DatePicker,
-  Card,
   Form,
   message,
   Flex,
@@ -19,15 +16,13 @@ import {
 import { useParams } from "react-router";
 import {
   ArrowLeftOutlined,
-  CalendarOutlined,
   ArrowDownOutlined,
   SearchOutlined,
   ArrowUpOutlined,
-  FilterOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import { CustomTooltip } from "../../shared/custom-tooltip";
+import { API_URL } from "../../App";
 
 dayjs.extend(utc);
 
@@ -65,18 +60,11 @@ const ShipmentAdd = () => {
         },
       ],
     },
+    syncWithLocation: false,
   });
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
-  const [selectedProductType, setSelectedProductType] = useState<string | null>(null);
-  const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
-  const [filterVisible, setFilterVisible] = useState(false);
-
-  // Состояния для отдельных фильтров
-  const [productTypeFilter, setProductTypeFilter] = useState<any>(null);
-  const [destinationFilter, setDestinationFilter] = useState<any>(null);
-  const [searchFilter, setSearchFilter] = useState<any>(null);
 
   const { mutate: updateManyGoods } = useUpdateMany({
     resource: "service",
@@ -90,7 +78,7 @@ const ShipmentAdd = () => {
 
   const { selectProps: destinationSelectProps } = useSelect({
     resource: "branch",
-    optionLabel: "name", 
+    optionLabel: "name",
     optionValue: "id",
   });
 
@@ -222,114 +210,64 @@ const ShipmentAdd = () => {
     </Menu>
   );
 
-
-
-  // Объединение всех фильтров
-  useEffect(() => {
-    const allFilters = [
-      productTypeFilter,
-      destinationFilter,
-      searchFilter,
-    ].filter(Boolean);
-    
-    if (allFilters.length > 0) {
-      setFilters(
-        [
-          {
-            operator: "and",
-            value: allFilters,
-          },
-        ],
-        "replace"
-      );
-    } else {
-      setFilters([], "replace");
-    }
-  }, [productTypeFilter, destinationFilter, searchFilter]);
-
   const handleSearch = (value: string) => {
-    setSearchValue(value);
-    
-    if (value.trim() === "") {
-      setSearchFilter(null);
-    } else {
-      setSearchFilter({
-        operator: "or",
+    setFilters([
+      {
+        operator: "and",
         value: [
           {
-            field: "bag_number_numeric",
-            operator: "contains",
-            value: value.trim(),
-          },
-          {
-            field: "good.sender.name",
-            operator: "contains",
-            value: value.trim(),
-          },
-          {
-            field: "good.recipient.name",
-            operator: "contains",
-            value: value.trim(),
-          },
-          {
-            field: "good.invoice_number",
-            operator: "contains",
-            value: value.trim(),
+            operator: "or",
+            value: [
+              {
+                field: "bag_number_numeric",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.sender.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.recipient.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "weight",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "quantity",
+                operator: "contains",
+                value: value.trim(),
+              },
+            ],
           },
         ],
-      });
-    }
+      },
+    ]);
   };
 
-  const handleProductTypeChange = (value: string | null) => {
-    setSelectedProductType(value);
-    
-    if (!value) {
-      setProductTypeFilter(null);
-    } else {
-      setProductTypeFilter({
-        field: "product_type.id",
-        operator: "eq",
-        value: value,
-      });
-    }
-  };
+  const { data: branch } = useCustom({
+    url: `${API_URL}/branch`,
+    method: "get",
+  });
 
-  const handleDestinationChange = (value: string | null) => {
-    setSelectedDestination(value);
-    
-    if (!value) {
-      setDestinationFilter(null);
-    } else {
-      setDestinationFilter({
-        field: "good.destination_id",
-        operator: "eq",
-        value: value,
-      });
-    }
-  };
+  const { data: typeProduct } = useCustom({
+    url: `${API_URL}/type-product`,
+    method: "get",
+  });
 
-  const filterContent = (
-    <Card style={{ width: 300, padding: "0px !important" }}>
-      <Select
-        options={productTypeSelectProps.options}
-        loading={productTypeSelectProps.loading}
-        placeholder="Выберите тип товара"
-        allowClear
-        value={selectedProductType}
-        onChange={handleProductTypeChange}
-        style={{ width: "100%", marginBottom: 20 }}
-      />
-      <Select
-        options={destinationSelectProps.options}
-        loading={destinationSelectProps.loading}
-        placeholder="Выберите город назначения"
-        allowClear
-        value={selectedDestination}
-        onChange={handleDestinationChange}
-        style={{ width: "100%" }}
-      />
-    </Card>
+  const branchIds = React.useMemo(
+    () => branch?.data?.map((branch: any) => branch.id),
+    [branch]
+  );
+
+  const typeProductIds = React.useMemo(
+    () => typeProduct?.data?.map((typeProduct: any) => typeProduct.id),
+    [typeProduct]
   );
 
   return (
@@ -345,64 +283,94 @@ const ShipmentAdd = () => {
       title="Добавление товаров к отгрузке"
     >
       <Form form={form} layout="vertical">
-        <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
-          <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10} wrap>
-            <Dropdown overlay={sortMenu} trigger={["click"]}>
-              <Button
-                icon={
-                  sortDirection === "ASC" ? (
-                    <ArrowUpOutlined />
-                  ) : (
-                    <ArrowDownOutlined />
-                  )
-                }
-              >
-                {getSortFieldLabel()}
-              </Button>
-            </Dropdown>
-            <CustomTooltip title="Фильтры">
-              <Dropdown
-                overlay={filterContent}
-                trigger={["click"]}
-                placement="bottomLeft"
-                open={filterVisible}
-                onOpenChange={(visible) => {
-                  setFilterVisible(visible);
-                }}
-              >
-                <Button icon={<FilterOutlined />} />
-              </Dropdown>
-            </CustomTooltip>
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder="Поиск по номеру мешка, отправителю, получателю"
-              value={searchValue}
-              onChange={(e) => handleSearch(e.target.value)}
-              allowClear
-              style={{ minWidth: "300px", maxWidth: "400px" }}
-            />
-            <Dropdown
-              overlay={datePickerContent}
-              trigger={["click"]}
-              placement="bottomRight"
-            >
-              <Button
-                icon={<CalendarOutlined />}
-                className="date-picker-button"
-              >
-                Дата
-              </Button>
-            </Dropdown>
+        <Flex style={{ width: "100%", marginBottom: 10 }} gap={10} wrap>
+          <Dropdown overlay={sortMenu} trigger={["click"]}>
             <Button
-              type="primary"
-              onClick={handleSave}
-              loading={isSubmitting}
-              disabled={isSubmitting || selectedRowKeys.length === 0}
-            >
-              Добавить выбранные товары
-            </Button>
-          </Flex>
-        </Row>
+              style={{ width: 35 }}
+              icon={
+                sortDirection === "ASC" ? (
+                  <ArrowUpOutlined />
+                ) : (
+                  <ArrowDownOutlined />
+                )
+              }
+            />
+          </Dropdown>
+          <Select
+            placeholder="Выберите пункт назначения"
+            options={branch?.data?.map((branch: any) => ({
+              label: branch.name,
+              value: branch.id,
+            }))}
+            onChange={(value) => {
+              if (value.length === 0) {
+                setFilters([
+                  {
+                    field: "good.destination_id",
+                    operator: "in",
+                    value: branchIds,
+                  },
+                ]);
+                return;
+              }
+              setFilters([
+                {
+                  field: "good.destination_id",
+                  operator: "in",
+                  value: value,
+                },
+              ]);
+            }}
+            mode="multiple"
+            style={{ minWidth: 200 }}
+            allowClear
+          />
+          <Select
+            title="Выберите тип тов"
+            placeholder="Выберите тип товара"
+            options={typeProduct?.data?.map((branch: any) => ({
+              label: branch.name,
+              value: branch.id,
+            }))}
+            allowClear
+            onChange={(value) => {
+              if (value.length === 0) {
+                setFilters([
+                  {
+                    field: "product_type.id",
+                    operator: "in",
+                    value: typeProductIds,
+                  },
+                ]);
+              } else {
+                setFilters([
+                  {
+                    field: "product_type.id",
+                    operator: "in",
+                    value: value,
+                  },
+                ]);
+              }
+            }}
+            mode="multiple"
+            style={{ minWidth: 200 }}
+          />
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="Поиск по номеру мешка, отправителю, получателю, весу, количеству"
+            onChange={(e) => handleSearch(e.target.value)}
+            allowClear
+            style={{ minWidth: "200px", maxWidth: "200px" }}
+          />
+          <Button
+            type="primary"
+            onClick={handleSave}
+            loading={isSubmitting}
+            disabled={isSubmitting || selectedRowKeys.length === 0}
+          >
+            Добавить
+          </Button>
+        </Flex>
         <Table
           {...tableProps}
           rowKey="id"
@@ -410,6 +378,19 @@ const ShipmentAdd = () => {
           locale={{
             emptyText: "Нет доступных товаров для добавления",
           }}
+          onRow={(record) => ({
+            onClick: () => {
+              const id = record.id;
+              if (id === undefined || id === null) return;
+              setSelectedRowKeys((prev: any[]) => {
+                if (prev.includes(id)) {
+                  return prev.filter((key) => key !== id);
+                } else {
+                  return [...prev, id];
+                }
+              });
+            },
+          })}
           scroll={{ x: 1000 }}
         >
           <Table.Column
@@ -455,7 +436,9 @@ const ShipmentAdd = () => {
             title="Пункт назначения"
             dataIndex="good"
             render={(value, record) =>
-              `${value?.destination?.name}, ${record?.good?.sent_back?.name || ""}`
+              `${value?.destination?.name}, ${
+                record?.good?.sent_back?.name || ""
+              }`
             }
           />
           <Table.Column title="Штрихкод" dataIndex="barcode" />

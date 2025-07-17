@@ -1,4 +1,4 @@
-import { FilterOutlined, SearchOutlined } from "@ant-design/icons";
+import { SearchOutlined } from "@ant-design/icons";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { ArrowUpOutlined } from "@ant-design/icons";
 import { Create, useForm, useTable, useSelect } from "@refinedev/antd";
@@ -20,13 +20,11 @@ import {
   Flex,
   Dropdown,
   Menu,
-  Card,
 } from "antd";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-import { useState } from "react";
-import { CustomTooltip } from "../../shared/custom-tooltip";
+import React, { useState } from "react";
 import { API_URL } from "../../App";
 
 dayjs.extend(utc);
@@ -41,7 +39,7 @@ const ShipmentCreate = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const { list } = useNavigation();
 
-  const { tableProps, setFilters, setSorters } = useTable({
+  const { tableProps, setFilters, setSorters, filters } = useTable({
     resource: "service",
     filters: {
       permanent: [
@@ -60,6 +58,7 @@ const ShipmentCreate = () => {
     pagination: {
       pageSize: 200,
     },
+    syncWithLocation: false,
   });
 
   const { mutate: updateServices } = useUpdateMany({
@@ -152,7 +151,6 @@ const ShipmentCreate = () => {
   };
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
-  const [searchValue, setSearchValue] = useState("");
   const [sortField, setSortField] = useState("created_at");
 
   const sortFields = [
@@ -173,11 +171,6 @@ const ShipmentCreate = () => {
         order: direction.toLowerCase() as "ascend" | "descend",
       },
     ]);
-  };
-
-  const getSortFieldLabel = (): string => {
-    const field = sortFields.find((f) => f.key === sortField);
-    return field ? field.label : "Дата приемки";
   };
 
   const sortMenu = (
@@ -210,69 +203,43 @@ const ShipmentCreate = () => {
   );
 
   const handleSearch = (value: string) => {
-    setSearchValue(value);
-
-    if (value.trim() === "") {
-      // Возвращаем постоянные фильтры при очистке поиска
-      setFilters(
-        [
+    setFilters([
+      {
+        operator: "and",
+        value: [
           {
             operator: "or",
             value: [
               {
-                field: "status",
-                operator: "eq",
-                value: "На складе",
+                field: "bag_number_numeric",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.sender.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "good.recipient.name",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "weight",
+                operator: "contains",
+                value: value.trim(),
+              },
+              {
+                field: "quantity",
+                operator: "contains",
+                value: value.trim(),
               },
             ],
           },
         ],
-        "replace"
-      );
-    } else {
-      // Комбинируем постоянные фильтры с поисковыми
-      setFilters(
-        [
-          {
-            operator: "and",
-            value: [
-              {
-                operator: "or",
-                value: [
-                  {
-                    field: "status",
-                    operator: "eq",
-                    value: "На складе",
-                  },
-                ],
-              },
-              {
-                operator: "or",
-                value: [
-                  {
-                    field: "bag_number_numeric",
-                    operator: "contains",
-                    value: value.trim(),
-                  },
-                  {
-                    field: "good.sender.name",
-                    operator: "contains",
-                    value: value.trim(),
-                  },
-                  {
-                    field: "good.recipient.name",
-                    operator: "contains",
-                    value: value.trim(),
-                  },
-                  
-                ],
-              },
-            ],
-          },
-        ],
-        "replace"
-      );
-    }
+      },
+    ]);
   };
 
   const { data: branch } = useCustom({
@@ -285,48 +252,14 @@ const ShipmentCreate = () => {
     method: "get",
   });
 
-  const [filterVisible, setFilterVisible] = useState(false);
+  const branchIds = React.useMemo(
+    () => branch?.data?.map((branch: any) => branch.id),
+    [branch]
+  );
 
-  const filterContent = (
-    <Card style={{ width: 300, padding: "0px !important" }}>
-      <Select
-        placeholder="Выберите пункт назначения"
-        options={branch?.data?.map((branch: any) => ({
-          label: branch.name,
-          value: branch.id,
-        }))}
-        style={{ width: "100%", marginBottom: 20 }}
-        onChange={(value) => {
-          setFilters([
-            {
-              field: "good.destination_id",
-              operator: "eq",
-              value: value,
-            },
-          ]);
-        }}
-        allowClear
-      />
-      <Select
-        title="Выберите тип тов"
-        placeholder="Выберите тип товара"
-        options={typeProduct?.data?.map((branch: any) => ({
-          label: branch.name,
-          value: branch.id,
-        }))}
-        allowClear
-        onChange={(value) => {
-          setFilters([
-            {
-              field: "product_type.id",
-              operator: "eq",
-              value: value,
-            },
-          ]);
-        }}
-        style={{ width: "100%" }}
-      />
-    </Card>
+  const typeProductIds = React.useMemo(
+    () => typeProduct?.data?.map((typeProduct: any) => typeProduct.id),
+    [typeProduct]
   );
 
   return (
@@ -371,43 +304,88 @@ const ShipmentCreate = () => {
             </Form.Item>
           </Col>
         </Row>
-        <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
-          <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10}>
-            <Dropdown overlay={sortMenu} trigger={["click"]}>
-              <Button
-                icon={
-                  sortDirection === "ASC" ? (
-                    <ArrowUpOutlined />
-                  ) : (
-                    <ArrowDownOutlined />
-                  )
-                }
-              >
-                {getSortFieldLabel()}
-              </Button>
-            </Dropdown>
-            <CustomTooltip title="Фильтры">
-              <Dropdown
-                overlay={filterContent}
-                trigger={["click"]}
-                placement="bottomLeft"
-                open={filterVisible}
-                onOpenChange={(visible) => {
-                  setFilterVisible(visible);
-                }}
-              >
-                <Button style={{ width: 40 }} icon={<FilterOutlined />} />
-              </Dropdown>
-            </CustomTooltip>
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder="Поиск по номеру мешка, отправителю, получателю"
-              value={searchValue}
-              onChange={(e) => handleSearch(e.target.value)}
-              allowClear
+        <Flex
+          style={{ width: "100%", padding: "10px 0px", marginBottom: 10 }}
+          gap={10}
+        >
+          <Dropdown overlay={sortMenu} trigger={["click"]}>
+            <Button
+              style={{ width: 30, minWidth: 30 }}
+              icon={
+                sortDirection === "ASC" ? (
+                  <ArrowUpOutlined />
+                ) : (
+                  <ArrowDownOutlined />
+                )
+              }
             />
-          </Flex>
-        </Row>
+          </Dropdown>
+          <Select
+            placeholder="Выберите пункт назначения"
+            options={branch?.data?.map((branch: any) => ({
+              label: branch.name,
+              value: branch.id,
+            }))}
+            style={{ width: "100%" }}
+            onChange={(value) => {
+              if (value.length === 0) {
+                setFilters([
+                  {
+                    field: "good.destination_id",
+                    operator: "in",
+                    value: branchIds,
+                  },
+                ]);
+                return;
+              }
+              setFilters([
+                {
+                  field: "good.destination_id",
+                  operator: "in",
+                  value: value,
+                },
+              ]);
+            }}
+            mode="multiple"
+            allowClear
+          />
+          <Select
+            title="Выберите тип тов"
+            placeholder="Выберите тип товара"
+            options={typeProduct?.data?.map((branch: any) => ({
+              label: branch.name,
+              value: branch.id,
+            }))}
+            allowClear
+            onChange={(value) => {
+              if (value.length === 0) {
+                setFilters([
+                  {
+                    field: "product_type.id",
+                    operator: "in",
+                    value: typeProductIds,
+                  },
+                ]);
+              } else {
+                setFilters([
+                  {
+                    field: "product_type.id",
+                    operator: "in",
+                    value: value,
+                  },
+                ]);
+              }
+            }}
+            mode="multiple"
+            style={{ width: "100%" }}
+          />
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="Поиск по номеру мешка, отправителю, получателю, весу, количеству"
+            onChange={(e) => handleSearch(e.target.value)}
+            allowClear
+          />
+        </Flex>
         <Table
           {...tableProps}
           rowKey="id"
@@ -450,6 +428,7 @@ const ShipmentCreate = () => {
             title="Тип товара"
             dataIndex="product_type"
             render={(value) => value?.name}
+            width={60}
           />
           <Table.Column
             title="Получатель"
@@ -458,13 +437,12 @@ const ShipmentCreate = () => {
               `${value?.recipient?.clientPrefix}-${value?.recipient?.clientCode} ${value?.recipient?.name}`
             }
           />
-          <Table.Column title="Количество" dataIndex="quantity" />
+          <Table.Column title="Кол-во" dataIndex="quantity" />
           <Table.Column
             title="Вес"
             dataIndex="weight"
             render={(value) => String(value).replace(".", ",").slice(0, 5)}
           />
-          <Table.Column title="Статус" dataIndex="status" />
           <Table.Column
             title="Пункт назначения"
             dataIndex="good"
@@ -474,12 +452,13 @@ const ShipmentCreate = () => {
               }`
             }
           />
-          <Table.Column title="Штрихкод" dataIndex="barcode" />
           <Table.Column
             title="Номенклатура"
             dataIndex="nomenclature"
             render={(value) => value?.name}
           />
+          <Table.Column title="Статус" dataIndex="status" />
+          <Table.Column title="Штрихкод" dataIndex="barcode" />
         </Table>
       </Form>
     </Create>

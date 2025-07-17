@@ -1,12 +1,6 @@
 import { useState, useEffect } from "react";
 import { Edit, useForm, useSelect, useTable } from "@refinedev/antd";
-import {
-  useUpdateMany,
-  useOne,
-  useNavigation,
-  useUpdate,
-  useShow,
-} from "@refinedev/core";
+import { useUpdateMany, useOne, useNavigation, useShow } from "@refinedev/core";
 import {
   Form,
   Input,
@@ -15,7 +9,6 @@ import {
   Col,
   Table,
   Button,
-  Card,
   DatePicker,
   message,
   Tooltip,
@@ -23,7 +16,7 @@ import {
   Dropdown,
   Menu,
 } from "antd";
-import { useParams, useSearchParams } from "react-router";
+import { useParams } from "react-router";
 import {
   CalendarOutlined,
   FileAddOutlined,
@@ -31,7 +24,6 @@ import {
   ArrowUpOutlined,
   ArrowDownOutlined,
 } from "@ant-design/icons";
-import { translateStatus } from "../../lib/utils";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
@@ -45,7 +37,6 @@ const ShipmentEdit = () => {
   const { id } = useParams();
   const { push, list } = useNavigation();
 
-  const [searchValue, setSearchValue] = useState<string>("");
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState("created_at");
@@ -68,15 +59,6 @@ const ShipmentEdit = () => {
           value: Number(id),
         },
       ],
-      initial: searchValue
-        ? [
-            {
-              field: "trackCode",
-              operator: "contains",
-              value: searchValue,
-            },
-          ]
-        : [],
     },
     pagination: {
       pageSize: 200,
@@ -130,7 +112,7 @@ const ShipmentEdit = () => {
     resource: "shipments",
     action: "edit",
     id,
-    redirect: false, // Изменено на false, чтобы контролировать редирект вручную
+    redirect: false,
     onMutationSuccess: async (updatedShipment) => {},
   });
 
@@ -140,13 +122,10 @@ const ShipmentEdit = () => {
   });
   const record = queryResult.data?.data;
 
-  // Обработчик завершения отправки формы
   const handleFinish = async (values: any) => {
     try {
-      // Получаем все сервисы из таблицы
       const allServices = tableProps?.dataSource || [];
 
-      // Разделяем на выбранные и невыбранные
       const selectedServices = allServices.filter((item: any) =>
         selectedRowKeys.includes(item.id)
       );
@@ -179,7 +158,6 @@ const ShipmentEdit = () => {
         updatePromises.push(unselectedPromise);
       }
 
-      // Обновляем выбранные сервисы (добавляем в отправку)
       if (selectedServices.length > 0) {
         const selectedPromise = new Promise((resolve, reject) => {
           updateServices(
@@ -205,10 +183,8 @@ const ShipmentEdit = () => {
         updatePromises.push(selectedPromise);
       }
 
-      // Ждем завершения всех обновлений
       if (updatePromises.length > 0) {
         await Promise.all(updatePromises);
-        // message.success('Отправка успешно обновлена');
         list("shipments");
       } else {
         message.info("Нет изменений для сохранения");
@@ -220,7 +196,6 @@ const ShipmentEdit = () => {
     }
   };
 
-  // Кастомный обработчик кнопки сохранения
   const saveButtonProps = {
     ...originalSaveButtonProps,
     onClick: async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -229,14 +204,11 @@ const ShipmentEdit = () => {
       try {
         console.log("Save button clicked");
 
-        // Валидируем форму
         const values = await form.validateFields();
         console.log("Form validation passed:", values);
 
-        // Отправляем основную форму
         form.submit();
 
-        // Небольшая задержка, чтобы дать время форме отправиться
         setTimeout(() => {
           handleFinish(values);
         }, 500);
@@ -248,7 +220,6 @@ const ShipmentEdit = () => {
     disabled: formLoading || !!tableProps.loading,
   };
 
-  // Установка выбранных строк при загрузке данных
   useEffect(() => {
     if (tableProps?.dataSource && id) {
       const assignedGoods = tableProps.dataSource
@@ -260,7 +231,6 @@ const ShipmentEdit = () => {
     }
   }, [tableProps.dataSource, id]);
 
-  // Установка данных формы при загрузке
   useEffect(() => {
     if (shipmentData?.data && form) {
       console.log("Setting form values:", shipmentData.data);
@@ -336,11 +306,6 @@ const ShipmentEdit = () => {
     { key: "bag_number_numeric", label: "Номер мешка" },
   ];
 
-  const getSortFieldLabel = () => {
-    const field = sortFields.find((f) => f.key === sortField);
-    return field ? field.label : "Дата приемки";
-  };
-
   const sortMenu = (
     <Menu>
       {sortFields.map((field) => (
@@ -362,48 +327,40 @@ const ShipmentEdit = () => {
     </Menu>
   );
 
-
-
   const handleSearch = (value: string) => {
-    setSearchValue(value);
-
-    if (value.trim() === "") {
-      setFilters([], "replace");
-    } else {
-      setFilters(
-        [
+    setFilters([
+      {
+        operator: "or",
+        value: [
           {
-            operator: "or",
-            value: [
-              {
-                field: "bag_number_numeric",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "good.sender.name",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "good.recipient.name",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "good.invoice_number",
-                operator: "contains",
-                value: value.trim(),
-              },
-            ],
+            field: "bag_number_numeric",
+            operator: "contains",
+            value: value.trim(),
+          },
+          {
+            field: "good.sender.name",
+            operator: "contains",
+            value: value.trim(),
+          },
+          {
+            field: "good.recipient.name",
+            operator: "contains",
+            value: value.trim(),
+          },
+          {
+            field: "weight",
+            operator: "contains",
+            value: value.trim(),
+          },
+          {
+            field: "quantity",
+            operator: "contains",
+            value: value.trim(),
           },
         ],
-        "replace"
-      );
-    }
+      },
+    ]);
   };
-
-
 
   return (
     <Edit
@@ -457,6 +414,7 @@ const ShipmentEdit = () => {
             </Tooltip>
             <Dropdown overlay={sortMenu} trigger={["click"]}>
               <Button
+                style={{ width: 40 }}
                 icon={
                   sortDirection === "ASC" ? (
                     <ArrowUpOutlined />
@@ -464,14 +422,11 @@ const ShipmentEdit = () => {
                     <ArrowDownOutlined />
                   )
                 }
-              >
-                {getSortFieldLabel()}
-              </Button>
+              />
             </Dropdown>
             <Input
               prefix={<SearchOutlined />}
               placeholder="Поиск по номеру мешка, отправителю, получателю"
-              value={searchValue}
               onChange={(e) => handleSearch(e.target.value)}
               allowClear
             />
@@ -551,7 +506,9 @@ const ShipmentEdit = () => {
             title="Пункт назначения"
             dataIndex="good"
             render={(value, record) =>
-              `${value?.destination?.name}, ${record?.good?.sent_back?.name || ""}`
+              `${value?.destination?.name}, ${
+                record?.good?.sent_back?.name || ""
+              }`
             }
           />
           <Table.Column title="Штрихкод" dataIndex="barcode" />

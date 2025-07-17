@@ -25,6 +25,7 @@ import {
   CopyOutlined,
 } from "@ant-design/icons";
 import Title from "antd/es/typography/Title";
+import { API_URL } from "../../App";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -47,19 +48,13 @@ interface GoodItem {
   is_price_editable?: boolean;
 }
 
-interface TypeProduct {
-  id: string;
-  name: string;
-  tariff: number;
-}
-
 interface ProductItem {
   id: string | number;
   name: string;
   price: number;
   quantity?: number;
   sum?: number;
-  edit?: boolean; // Флаг разрешения редактирования товара
+  edit?: boolean;
   isSelected?: boolean;
 }
 
@@ -103,21 +98,9 @@ interface DiscountOrCashBackItem {
   originalData: any;
 }
 
-const countries = [
-  { label: "Китай", value: "Китай" },
-  { label: "Узбекистан", value: "Узбекистан" },
-  { label: "Туркменистан", value: "Туркменистан" },
-  { label: "Кыргызстан", value: "Кыргызстан" },
-  { label: "Турция", value: "Турция" },
-];
-
 export const GoodsCreate = () => {
   const { formProps, saveButtonProps, form } = useForm();
   const apiUrl = useApiUrl();
-
-  const { tableProps } = useTable({
-    resource: "products",
-  });
 
   const { tableProps: tariffTableProps } = useTable({
     resource: "tariff",
@@ -135,16 +118,16 @@ export const GoodsCreate = () => {
   const [copyCount, setCopyCount] = useState(0);
   const [sentCityData, setSentCityData] = useState<any[]>([]);
   const [cashBacks, setCashBacks] = useState<CashBackItem[]>([]);
+  const [hasBagNumber, setHasBagNumber] = useState<
+    { id: number; has: boolean }[]
+  >([]);
   const [discountCashBackOptions, setDiscountCashBackOptions] = useState<
     DiscountOrCashBackItem[]
   >([]);
-  const [selectedDiscountType, setSelectedDiscountType] = useState<
-    "discount" | "cashback" | null
-  >(null);
+
   const [counterpartiesWithDiscounts, setCounterpartiesWithDiscounts] =
     useState<any[]>([]);
 
-  // Добавляем состояние для доступных продуктов филиала
   const [branchNomenclature, setBranchNomenclature] = useState<any>(null);
 
   const values: any = Form.useWatch([], form);
@@ -196,13 +179,11 @@ export const GoodsCreate = () => {
     },
   });
 
-  // Добавляем запрос к branch-nomenclature
   const { refetch: refetchBranchNomenclature } = useCustom({
     url: `${apiUrl}/branch-nomenclature`,
     method: "get",
     queryOptions: {
       onSuccess: (data: any) => {
-        // Находим запись для выбранного филиала назначения
         const branchRecord = (data?.data || []).find(
           (item: any) => item.destination_id === values?.destination_id
         );
@@ -226,7 +207,6 @@ export const GoodsCreate = () => {
     }
   }, [values?.sender_id, values?.recipient_id]);
 
-  // Добавляем эффект для обновления данных о номенклатуре филиала
   useEffect(() => {
     if (values?.destination_id) {
       refetchBranchNomenclature();
@@ -331,7 +311,6 @@ export const GoodsCreate = () => {
 
     let newItems: GoodItem[] = [];
 
-    // Если есть выделенные товары, копируем их
     if (selectedRowKeys.length > 0) {
       const selectedItems = services.filter((item) =>
         selectedRowKeys.includes(item.id)
@@ -352,7 +331,6 @@ export const GoodsCreate = () => {
 
       setNextId(nextId + count * selectedItems.length);
     } else {
-      // Если нет выделенных товаров, создаем пустые
       newItems = Array.from({ length: count }, (_, i) => {
         const newId = nextId + i;
         return {
@@ -367,7 +345,7 @@ export const GoodsCreate = () => {
     }
 
     setServices([...services, ...newItems]);
-    setSelectedRowKeys([]); // Сбрасываем выделение
+    setSelectedRowKeys([]);
   };
 
   const copyWhileCount = () => {
@@ -429,12 +407,10 @@ export const GoodsCreate = () => {
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
 
-              // Обновляем цену только если ручное редактирование отключено
               if (!item.is_price_editable) {
                 newItem.price = Number(selectedType.tariff) - discount;
               }
 
-              // Пересчитываем сумму с учетом текущей цены (может быть пользовательской)
               if (newItem.weight) {
                 const priceToUse = item.is_price_editable
                   ? newItem.price
@@ -444,7 +420,6 @@ export const GoodsCreate = () => {
             }
           }
 
-          // Если изменяется цена вручную и включено ручное редактирование, пересчитываем сумму
           if (field === "price" && item.is_price_editable && newItem.weight) {
             newItem.sum = calculateSum(newItem.weight, value);
           }
@@ -484,14 +459,11 @@ export const GoodsCreate = () => {
     }
   }, [values?.destination_id, tariffs]);
 
-  // Функция для проверки доступности продукта для филиала
   const isProductAvailableForBranch = (product: ProductItem): boolean => {
-    // Если нет данных о номенклатуре филиала, разрешаем редактирование всех продуктов
     if (!branchNomenclature || !branchNomenclature.product_types) {
       return true;
     }
 
-    // Проверяем, есть ли продукт в списке доступных для филиала
     return branchNomenclature.product_types.some(
       (availableProduct: any) =>
         availableProduct.id === product.id ||
@@ -509,7 +481,6 @@ export const GoodsCreate = () => {
         if (item.id === id) {
           const newItem = { ...item, [field]: value };
 
-          // Если изменяется количество или цена, пересчитываем сумму
           if (field === "quantity") {
             newItem.sum = value * item.price;
           } else if (field === "price") {
@@ -756,7 +727,7 @@ export const GoodsCreate = () => {
         price: Number(item.price) || 0,
         quantity: 0,
         sum: 0,
-        edit: item.edit || false, // Добавляем поле edit
+        edit: item.edit || false,
         isSelected: false,
       }));
       setProducts(formattedProducts);
@@ -913,7 +884,6 @@ export const GoodsCreate = () => {
       );
 
       if (cashBackOption) {
-        setSelectedDiscountType(cashBackOption.type);
         setDiscount(0);
         const cashBackTarget =
           cashBackOption.counterpartyId === values?.sender_id
@@ -925,13 +895,11 @@ export const GoodsCreate = () => {
           discount_id: null,
         });
       } else {
-        // Если кешбека нет - ищем скидку
         const discountOption = discountCashBackOptions.find(
           (option) => option.type === "discount"
         );
 
         if (discountOption) {
-          setSelectedDiscountType(discountOption.type);
           setDiscount(discountOption.value);
           formProps.form?.setFieldsValue({
             discount_cashback_id: discountOption.id,
@@ -941,8 +909,6 @@ export const GoodsCreate = () => {
         }
       }
     } else if (discountCashBackOptions.length === 0) {
-      // Если нет ни скидок, ни кешбеков - очищаем поля
-      setSelectedDiscountType(null);
       setDiscount(0);
       formProps.form?.setFieldsValue({
         discount_cashback_id: null,
@@ -1101,8 +1067,6 @@ export const GoodsCreate = () => {
                     (opt) => opt.id === value
                   );
                   if (selectedOption) {
-                    setSelectedDiscountType(selectedOption.type);
-
                     if (selectedOption.type === "discount") {
                       setDiscount(selectedOption.value);
                       formProps.form?.setFieldsValue({
@@ -1121,7 +1085,6 @@ export const GoodsCreate = () => {
                       });
                     }
                   } else {
-                    setSelectedDiscountType(null);
                     setDiscount(0);
                     formProps.form?.setFieldsValue({
                       cash_back_target: null,
@@ -1276,7 +1239,7 @@ export const GoodsCreate = () => {
               return (
                 index < services.length && (
                   <Input
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       setServices(
                         services.map((item: any, serviceIndex: number) => {
                           if (serviceIndex === index) {
@@ -1289,8 +1252,42 @@ export const GoodsCreate = () => {
                           }
                         })
                       );
+
+                      const response = await fetch(
+                        `${API_URL}/service/checking-service-number?destination_id=${values?.destination_id}&bag_number=${e.target.value}`,
+                        {
+                          method: "GET",
+                        }
+                      );
+
+                      const data = await response.json();
+                      if (data) {
+                        message.error("Номер мешка уже существует");
+
+                        setHasBagNumber((prevState) => {
+                          const exists = prevState.some(
+                            (item) => item.id === record.id
+                          );
+                          if (!exists) {
+                            return [...prevState, { id: record.id, has: true }];
+                          }
+                          return prevState;
+                        });
+                      } else {
+                        setHasBagNumber((prevState) =>
+                          prevState.filter((item) => item.id !== record.id)
+                        );
+                      }
                     }}
-                    style={{ width: 120 }}
+                    style={{
+                      width: 120,
+                      border: hasBagNumber.find(
+                        (item: { id: number; has: boolean }) =>
+                          item.id === record.id
+                      )?.has
+                        ? "1px solid red"
+                        : "1px solid #d9d9d9",
+                    }}
                     value={value}
                   />
                 )
