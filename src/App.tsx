@@ -114,6 +114,7 @@ import { CashDeskReport } from "./pages/reports/cash-desk";
 import { CashDeskIncomeReport } from "./pages/reports/cash-desk-income";
 import { CashDeskOutcomeReport } from "./pages/reports/cash-desk-outcome";
 import { WarehouseStockReport } from "./pages/reports/warehouse-stock";
+import { GoodsProcessingCreate } from "./pages/goods-processing/create/index";
 
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
@@ -368,7 +369,7 @@ function App() {
 
                   <Route path="/notification">
                     <Route index element={<NotificationsList />} />
-                    <Route path="create" element={<NotificationsCreate />} />
+                    <Route path="create" element={<GoodsProcessingCreate />} />
                   </Route>
 
                   <Route path="/answer-ready">

@@ -161,7 +161,7 @@ export const IncomeReport = () => {
         "Фио получателя": record.recipient?.name || "",
         "Номер получателя": record.recipient?.phoneNumber || "",
         "Город (с досыслом если есть)": record.destination?.name || "",
-        "Номер мешков": record.services?.map((item: any) => item.bag_number).join(", ") || "",
+        "Номер мешков": record.services?.map((item: any) => item.bag_number_numeric).join(", ") || "",
         "Вес, кг": record.totalServiceWeight
           ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5)
           : "",
@@ -195,7 +195,7 @@ export const IncomeReport = () => {
             "Фио получателя": "",
             "Номер получателя": "",
             "Город (с досыслом если есть)": "",
-            "Номер мешков": service.bag_number || "",
+            "Номер мешков": service.bag_number_numeric || "",
             "Вес, кг": service.weight
               ? String(service.weight).replace(".", ",").slice(0, 5)
               : "",
@@ -649,8 +649,8 @@ export const IncomeReport = () => {
               },
               {
                 title: 'Номер мешка',
-                dataIndex: 'bag_number',
-                key: 'bag_number',
+                dataIndex: 'bag_number_numeric',
+                key: 'bag_number_numeric',
                 width: 120,
               },
               {
@@ -679,7 +679,7 @@ export const IncomeReport = () => {
                 columns={columns}
                 dataSource={record.services}
                 pagination={false}
-                rowKey={(item: any) => `${record.id}-${item.bag_number}`}
+                rowKey={(item: any) => `${record.id}-${item.bag_number_numeric}`}
                 size="small"
                 style={{ margin: '10px 0' }}
               />
@@ -776,7 +776,7 @@ export const IncomeReport = () => {
           dataIndex="services"
           title="Номера мешков"
           render={(value) =>
-            value?.map((item: any) => item.bag_number).join(", ") || ""
+            value?.map((item: any) => item.bag_number_numeric).join(", ") || ""
           }
           width={200}
         />

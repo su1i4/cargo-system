@@ -157,7 +157,7 @@ const ShipmentCreate = () => {
 
   const sortFields = [
     { key: "good.created_at", label: "Дата приемки" },
-    { key: "bag_number", label: "Номер мешка" },
+    { key: "bag_number_numeric", label: "Номер мешка" },
   ] as const;
 
   type SortFieldKey = (typeof sortFields)[number]["key"];
@@ -250,7 +250,7 @@ const ShipmentCreate = () => {
                 operator: "or",
                 value: [
                   {
-                    field: "bag_number",
+                    field: "bag_number_numeric",
                     operator: "contains",
                     value: value.trim(),
                   },
@@ -264,11 +264,7 @@ const ShipmentCreate = () => {
                     operator: "contains",
                     value: value.trim(),
                   },
-                  {
-                    field: "good.invoice_number",
-                    operator: "contains",
-                    value: value.trim(),
-                  },
+                  
                 ],
               },
             ],
@@ -449,7 +445,7 @@ const ShipmentCreate = () => {
               `${value?.sender?.clientPrefix}-${value?.sender?.clientCode} ${value?.sender?.name}`
             }
           />
-          <Table.Column title="Номер мешка" dataIndex="bag_number" />
+          <Table.Column title="Номер мешка" dataIndex="bag_number_numeric" />
           <Table.Column
             title="Тип товара"
             dataIndex="product_type"

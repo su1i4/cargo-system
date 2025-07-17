@@ -1,14 +1,15 @@
 import React, { useRef } from "react";
 import { Show, EditButton, DeleteButton, useTable } from "@refinedev/antd";
 import { useShow } from "@refinedev/core";
-import { Typography, Flex, Row, Col, Button } from "antd";
-import { PrinterOutlined } from "@ant-design/icons";
+import { Typography, Flex, Row, Col, Button, message } from "antd";
+import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import QRCode from "react-qr-code";
 
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { useReactToPrint } from "react-to-print";
+import { API_URL } from "../../App";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -19,9 +20,10 @@ const { Title, Text } = Typography;
 
 export const GoodsShow: React.FC = () => {
   const { queryResult } = useShow();
-  const { data, isLoading } = queryResult;
+  const { data, isLoading, refetch } = queryResult;
   const record = data?.data;
   const printRef = useRef<HTMLDivElement>(null);
+  const token = localStorage.getItem("cargo-system-token");
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -218,7 +220,7 @@ export const GoodsShow: React.FC = () => {
           sum: 0,
           weight: 0,
           count: 0,
-          bag_number: "",
+          bag_number_numeric: "",
         };
       }
 
@@ -227,10 +229,10 @@ export const GoodsShow: React.FC = () => {
       acc[key].weight += parseFloat(service.weight);
       acc[key].count += 1;
 
-      if (service.bag_number) {
-        acc[key].bag_number = acc[key].bag_number
-          ? acc[key].bag_number + ", " + service.bag_number
-          : service.bag_number;
+      if (service.bag_number_numeric) {
+        acc[key].bag_number_numeric = acc[key].bag_number_numeric
+          ? acc[key].bag_number_numeric + ", " + service.bag_number_numeric
+          : service.bag_number_numeric;
       }
 
       return acc;
@@ -329,7 +331,7 @@ export const GoodsShow: React.FC = () => {
               }
             </Text>
           </Flex>
-          <Flex vertical align="center" gap='3px'>
+          <Flex vertical align="center" gap="3px">
             <QRCode
               value={`https://rosscargo.kg/?trackingNumber=${record?.invoice_number}`}
               size={55}
@@ -568,7 +570,7 @@ export const GoodsShow: React.FC = () => {
           {grouped?.map((service: any, index: number) => (
             <React.Fragment key={index}>
               <Col style={colStyle} span={4}>
-                <Text className="table-text">{service.bag_number}</Text>
+                <Text className="table-text">{service.bag_number_numeric}</Text>
               </Col>
               <Col style={colStyle} span={4}>
                 <Text
@@ -862,10 +864,38 @@ export const GoodsShow: React.FC = () => {
     );
   };
 
+  const handleSend = async () => {
+    const response: any = await fetch(
+      `${API_URL}/goods-processing/send-notification-wa`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          good_id: record?.id,
+        }),
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (response.ok) {
+      message.success("Сообщение отправлено");
+      refetch();
+    } else {
+      const data = await response.json();
+      message.error(data?.message);
+    }
+  };
+
   return (
     <Show
       headerButtons={({ deleteButtonProps, editButtonProps }) => (
         <>
+          {!record?.send_notification && (
+            <Button icon={<SendOutlined />} onClick={handleSend}>
+              Отправить сообщение
+            </Button>
+          )}
           <Button
             type="primary"
             icon={<PrinterOutlined />}

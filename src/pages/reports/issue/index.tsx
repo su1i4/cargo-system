@@ -140,7 +140,7 @@ export const IssueReport = () => {
       "Вес": record.totalServiceWeight
         ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5) + " кг"
         : "",
-      "Номер мешков": record.services?.map((item: any) => item.bag_number).join(', ') || "",
+      "Номер мешков": record.services?.map((item: any) => item.bag_number_numeric).join(', ') || "",
       "Кол-во мешков": record.services?.length 
         ? record.services.length + " шт"
         : "0 шт",
@@ -592,7 +592,7 @@ export const IssueReport = () => {
         <Table.Column
           dataIndex="services"
           title="Номер мешков"
-          render={(value) => value?.map((item: any) => item.bag_number).join(', ')}
+          render={(value) => value?.map((item: any) => item.bag_number_numeric).join(', ')}
         />
         <Table.Column
           dataIndex="services"

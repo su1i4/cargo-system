@@ -148,7 +148,7 @@ export const StockReport = () => {
           " кг"
         : "",
       "Номер мешков":
-        record.services?.map((item: any) => item.bag_number).join(", ") || "",
+        record.services?.map((item: any) => item.bag_number_numeric).join(", ") || "",
       "Кол-во мешков": record.services?.length
         ? record.services.length + " шт"
         : "0 шт",
@@ -612,7 +612,7 @@ export const StockReport = () => {
           dataIndex="services"
           title="Номер мешков"
           render={(value) =>
-            value?.map((item: any) => item.bag_number).join(", ")
+            value?.map((item: any) => item.bag_number_numeric).join(", ")
           }
         />
         <Table.Column

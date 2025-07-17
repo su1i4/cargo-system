@@ -45,7 +45,7 @@ interface GoodItem {
   barcode: string;
   updated?: boolean; // Флаг, указывающий, что услуга была изменена
   is_created?: boolean; // Флаг, указывающий, что услуга была создана
-  bag_number?: string;
+  bag_number_numeric?: string;
   is_price_editable?: boolean;
 }
 
@@ -469,7 +469,7 @@ export const GoodsEdit = () => {
     const newItem: GoodItem = {
       id: nextId,
       barcode: generateBarcode(),
-      bag_number: "",
+      bag_number_numeric: "",
       is_created: true, // Отмечаем, что товар новый
       is_price_editable: false,
     };
@@ -1029,7 +1029,7 @@ export const GoodsEdit = () => {
         return {
           id: newId,
           barcode: generateBarcode(),
-          bag_number: "",
+          bag_number_numeric: "",
           is_created: true,
           is_price_editable: false,
         };
@@ -1339,7 +1339,7 @@ export const GoodsEdit = () => {
           />
           <Table.Column
             title="Номер мешка"
-            dataIndex="bag_number"
+            dataIndex="bag_number_numeric"
             render={(value, record: any, index: number) => {
               return (
                 index < services.length && (
@@ -1350,7 +1350,7 @@ export const GoodsEdit = () => {
                           if (serviceIndex === index) {
                             return {
                               ...item,
-                              bag_number: e.target.value,
+                              bag_number_numeric: e.target.value,
                             };
                           } else {
                             return item;

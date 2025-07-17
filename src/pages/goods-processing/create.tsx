@@ -43,7 +43,7 @@ interface GoodItem {
   price?: number;
   sum?: number;
   barcode: string;
-  bag_number?: string;
+  bag_number_numeric?: string;
   is_price_editable?: boolean;
 }
 
@@ -290,7 +290,7 @@ export const GoodsCreate = () => {
     const newItem: GoodItem = {
       id: nextId,
       barcode: generateBarcode(),
-      bag_number: "",
+      bag_number_numeric: "",
       is_price_editable: false,
     };
     setServices([...services, newItem]);
@@ -358,7 +358,7 @@ export const GoodsCreate = () => {
         return {
           id: newId,
           barcode: generateBarcode(),
-          bag_number: "",
+          bag_number_numeric: "",
           is_price_editable: false,
         };
       });
@@ -564,13 +564,13 @@ export const GoodsCreate = () => {
         !service.type_id ||
         !service.weight ||
         service.weight <= 0 ||
-        !service.bag_number
+        !service.bag_number_numeric
       ) {
         hasInvalidFields = true;
         let missingFields = [];
         if (!service.type_id) missingFields.push("Тип товара");
         if (!service.weight || service.weight <= 0) missingFields.push("Вес");
-        if (!service.bag_number) missingFields.push("Номер мешка");
+        if (!service.bag_number_numeric) missingFields.push("Номер мешка");
         message.warning(
           `Услуга #${
             index + 1
@@ -1271,7 +1271,7 @@ export const GoodsCreate = () => {
           />
           <Table.Column
             title="Номер мешка"
-            dataIndex="bag_number"
+            dataIndex="bag_number_numeric"
             render={(value, record: any, index: number) => {
               return (
                 index < services.length && (
@@ -1282,7 +1282,7 @@ export const GoodsCreate = () => {
                           if (serviceIndex === index) {
                             return {
                               ...item,
-                              bag_number: e.target.value,
+                              bag_number_numeric: e.target.value,
                             };
                           } else {
                             return item;

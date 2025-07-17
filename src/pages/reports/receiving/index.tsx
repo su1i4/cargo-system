@@ -180,7 +180,7 @@ export const ShipmentReport = () => {
             operator: "or",
             value: [
               {
-                field: "bag_number",
+                field: "bag_number_numeric",
                 operator: "contains",
                 value: value.trim(),
               },
@@ -228,7 +228,7 @@ export const ShipmentReport = () => {
         .utc()
         .format("DD.MM.YYYY HH:mm"),
       Отправитель: `${service.good?.sender?.clientPrefix}-${service.good?.sender?.clientCode} ${service.good?.sender?.name}`,
-      "Номер мешка": service.bag_number || "",
+      "Номер мешка": service.bag_number_numeric || "",
       Получатель: `${service.good?.recipient?.clientPrefix}-${service.good?.recipient?.clientCode} ${service.good?.recipient?.name}`,
       Количество: service.quantity || "",
       Вес: service.weight
@@ -304,7 +304,7 @@ export const ShipmentReport = () => {
   // Services sort fields
   const servicesSortFields = [
     { key: "created_at", label: "Дата приемки" },
-    { key: "bag_number", label: "Номер мешка" },
+    { key: "bag_number_numeric", label: "Номер мешка" },
     { key: "quantity", label: "Количество" },
     { key: "weight", label: "Вес" },
   ];
@@ -552,7 +552,7 @@ export const ShipmentReport = () => {
           />
           <Table.Column
             title="Номер мешка"
-            dataIndex="bag_number"
+            dataIndex="bag_number_numeric"
             width={120}
           />
           <Table.Column

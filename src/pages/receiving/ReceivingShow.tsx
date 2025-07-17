@@ -102,7 +102,7 @@ const ReceivingShow = () => {
 
   const sortFields = [
     { key: "good.created_at", label: "Дата" },
-    { key: "bag_number", label: "Номер мешка" },
+    { key: "bag_number_numeric", label: "Номер мешка" },
   ];
 
   const getSortFieldLabel = () => {
@@ -143,7 +143,7 @@ const ReceivingShow = () => {
             operator: "or",
             value: [
               {
-                field: "bag_number",
+                field: "bag_number_numeric",
                 operator: "contains",
                 value: value.trim(),
               },
@@ -296,7 +296,7 @@ const ReceivingShow = () => {
             `${value?.sender?.clientPrefix}-${value?.sender?.clientCode} ${value?.sender?.name}`
           }
         />
-        <Table.Column title="Номер мешка" dataIndex="bag_number" />
+        <Table.Column title="Номер мешка" dataIndex="bag_number_numeric" />
         <Table.Column
           title="Тип товара"
           dataIndex="product_type"
