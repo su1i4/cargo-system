@@ -118,21 +118,30 @@ export const WarehouseStockGoodsReport = () => {
         "Фио получателя": record.recipient?.name || "",
         "Номер получателя": record.recipient?.phoneNumber || "",
         "Город (с досыслом если есть)": record.destination?.name || "",
-        "Номер мешков":
+        "Номера мешков":
           record.services
             ?.map((item: any) => item.bag_number_numeric)
             .join(", ") || "",
-        "Вес, кг": record.totalServiceWeight
-          ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5)
+        "Вес, кг": record.weight
+          ? String(record.weight).replace(".", ",").slice(0, 5)
           : "",
         "Кол-во мешков": record.services?.length || 0,
-        Сумма: record.totalServiceAmountSum || 0,
-        "Сумма за мешки": record.totalProductAmountSum || 0,
+        // Исправляем расчет суммы - точно как в таблице
+        Сумма: record.amount
+          ? record.amount -
+            (record.products?.reduce(
+              (acc: number, item: any) => acc + Number(item.sum),
+              0
+            ) || 0)
+          : 0,
+        "Сумма за мешки":
+          record.products?.reduce(
+            (acc: number, item: any) => acc + Number(item.sum),
+            0
+          ) || 0,
         Оплачено: record.paid_sum || 0,
-        Долг:
-          Number(record.totalServiceAmountSum || 0) +
-          Number(record.totalProductAmountSum || 0) -
-          Number(record.paid_sum || 0),
+        // Исправляем расчет долга - точно как в таблице
+        Долг: Number(record.amount || 0) + Number(record.paid_sum || 0),
         "Тип строки": "Основная",
       };
 
@@ -154,7 +163,7 @@ export const WarehouseStockGoodsReport = () => {
             "Фио получателя": "",
             "Номер получателя": "",
             "Город (с досыслом если есть)": "",
-            "Номер мешков": service.bag_number_numeric || "",
+            "Номера мешков": service.bag_number_numeric || "",
             "Вес, кг": service.weight
               ? String(service.weight).replace(".", ",").slice(0, 5)
               : "",
