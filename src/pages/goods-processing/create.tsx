@@ -1317,7 +1317,23 @@ export const GoodsCreate = () => {
                 precision={2}
                 value={value}
                 disabled={index >= services.length}
-                onChange={(val) => updateItemField(record.id, "weight", val)}
+                onChange={(val) => {
+                  if (val === null || val === undefined) {
+                    updateItemField(record.id, "weight", null);
+                    return;
+                  }
+
+                  updateItemField(record.id, "weight", val);
+                }}
+                formatter={(value) => {
+                  return value?.toString().replace(".", ",") || "";
+                }}
+                parser={(value) => {
+                  if (!value) return value;
+                  const cleanValue = value.replace(",", ".");
+                  const parsed = parseFloat(cleanValue);
+                  return isNaN(parsed) ? null : parsed;
+                }}
               />
             )}
           />
