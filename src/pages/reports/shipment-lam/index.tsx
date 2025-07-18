@@ -117,7 +117,7 @@ export const WarehouseStockGoodsReport = () => {
           : "",
         "Фио получателя": record.recipient?.name || "",
         "Номер получателя": record.recipient?.phoneNumber || "",
-        "Город (с досыслом если есть)": record.destination?.name || "",
+        "Город": record.destination?.name || "",
         "Номера мешков":
           record.services
             ?.map((item: any) => item.bag_number_numeric)
@@ -126,22 +126,14 @@ export const WarehouseStockGoodsReport = () => {
           ? String(record.weight).replace(".", ",").slice(0, 5)
           : "",
         "Кол-во мешков": record.services?.length || 0,
-        // Исправляем расчет суммы - точно как в таблице
-        Сумма: record.amount
-          ? record.amount -
-            (record.products?.reduce(
-              (acc: number, item: any) => acc + Number(item.sum),
-              0
-            ) || 0)
-          : 0,
+        Сумма: record.amount || 0,
         "Сумма за мешки":
           record.products?.reduce(
             (acc: number, item: any) => acc + Number(item.sum),
             0
           ) || 0,
         Оплачено: record.paid_sum || 0,
-        // Исправляем расчет долга - точно как в таблице
-        Долг: Number(record.amount || 0) + Number(record.paid_sum || 0),
+        Долг: Number(record.amount || 0) - Number(record.paid_sum || 0),
         "Тип строки": "Основная",
       };
 
@@ -482,14 +474,8 @@ export const WarehouseStockGoodsReport = () => {
           <Table.Column
             dataIndex="amount"
             title="Сумма"
-            render={(value, record) => {
-              return (
-                value -
-                record?.products?.reduce(
-                  (acc: number, item: any) => acc + Number(item.sum),
-                  0
-                )
-              );
+            render={(value) => {
+              return value;
             }}
           />
           <Table.Column
@@ -507,7 +493,7 @@ export const WarehouseStockGoodsReport = () => {
             dataIndex="id"
             title="Долг"
             render={(_, record) =>
-              `${Number(record?.amount) + Number(record?.paid_sum)}`
+              `${Number(record?.amount) - Number(record?.paid_sum)}`
             }
           />
         </Table>
