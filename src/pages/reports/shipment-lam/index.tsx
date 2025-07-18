@@ -4,20 +4,21 @@ import {
   Button,
   Row,
   Col,
-  Card,
-  Select,
   message,
   Checkbox,
   Modal,
+  Dropdown,
+  Card,
 } from "antd";
 import {
   FileOutlined,
   FileExcelOutlined,
   PlusOutlined,
   MinusOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
 } from "@ant-design/icons";
-import { useEffect, useState } from "react";
-import { useCustom } from "@refinedev/core";
+import { useEffect, useMemo, useState } from "react";
 import { useDocumentTitle } from "@refinedev/react-router";
 import { API_URL } from "../../../App";
 import dayjs from "dayjs";
@@ -55,6 +56,12 @@ export const WarehouseStockGoodsReport = () => {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [shipmentId, setShipmentId] = useState<number | null>(null);
+
+  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
+  const [sortField, setSortField] = useState<
+    "id" | "created_at" | "sender.name" | "recipient.name"
+  >("id");
+  const [sorterVisible, setSorterVisible] = useState(false);
 
   useEffect(() => {
     setTitle("Все товары");
@@ -117,7 +124,7 @@ export const WarehouseStockGoodsReport = () => {
           : "",
         "Фио получателя": record.recipient?.name || "",
         "Номер получателя": record.recipient?.phoneNumber || "",
-        "Город": record.destination?.name || "",
+        Город: record.destination?.name || "",
         "Номера мешков":
           record.services
             ?.map((item: any) => item.bag_number_numeric)
@@ -235,6 +242,123 @@ export const WarehouseStockGoodsReport = () => {
       console.error("CSV download error:", error);
     }
   };
+  const sortData = (data: any, sortField: any, sortDirection: any) => {
+    if (!data || data.length === 0) return data;
+
+    return [...data].sort((a, b) => {
+      let aValue, bValue;
+
+      // Получаем значения для сортировки в зависимости от поля
+      switch (sortField) {
+        case "created_at":
+          aValue = new Date(a.created_at || 0);
+          bValue = new Date(b.created_at || 0);
+          break;
+        case "sender.name":
+          aValue = a.sender?.name || "";
+          bValue = b.sender?.name || "";
+          break;
+        case "recipient.name":
+          aValue = a.recipient?.name || "";
+          bValue = b.recipient?.name || "";
+          break;
+        case "id":
+        default:
+          aValue = a.id || 0;
+          bValue = b.id || 0;
+          break;
+      }
+
+      // Сортировка для строк
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        const comparison = aValue.localeCompare(bValue, "ru", {
+          numeric: true,
+        });
+        return sortDirection === "ASC" ? comparison : -comparison;
+      }
+
+      // Сортировка для чисел и дат
+      if (aValue < bValue) {
+        return sortDirection === "ASC" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortDirection === "ASC" ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
+  // Добавьте этот useMemo для создания отсортированных данных
+  const sortedData = useMemo(() => {
+    return sortData(data, sortField, sortDirection);
+  }, [data, sortField, sortDirection]);
+
+  // Обновите функции сортировки, чтобы они правильно переключали направление
+  const handleSort = (field: any) => {
+    if (sortField === field) {
+      // Если кликнули на то же поле, меняем направление
+      setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
+    } else {
+      // Если кликнули на другое поле, устанавливаем новое поле и направление по умолчанию
+      setSortField(field);
+      setSortDirection("ASC");
+    }
+    setSorterVisible(false); // Закрываем dropdown после выбора
+  };
+
+  const sortContent = (
+    <Card style={{ width: 200, padding: "0px !important" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        <div
+          style={{
+            marginBottom: "8px",
+            color: "#666",
+            fontSize: "14px",
+            textAlign: "center",
+          }}
+        >
+          Сортировать по
+        </div>
+
+        <Button
+          type="text"
+          style={{
+            textAlign: "left",
+            fontWeight: sortField === "created_at" ? "bold" : "normal",
+          }}
+          onClick={() => handleSort("created_at")}
+        >
+          Дате создания{" "}
+          {sortField === "created_at" && (sortDirection === "ASC" ? "↑" : "↓")}
+        </Button>
+
+        <Button
+          type="text"
+          style={{
+            textAlign: "left",
+            fontWeight: sortField === "sender.name" ? "bold" : "normal",
+          }}
+          onClick={() => handleSort("sender.name")}
+        >
+          По фио отправителя{" "}
+          {sortField === "sender.name" && (sortDirection === "ASC" ? "↑" : "↓")}
+        </Button>
+
+        <Button
+          type="text"
+          style={{
+            textAlign: "left",
+            fontWeight: sortField === "recipient.name" ? "bold" : "normal",
+          }}
+          onClick={() => handleSort("recipient.name")}
+        >
+          По фио получателя{" "}
+          {sortField === "recipient.name" &&
+            (sortDirection === "ASC" ? "↑" : "↓")}
+        </Button>
+      </div>
+    </Card>
+  );
 
   return (
     <List
@@ -255,6 +379,25 @@ export const WarehouseStockGoodsReport = () => {
           align="middle"
           style={{ marginBottom: 16, position: "sticky", top: 80, zIndex: 10 }}
         >
+          <Dropdown
+            overlay={sortContent}
+            trigger={["click"]}
+            placement="bottomLeft"
+            open={sorterVisible}
+            onOpenChange={(visible) => {
+              setSorterVisible(visible);
+            }}
+          >
+            <Button
+              icon={
+                sortDirection === "ASC" ? (
+                  <ArrowUpOutlined />
+                ) : (
+                  <ArrowDownOutlined />
+                )
+              }
+            ></Button>
+          </Dropdown>
           <Col>
             <Checkbox
               checked={showBags}
@@ -297,7 +440,7 @@ export const WarehouseStockGoodsReport = () => {
           </Col>
         </Row>
         <Table
-          dataSource={data}
+          dataSource={sortedData}
           pagination={false}
           rowKey="id"
           scroll={{ x: 1000 }}
@@ -498,32 +641,6 @@ export const WarehouseStockGoodsReport = () => {
           />
         </Table>
       </Modal>
-      {/* <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
-        <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10}>
-          <Dropdown overlay={sortMenu} trigger={["click"]}>
-            <Button
-              icon={
-                sortDirection === "ASC" ? (
-                  <ArrowUpOutlined />
-                ) : (
-                  <ArrowDownOutlined />
-                )
-              }
-              // onClick={handleSortClick}
-            >
-              {getSortFieldLabel()}
-            </Button>
-          </Dropdown>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Поиск по номеру рейса, сотруднику, пункту назначения..."
-            value={searchValue}
-            onChange={(e) => handleSearch(e.target.value)}
-            allowClear
-            style={{ width: "50%" }}
-          />
-        </Flex>
-      </Row> */}
       <Table
         onRow={(record) => {
           return {
