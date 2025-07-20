@@ -436,11 +436,11 @@ export const GoodsCreate = () => {
   }, [values?.destination_id, tariffs]);
 
   const isProductAvailableForBranch = (product: ProductItem): boolean => {
-    if (!branchNomenclatureTableProps?.dataSource?.length) {
+    if (branchProducts?.length) {
       return true;
     }
 
-    return branchNomenclatureTableProps?.dataSource?.some(
+    return branchProducts.some(
       (availableProduct: any) =>
         availableProduct.id === product.id ||
         availableProduct.name === product.name
@@ -669,7 +669,7 @@ export const GoodsCreate = () => {
     ],
   });
 
-  const { tableProps: branchNomenclatureTableProps } = useTable({
+  const { tableProps: branchNomenclatureTableProps, tableQuery } = useTable({
     resource: "branch-nomenclature",
     filters: {
       permanent: [
@@ -685,16 +685,26 @@ export const GoodsCreate = () => {
     },
   });
 
-  useEffect(() => {
-    //@ts-ignore
-    if (!branchNomenclatureTableProps?.dataSource?.product_types?.length) {
-      setProducts([]);
-      return;
-    }
+  const branchProducts = useMemo(() => {
+    if (!branchNomenclatureTableProps?.dataSource) return [];
 
-    //@ts-ignore
-    const formattedProducts = branchNomenclatureTableProps?.dataSource?.product_types?.map(
-      (item: any) => ({
+    const allProductTypes = branchNomenclatureTableProps.dataSource.flatMap(
+      (item: any) => item?.product_types || []
+    );
+    return allProductTypes.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      price: Number(item.price) || 0,
+      quantity: 0,
+      sum: 0,
+      edit: item.edit || false,
+      isSelected: false,
+    }));
+  }, [branchNomenclatureTableProps?.dataSource]);
+
+  useEffect(() => {
+    if (branchProducts.length > 0) {
+      const formattedProducts = branchProducts.map((item: any) => ({
         id: item.id,
         name: item.name,
         price: Number(item.price) || 0,
@@ -702,10 +712,12 @@ export const GoodsCreate = () => {
         sum: 0,
         edit: item.edit || false,
         isSelected: false,
-      })
-    );
-    setProducts(formattedProducts);
-  }, [branchNomenclatureTableProps?.dataSource]);
+      }));
+      setProducts(formattedProducts);
+    } else {
+      setProducts([]);
+    }
+  }, [branchProducts, tableQuery.isLoading]);
 
   const { selectProps: branchSelectPropsIsSent } = useSelect({
     resource: "sent-the-city",
