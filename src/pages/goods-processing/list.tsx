@@ -64,7 +64,7 @@ export const GoogsProcessingList = () => {
   const [dateFilter, setDateFilter] = useState<any>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(200);
+  const [pageSize, setPageSize] = useState(20);
 
   // Функция для объединения всех фильтров
   useEffect(() => {
@@ -651,6 +651,13 @@ export const GoogsProcessingList = () => {
           }
         />
         {operationStatus()}
+        <Table.Column
+          dataIndex="services"
+          title="Номер мешка"
+          render={(value) => {
+            return value?.map((item: any) => item.bag_number_numeric).join(", ");
+          }}
+        />
         <Table.Column
           dataIndex="employee"
           title="Сотрудник"
