@@ -691,15 +691,7 @@ export const GoodsCreate = () => {
     const allProductTypes = branchNomenclatureTableProps.dataSource.flatMap(
       (item: any) => item?.product_types || []
     );
-    return allProductTypes.map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      price: Number(item.price) || 0,
-      quantity: 0,
-      sum: 0,
-      edit: item.edit || false,
-      isSelected: false,
-    }));
+    return allProductTypes
   }, [branchNomenclatureTableProps?.dataSource]);
 
   useEffect(() => {
