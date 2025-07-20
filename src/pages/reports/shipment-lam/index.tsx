@@ -56,6 +56,8 @@ export const WarehouseStockGoodsReport = () => {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [shipmentId, setShipmentId] = useState<number | null>(null);
+  const [showBags, setShowBags] = useState(false);
+  const [showColumns, setShowColumns] = useState<boolean>(false);
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState<
@@ -66,8 +68,6 @@ export const WarehouseStockGoodsReport = () => {
   useEffect(() => {
     setTitle("Все товары");
   }, []);
-
-  const [showBags, setShowBags] = useState(false);
 
   const [downloadLoading, setDownloadLoading] = useState(false);
 
@@ -90,7 +90,12 @@ export const WarehouseStockGoodsReport = () => {
   const prepareExportData = () => {
     const dataSource = data || [];
     const exportData: any[] = [];
-
+    let totalSum = 0;
+    let totalBagSum = 0;
+    let totalPaid = 0;
+    let totalDebt = 0;
+    let totalBagsCount = 0;
+    let totalWeight = 0;
     dataSource.forEach((record: any, index: number) => {
       const mainRow = {
         "№": index + 1,
@@ -141,9 +146,18 @@ export const WarehouseStockGoodsReport = () => {
           ) || 0,
         Оплачено: record.paid_sum || 0,
         Долг: Number(record.amount || 0) - Number(record.paid_sum || 0),
-        "Тип строки": "Основная",
       };
 
+      totalSum += Number(record.amount || 0);
+      totalBagSum +=
+        record.products?.reduce(
+          (acc: number, item: any) => acc + Number(item.sum),
+          0
+        ) || 0;
+      totalPaid += Number(record.paid_sum || 0);
+      totalDebt += Number(record.amount || 0) - Number(record.paid_sum || 0);
+      totalBagsCount += record.services?.length || 0;
+      totalWeight += Number(record.weight || 0);
       exportData.push(mainRow);
 
       if (showBags && record.services && record.services.length > 0) {
@@ -171,12 +185,40 @@ export const WarehouseStockGoodsReport = () => {
             "Сумма за мешки": 0,
             Оплачено: 0,
             Долг: 0,
-            "Тип строки": "Детали мешка",
           };
+
+          totalSum += service.sum || 0;
+          totalBagsCount += 1;
+
           exportData.push(serviceRow);
         });
       }
     });
+
+    const totalRow = {
+      "№": "",
+      "Дата приемки": "",
+      "Дата отправки": "",
+      "Дата получения": "",
+      "Дата выдачи": "",
+      "Номер машины": "",
+      "№ накладной": "",
+      "Код отправителя": "",
+      "Фио отправителя": "",
+      "Код получателя": "",
+      "Фио получателя": "",
+      "Номер получателя": "",
+      Город: "",
+      "Номера мешков": "",
+      "Вес, кг": totalWeight,
+      "Кол-во мешков": totalBagsCount,
+      Сумма: totalSum,
+      "Сумма за мешки": totalBagSum,
+      Оплачено: totalPaid,
+      Долг: totalDebt,
+    };
+
+    exportData.push(totalRow);
 
     return exportData;
   };
@@ -190,9 +232,11 @@ export const WarehouseStockGoodsReport = () => {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
 
-      const fileName = `отчет_задолженность_${dayjs().format(
-        "DD-MM-YYYY_HH-mm"
-      )}.xlsx`;
+      const fileName = `${
+        tableShipmentProps.dataSource?.find((item: any) => {
+          return item.id === shipmentId;
+        })?.truck_number
+      }.xlsx`;
       XLSX.writeFile(workbook, fileName);
 
       message.success("Файл XLSX успешно скачан");
@@ -229,7 +273,11 @@ export const WarehouseStockGoodsReport = () => {
       link.setAttribute("href", url);
       link.setAttribute(
         "download",
-        `отчет_задолженность_${dayjs().format("DD-MM-YYYY_HH-mm")}.csv`
+        `${
+          tableShipmentProps.dataSource?.find((item: any) => {
+            return item.id === shipmentId;
+          })?.truck_number
+        }.csv`
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -248,7 +296,6 @@ export const WarehouseStockGoodsReport = () => {
     return [...data].sort((a, b) => {
       let aValue, bValue;
 
-      // Получаем значения для сортировки в зависимости от поля
       switch (sortField) {
         case "created_at":
           aValue = new Date(a.created_at || 0);
@@ -269,7 +316,6 @@ export const WarehouseStockGoodsReport = () => {
           break;
       }
 
-      // Сортировка для строк
       if (typeof aValue === "string" && typeof bValue === "string") {
         const comparison = aValue.localeCompare(bValue, "ru", {
           numeric: true,
@@ -277,7 +323,6 @@ export const WarehouseStockGoodsReport = () => {
         return sortDirection === "ASC" ? comparison : -comparison;
       }
 
-      // Сортировка для чисел и дат
       if (aValue < bValue) {
         return sortDirection === "ASC" ? -1 : 1;
       }
@@ -288,22 +333,18 @@ export const WarehouseStockGoodsReport = () => {
     });
   };
 
-  // Добавьте этот useMemo для создания отсортированных данных
   const sortedData = useMemo(() => {
     return sortData(data, sortField, sortDirection);
   }, [data, sortField, sortDirection]);
 
-  // Обновите функции сортировки, чтобы они правильно переключали направление
   const handleSort = (field: any) => {
     if (sortField === field) {
-      // Если кликнули на то же поле, меняем направление
       setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
     } else {
-      // Если кликнули на другое поле, устанавливаем новое поле и направление по умолчанию
       setSortField(field);
       setSortDirection("ASC");
     }
-    setSorterVisible(false); // Закрываем dropdown после выбора
+    setSorterVisible(false);
   };
 
   const sortContent = (
@@ -405,6 +446,15 @@ export const WarehouseStockGoodsReport = () => {
               style={{ marginRight: 8 }}
             >
               Показать мешки
+            </Checkbox>
+          </Col>
+          <Col>
+            <Checkbox
+              checked={showColumns}
+              onChange={(e) => setShowColumns(e.target.checked)}
+              style={{ marginRight: 8 }}
+            >
+              Показать лишние столбцы
             </Checkbox>
           </Col>
           <Col>
