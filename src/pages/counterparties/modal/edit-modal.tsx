@@ -1,6 +1,6 @@
 import React from "react";
 import { useModalForm } from "@refinedev/antd";
-import { Form, Input, Modal } from "antd";
+import { Form, Input, Modal, Select } from "antd";
 import InputMask from "react-input-mask";
 import PhoneInput from "react-phone-input-2";
 
@@ -22,6 +22,17 @@ export const MyEditModal: React.FC<{
       }
     },
   });
+
+  const typeCounterparty = [
+    {
+      label: "Отправитель",
+      value: "sender",
+    },
+    {
+      label: "Получатель",
+      value: "receiver",
+    },
+  ];
 
   return (
     <Modal
@@ -60,6 +71,16 @@ export const MyEditModal: React.FC<{
           <Input />
         </Form.Item>
 
+        <Form.Item
+          style={{ width: "100%" }}
+          label="Тип контрагента"
+          name="type"
+          rules={[{ required: true, message: "Выберите тип контрагента" }]}
+          initialValue={typeCounterparty[0].value}
+        >
+          <Select options={typeCounterparty} />
+        </Form.Item>
+
         <Form.Item label="Комментарий" name="comment">
           <Input.TextArea rows={4} />
         </Form.Item>
@@ -67,4 +88,3 @@ export const MyEditModal: React.FC<{
     </Modal>
   );
 };
-

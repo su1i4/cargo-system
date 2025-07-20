@@ -7,6 +7,17 @@ import PhoneInput from "react-phone-input-2";
 export const CounterpartyEdit: React.FC = () => {
   const { formProps, saveButtonProps, formLoading, queryResult } = useForm();
 
+  const typeCounterparty = [
+    {
+      label: "Отправитель",
+      value: "sender",
+    },
+    {
+      label: "Получатель",
+      value: "receiver",
+    },
+  ];
+
   return (
     <Edit
       headerButtons={() => false}
@@ -51,6 +62,16 @@ export const CounterpartyEdit: React.FC = () => {
           name="email"
         >
           <Input />
+        </Form.Item>
+
+        <Form.Item
+          style={{ width: "100%" }}
+          label="Тип контрагента"
+          name="type"
+          rules={[{ required: true, message: "Выберите тип контрагента" }]}
+          initialValue={typeCounterparty[0].value}
+        >
+          <Select options={typeCounterparty} />
         </Form.Item>
 
         <Form.Item label="Комментарий" name="comment">

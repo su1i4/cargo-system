@@ -222,6 +222,9 @@ function App() {
                 },
               }}
               resources={routes}
+              Title={() => (
+                <img src="/cargo-system-logo.png" alt="Logo" />
+              )}
               options={{
                 syncWithLocation: true,
                 warnWhenUnsavedChanges: true,

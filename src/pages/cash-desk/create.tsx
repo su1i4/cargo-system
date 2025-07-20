@@ -129,7 +129,8 @@ export const CashDeskCreate: React.FC = () => {
         (acc: number, product: any) => acc + Number(product.sum || 0),
         0
       );
-      const totalGoodAmount = totalServiceAmount + totalProductAmount;
+
+      const totalGoodAmount = totalServiceAmount + totalProductAmount;   
       const transformAmount =
         historicalRate > 0 ? historicalRate * totalGoodAmount : totalGoodAmount;
       const remainingToPay = transformAmount - (good?.paid_sum || 0);
@@ -700,7 +701,7 @@ export const CashDeskCreate: React.FC = () => {
   // Table props configuration
   const tableProps = {
     type: "radio" as const, // Although we handle multi-select with checkboxes, Antd Table `type` can be used for built-in radio
-    dataSource: dataSource,
+    dataSource: dataSource?.filter((item: any) => item.id !== 64),
     loading: isLoading,
     pagination: {
       current: currentPage,
@@ -784,10 +785,8 @@ export const CashDeskCreate: React.FC = () => {
     </Card>
   );
 
-  // Handle row selection for the goods table
   const handleRowSelect = (record: any) => {
     if (!bolik) {
-      // If NOT partial payment (i.e., bulk payment or other multi-select)
       const alreadySelected = selectedRowKeys.includes(record.id);
 
       if (alreadySelected) {
@@ -798,13 +797,11 @@ export const CashDeskCreate: React.FC = () => {
         setSelectedRows([...selectedRows, record]);
       }
     } else {
-      // If partial payment (bolik is true), only allow single selection
       setSelectedRowKeys([record.id]);
       setSelectedRows([record]);
     }
   };
 
-  // Clear selected rows/keys when 'bolik' (payment type) changes
   useEffect(() => {
     setSelectedRowKeys([]);
     setSelectedRows([]);
@@ -817,7 +814,7 @@ export const CashDeskCreate: React.FC = () => {
         onClick: () => {
           const confirmed = window.confirm("Вы уверены, что хотите сохранить?");
           if (confirmed) {
-            form.setFieldValue("type", "income"); // Ensure type is income before saving
+            form.setFieldValue("type", "income");
             saveButtonProps.onClick && saveButtonProps.onClick();
           }
         },
