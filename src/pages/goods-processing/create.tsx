@@ -128,8 +128,6 @@ export const GoodsCreate = () => {
   const [counterpartiesWithDiscounts, setCounterpartiesWithDiscounts] =
     useState<any[]>([]);
 
-  const [branchNomenclature, setBranchNomenclature] = useState<any>(null);
-
   const values: any = Form.useWatch([], form);
 
   const currentDateDayjs = dayjs().tz("Asia/Bishkek");
@@ -179,20 +177,6 @@ export const GoodsCreate = () => {
     },
   });
 
-  const { refetch: refetchBranchNomenclature } = useCustom({
-    url: `${apiUrl}/branch-nomenclature`,
-    method: "get",
-    queryOptions: {
-      onSuccess: (data: any) => {
-        const branchRecord = (data?.data || []).find(
-          (item: any) => item.destination_id === values?.destination_id
-        );
-        setBranchNomenclature(branchRecord);
-      },
-      enabled: !!values?.destination_id,
-    },
-  });
-
   useEffect(() => {
     refetchTariffs();
     refetchSentCity();
@@ -206,14 +190,6 @@ export const GoodsCreate = () => {
       refetchCounterpartiesWithDiscounts();
     }
   }, [values?.sender_id, values?.recipient_id]);
-
-  useEffect(() => {
-    if (values?.destination_id) {
-      refetchBranchNomenclature();
-    } else {
-      setBranchNomenclature(null);
-    }
-  }, [values?.destination_id]);
 
   const findTariff = (branchId: number, productTypeId: number): number => {
     const foundTariff = tariffs.find(
@@ -460,11 +436,11 @@ export const GoodsCreate = () => {
   }, [values?.destination_id, tariffs]);
 
   const isProductAvailableForBranch = (product: ProductItem): boolean => {
-    if (!branchNomenclature || !branchNomenclature.product_types) {
+    if (branchProducts?.length) {
       return true;
     }
 
-    return branchNomenclature.product_types.some(
+    return branchProducts.some(
       (availableProduct: any) =>
         availableProduct.id === product.id ||
         availableProduct.name === product.name
@@ -715,7 +691,6 @@ export const GoodsCreate = () => {
     const allProductTypes = branchNomenclatureTableProps.dataSource.flatMap(
       (item: any) => item?.product_types || []
     );
-
     return allProductTypes;
   }, [branchNomenclatureTableProps?.dataSource]);
 
