@@ -676,13 +676,10 @@ export const GoodsCreate = () => {
         {
           field: "destination_id",
           operator: "eq",
-          value: values?.destination_id,
+          value: values?.destination_id ?? 16 ,
         },
       ],
-    },
-    queryOptions: {
-      enabled: !!values?.destination_id,
-    },
+    }
   });
 
   const branchProducts = useMemo(() => {
