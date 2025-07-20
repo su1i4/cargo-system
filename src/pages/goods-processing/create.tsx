@@ -436,11 +436,11 @@ export const GoodsCreate = () => {
   }, [values?.destination_id, tariffs]);
 
   const isProductAvailableForBranch = (product: ProductItem): boolean => {
-    if (branchProducts?.length) {
+    if (!branchNomenclatureTableProps?.dataSource?.length) {
       return true;
     }
 
-    return branchProducts.some(
+    return branchNomenclatureTableProps?.dataSource?.some(
       (availableProduct: any) =>
         availableProduct.id === product.id ||
         availableProduct.name === product.name
@@ -685,18 +685,16 @@ export const GoodsCreate = () => {
     },
   });
 
-  const branchProducts = useMemo(() => {
-    if (!branchNomenclatureTableProps?.dataSource) return [];
-
-    const allProductTypes = branchNomenclatureTableProps.dataSource.flatMap(
-      (item: any) => item?.product_types || []
-    );
-    return allProductTypes;
-  }, [branchNomenclatureTableProps?.dataSource]);
-
   useEffect(() => {
-    if (branchProducts.length > 0) {
-      const formattedProducts = branchProducts.map((item: any) => ({
+    //@ts-ignore
+    if (!branchNomenclatureTableProps?.dataSource?.product_types?.length) {
+      setProducts([]);
+      return;
+    }
+
+    //@ts-ignore
+    const formattedProducts = branchNomenclatureTableProps?.dataSource?.product_types?.map(
+      (item: any) => ({
         id: item.id,
         name: item.name,
         price: Number(item.price) || 0,
@@ -704,12 +702,10 @@ export const GoodsCreate = () => {
         sum: 0,
         edit: item.edit || false,
         isSelected: false,
-      }));
-      setProducts(formattedProducts);
-    } else {
-      setProducts([]);
-    }
-  }, [branchProducts]);
+      })
+    );
+    setProducts(formattedProducts);
+  }, [branchNomenclatureTableProps?.dataSource]);
 
   const { selectProps: branchSelectPropsIsSent } = useSelect({
     resource: "sent-the-city",
@@ -1237,7 +1233,9 @@ export const GoodsCreate = () => {
 
                       const data = await response.json();
                       if (data) {
-                        message.error("Номер мешка уже существует");
+                        message.error(
+                          `Номер мешка ${e.target.value} уже существует`
+                        );
 
                         setHasBagNumber((prevState) => {
                           const exists = prevState.some(

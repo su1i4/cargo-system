@@ -375,34 +375,6 @@ export const GoogsProcessingList = () => {
     }
   };
 
-  const handleSaveChanges = async () => {
-    const filteredItems = dataSource.filter(
-      (item: any) => !item.visible && selectedRowKeys.includes(item.id)
-    );
-    const selectedItems = filteredItems.map((item: any) => ({
-      id: item.id,
-      visible: item.visible ? true : selectedRowKeys.includes(item.id),
-    }));
-
-    try {
-      await Promise.all(
-        selectedItems.map((item: any) =>
-          update({
-            resource: "goods-processing",
-            id: item.id,
-            values: { visible: item.visible },
-          })
-        )
-      );
-      refetch();
-      // Сбрасываем выбранные строки
-      setSelectedRowKeys([]);
-      setMainChecked(false);
-    } catch (error) {
-      console.error("Ошибка при обновлении", error);
-    }
-  };
-
   const handleCashDeskCreate = () => {
     if (selectedRows.length === 0) {
       message.warning(
@@ -411,10 +383,8 @@ export const GoogsProcessingList = () => {
       return;
     }
 
-    // Собираем IDs выбранных товаров
     const selectedIds = selectedRows.map((row) => row.id).join(",");
 
-    // Переходим на страницу создания cash-desk с параметрами
     push(
       `/income/create?type_operation=Контрагент оптом&goods_ids=${selectedIds}`
     );

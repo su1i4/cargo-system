@@ -117,9 +117,9 @@ export const GoodsEdit = () => {
   });
   const apiUrl = useApiUrl();
 
-  const { tableProps } = useTable({
-    resource: "products",
-  });
+  // const { tableProps } = useTable({
+  //   resource: "products",
+  // });
 
   const { tableProps: tariffTableProps } = useTable({
     resource: "tariff",
@@ -293,14 +293,12 @@ export const GoodsEdit = () => {
     if (
       discountCashBackOptions.length > 0 &&
       (values?.sender_id || values?.recipient_id)
-    ) {
-      // Сначала ищем кешбек
+    ) { 
       const cashBackOption = discountCashBackOptions.find(
         (option) => option.type === "cashback"
       );
 
       if (cashBackOption) {
-        // Если есть кешбек - выбираем его
         setSelectedDiscountType(cashBackOption.type);
         setDiscount(0);
         const cashBackTarget =
@@ -313,7 +311,6 @@ export const GoodsEdit = () => {
           discount_id: null,
         });
       } else {
-        // Если кешбека нет - ищем скидку
         const discountOption = discountCashBackOptions.find(
           (option) => option.type === "discount"
         );
@@ -350,10 +347,8 @@ export const GoodsEdit = () => {
     return foundTariff ? parseFloat(foundTariff.tariff) : 0;
   };
 
-  // Загрузка данных из записи при открытии формы редактирования
   useEffect(() => {
     if (record) {
-      // Загрузка услуг из записи
       if (record.services && Array.isArray(record.services)) {
         setServices(
           record.services.map((service: any, index: number) => ({
@@ -366,7 +361,6 @@ export const GoodsEdit = () => {
           }))
         );
 
-        // Установка следующего ID после последней услуги
         const maxId = Math.max(
           ...record.services.map((s: any) => s.id || 0),
           0
@@ -409,33 +403,33 @@ export const GoodsEdit = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (tableProps.dataSource && record?.products) {
-      const formattedProducts = tableProps.dataSource.map((item: any) => {
-        const product = record.products.find((p: any) => p.name === item.name);
-        if (product) {
-          return {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            quantity: product.quantity,
-            sum: product.sum,
-            edit: product.edit || false, // Добавляем поле edit
-          };
-        } else {
-          return {
-            id: item.id,
-            name: item.name,
-            price: Number(item.price) || 0,
-            quantity: 0,
-            sum: 0,
-            edit: item.edit || false, // По умолчанию редактирование отключено для новых продуктов
-          };
-        }
-      });
-      setProducts(formattedProducts);
-    }
-  }, [tableProps.dataSource, record?.products]);
+  // useEffect(() => {
+  //   if (tableProps.dataSource && record?.products) {
+  //     const formattedProducts = tableProps.dataSource.map((item: any) => {
+  //       const product = record.products.find((p: any) => p.name === item.name);
+  //       if (product) {
+  //         return {
+  //           id: product.id,
+  //           name: product.name,
+  //           price: product.price,
+  //           quantity: product.quantity,
+  //           sum: product.sum,
+  //           edit: product.edit || false,
+  //         };
+  //       } else {
+  //         return {
+  //           id: item.id,
+  //           name: item.name,
+  //           price: Number(item.price) || 0,
+  //           quantity: 0,
+  //           sum: 0,
+  //           edit: item.edit || false,
+  //         };
+  //       }
+  //     });
+  //     setProducts(formattedProducts);
+  //   }
+  // }, [tableProps.dataSource, record?.products]);
 
   // Отслеживание изменений в полях объявленной ценности и комиссии
   useEffect(() => {
@@ -456,21 +450,20 @@ export const GoodsEdit = () => {
   }, [values?.declared_value, values?.commission]);
 
   const generateBarcode = (): string => {
-    const prefix = "45"; // Префикс для штрихкода
-    const timestamp = Date.now().toString().slice(-10); // Последние 10 цифр временной метки
+    const prefix = "45";
+    const timestamp = Date.now().toString().slice(-10);
     const random = Math.floor(Math.random() * 10000)
       .toString()
-      .padStart(4, "0"); // Случайное число
+      .padStart(4, "0");
     return `${prefix}${timestamp}${random}`;
   };
 
-  // Добавление нового товара
   const addNewItem = () => {
     const newItem: GoodItem = {
       id: nextId,
       barcode: generateBarcode(),
       bag_number_numeric: "",
-      is_created: true, // Отмечаем, что товар новый
+      is_created: true,
       is_price_editable: false,
     };
     setServices([...services, newItem]);
@@ -495,14 +488,14 @@ export const GoodsEdit = () => {
         ...item,
         id: newId,
         barcode: generateBarcode(),
-        is_created: true, // Отмечаем, что это копия (новый товар)
+        is_created: true,
         is_price_editable: item.is_price_editable || false,
       };
     });
 
     setServices([...services, ...newItems]);
     setNextId(nextId + selectedItems.length);
-    setSelectedRowKeys([]); // Сбрасываем выбор после копирования
+    setSelectedRowKeys([]);
 
     message.success(`Скопировано ${selectedItems.length} товаров`);
   };
@@ -525,12 +518,11 @@ export const GoodsEdit = () => {
 
     setDeletedServices([...deletedServices, ...deletedItems]);
     setServices(selectedItems);
-    setSelectedRowKeys([]); // Сбрасываем выбор после копирования
+    setSelectedRowKeys([]);
 
     message.success(`Удалено ${selectedItems.length} товаров`);
   };
 
-  // Удаление товара из таблицы
   const removeItem = (record: any) => {
     if (record.hasOwnProperty("deleted")) {
       setDeletedServices([...deletedServices, { ...record, deleted: true }]);
@@ -565,12 +557,10 @@ export const GoodsEdit = () => {
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
 
-              // Обновляем цену только если ручное редактирование отключено И это новая услуга
               if (!item.is_price_editable && item.is_created) {
                 newItem.price = Number(selectedType.tariff) - discount;
               }
 
-              // Пересчитываем сумму с учетом текущей цены (может быть пользовательской)
               if (newItem.weight) {
                 const priceToUse =
                   item.is_price_editable || !item.is_created
@@ -581,7 +571,6 @@ export const GoodsEdit = () => {
             }
           }
 
-          // Если изменяется цена вручную и включено ручное редактирование, пересчитываем сумму
           if (field === "price" && item.is_price_editable && newItem.weight) {
             newItem.sum = calculateSum(newItem.weight, value);
           }
@@ -609,7 +598,6 @@ export const GoodsEdit = () => {
               const newItem = { ...item, updated: true };
               newItem.tariff = tariffValue;
 
-              // Обновляем цену только если ручное редактирование отключено И это новая услуга
               if (!item.is_price_editable && item.is_created) {
                 newItem.price = tariffValue;
               }
@@ -643,16 +631,10 @@ export const GoodsEdit = () => {
 
         const newItem = { ...item, updated: true };
 
-        // Обновляем цену только если ручное редактирование отключено И это новая услуга
-        if (
-          !item.is_price_editable &&
-          item.is_created &&
-          selectedType?.tariff
-        ) {
+        if (selectedType?.tariff) {
           newItem.price = Number(selectedType.tariff) - discount;
         }
 
-        // Пересчитываем сумму с учетом текущей цены
         if (newItem.weight && selectedType?.tariff) {
           const priceToUse =
             item.is_price_editable || !item.is_created
@@ -736,13 +718,11 @@ export const GoodsEdit = () => {
   };
 
   const handleFormSubmit = (values: any) => {
-    // Проверяем наличие услуг
     if (services.length === 0) {
       message.warning("Выберите услуги");
       return;
     }
 
-    // Проверяем заполнение обязательных полей в услугах
     let hasInvalidFields = false;
     services.forEach((service, index) => {
       if (!service.type_id || !service.weight || service.weight <= 0) {
@@ -759,7 +739,6 @@ export const GoodsEdit = () => {
       return;
     }
 
-    // Рассчитываем базовую сумму (услуги + товары)
     const baseAmount =
       services.reduce(
         (accumulator, currentValue) => accumulator + Number(currentValue.sum),
@@ -770,7 +749,6 @@ export const GoodsEdit = () => {
         0
       );
 
-    // Добавляем наценку к базовой сумме
     const markup = Number(values.markup) || 0;
     const finalAmount = baseAmount + (baseAmount * markup) / 100;
 
@@ -984,14 +962,6 @@ export const GoodsEdit = () => {
       enabled: !!values?.destination_id,
     },
   });
-
-  const getLabelSafe = (option: any) => {
-    if (!option) return "";
-    if (Array.isArray(option)) return "";
-    if (typeof option === "object" && typeof option.label === "string")
-      return option.label;
-    return "";
-  };
 
   const createItemsByCount = () => {
     const count = Number(copyCount || 0);

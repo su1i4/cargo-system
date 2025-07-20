@@ -1,8 +1,8 @@
 import React, { useRef } from "react";
 import { Show, EditButton, DeleteButton, useTable } from "@refinedev/antd";
-import { useShow } from "@refinedev/core";
+import { useNavigation, useShow } from "@refinedev/core";
 import { Typography, Flex, Row, Col, Button, message } from "antd";
-import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
+import { MoneyCollectOutlined, PrinterOutlined, SendOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import QRCode from "react-qr-code";
 
@@ -24,7 +24,7 @@ export const GoodsShow: React.FC = () => {
   const record = data?.data;
   const printRef = useRef<HTMLDivElement>(null);
   const token = localStorage.getItem("cargo-system-token");
-
+  const { push } = useNavigation();
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Накладная ${dayjs().format("DD.MM.YYYY HH:mm")}`,
@@ -287,6 +287,21 @@ export const GoodsShow: React.FC = () => {
   const productsCount = record?.products?.length || 0;
   const totalItems = servicesCount + productsCount;
   const isLargeInvoice = totalItems > 15;
+
+  const handleCashDeskCreate = () => {
+    if (record?.id === 0) {
+      message.warning(
+        "Выберите товары для создания приходного кассового ордера"
+      );
+      return;
+    }
+
+    const selectedIds = record?.id;
+
+    push(
+      `/income/create?type_operation=Контрагент оптом&goods_ids=${selectedIds}`
+    );
+  };
 
   const InvoiceContent = () => {
     return (
@@ -891,9 +906,12 @@ export const GoodsShow: React.FC = () => {
     <Show
       headerButtons={({ deleteButtonProps, editButtonProps }) => (
         <>
+          <Button icon={<MoneyCollectOutlined />} onClick={handleCashDeskCreate}>
+            Оплатить
+          </Button>
           {!record?.send_notification && (
             <Button icon={<SendOutlined />} onClick={handleSend}>
-              Отправить сообщение
+              Отправить смс
             </Button>
           )}
           <Button
