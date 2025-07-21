@@ -117,9 +117,9 @@ export const GoodsEdit = () => {
   });
   const apiUrl = useApiUrl();
 
-  // const { tableProps } = useTable({
-  //   resource: "products",
-  // });
+  const { tableProps } = useTable({
+    resource: "products",
+  });
 
   const { tableProps: tariffTableProps } = useTable({
     resource: "tariff",
@@ -403,33 +403,33 @@ export const GoodsEdit = () => {
     }
   }, []);
 
-  // useEffect(() => {
-  //   if (tableProps.dataSource && record?.products) {
-  //     const formattedProducts = tableProps.dataSource.map((item: any) => {
-  //       const product = record.products.find((p: any) => p.name === item.name);
-  //       if (product) {
-  //         return {
-  //           id: product.id,
-  //           name: product.name,
-  //           price: product.price,
-  //           quantity: product.quantity,
-  //           sum: product.sum,
-  //           edit: product.edit || false,
-  //         };
-  //       } else {
-  //         return {
-  //           id: item.id,
-  //           name: item.name,
-  //           price: Number(item.price) || 0,
-  //           quantity: 0,
-  //           sum: 0,
-  //           edit: item.edit || false,
-  //         };
-  //       }
-  //     });
-  //     setProducts(formattedProducts);
-  //   }
-  // }, [tableProps.dataSource, record?.products]);
+  useEffect(() => {
+    if (tableProps.dataSource && record?.products) {
+      const formattedProducts = tableProps.dataSource.map((item: any) => {
+        const product = record.products.find((p: any) => p.name === item.name);
+        if (product) {
+          return {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            quantity: product.quantity,
+            sum: product.sum,
+            edit: product.edit || false,
+          };
+        } else {
+          return {
+            id: item.id,
+            name: item.name,
+            price: Number(item.price) || 0,
+            quantity: 0,
+            sum: 0,
+            edit: item.edit || false,
+          };
+        }
+      });
+      setProducts(formattedProducts);
+    }
+  }, [tableProps.dataSource, record?.products]);
 
   // Отслеживание изменений в полях объявленной ценности и комиссии
   useEffect(() => {
