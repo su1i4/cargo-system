@@ -561,6 +561,7 @@ export const GoogsProcessingList = () => {
       </Modal>
 
       <Table
+        size="small"
         {...tableProps}
         rowKey="id"
         scroll={{ x: 1000 }}

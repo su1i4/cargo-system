@@ -483,20 +483,20 @@ export const GoodsShow: React.FC = () => {
             }-${record?.recipient?.clientCode || ""}`}</Text>
           </Col>
           <Col style={colStyle} span={4}>
-            <Text className="table-text">Фио</Text>
+            <Text className="table-text">Ф.И.О</Text>
           </Col>
           <Col style={colStyle} span={8}>
             <Text className="table-text">{record?.sender?.name || ""}</Text>
           </Col>
           <Col style={colStyle} span={4}>
-            <Text className="table-text">Фио</Text>
+            <Text className="table-text">Ф.И.О</Text>
           </Col>
           <Col style={colStyle} span={8}>
             <Text className="table-text">{record?.recipient?.name || ""}</Text>
           </Col>
 
           <Col style={colStyle} span={4}>
-            <Text className="table-text">Телефон</Text>
+            <Text className="table-text">Контакты</Text>
           </Col>
           <Col style={colStyle} span={8}>
             <Text className="table-text">
@@ -506,7 +506,7 @@ export const GoodsShow: React.FC = () => {
             </Text>
           </Col>
           <Col style={colStyle} span={4}>
-            <Text className="table-text">Телефон</Text>
+            <Text className="table-text">Контакты</Text>
           </Col>
           <Col style={colStyle} span={8}>
             <Text className="table-text">
@@ -517,7 +517,7 @@ export const GoodsShow: React.FC = () => {
           </Col>
 
           <Col style={colStyle} span={4}>
-            <Text className="table-text">Адрес</Text>
+            <Text className="table-text">Адрес склада</Text>
           </Col>
           <Col style={colStyle} span={8}>
             <Text className="table-text">{`${

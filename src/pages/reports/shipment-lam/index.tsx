@@ -57,7 +57,6 @@ export const WarehouseStockGoodsReport = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [shipmentId, setShipmentId] = useState<number | null>(null);
   const [showBags, setShowBags] = useState(false);
-  const [showColumns, setShowColumns] = useState<boolean>(false);
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState<
@@ -98,17 +97,14 @@ export const WarehouseStockGoodsReport = () => {
     let totalWeight = 0;
     dataSource.forEach((record: any, index: number) => {
       const mainRow = {
+        "Дата отправки": record.created_at
+          ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
+          : "",
         "№ накладной": record.invoice_number || "",
-        "Код отправителя": record.sender
-          ? `${record.sender.clientPrefix}-${record.sender.clientCode}`
-          : "",
         "Фио отправителя": record.sender?.name || "",
-        "Код получателя": record.recipient
-          ? `${record.recipient.clientPrefix}-${record.recipient.clientCode}`
-          : "",
         "Фио получателя": record.recipient?.name || "",
-        "Номер получателя": record.recipient?.phoneNumber || "",
         Город: record.destination?.name || "",
+        "Номер получателя": record.recipient?.phoneNumber || "",
         "Номера мешков":
           record.services
             ?.map((item: any) => item.bag_number_numeric)
@@ -118,8 +114,7 @@ export const WarehouseStockGoodsReport = () => {
           : "",
         "Кол-во мешков": record.services?.length || 0,
         Сумма: record.amount || 0,
-        "Сумма за мешки":
-          record.avgProductPrice,
+        "Сумма за мешки": record.avgProductPrice,
         Оплачено: record.paid_sum || 0,
         Долг: Number(record.amount || 0) - Number(record.paid_sum || 0),
       };
@@ -139,19 +134,12 @@ export const WarehouseStockGoodsReport = () => {
       if (showBags && record.services && record.services.length > 0) {
         record.services.forEach((service: any, serviceIndex: number) => {
           const serviceRow = {
-            "№": `${index + 1}.${serviceIndex + 1}`,
-            "Дата приемки": "",
             "Дата отправки": "",
-            "Дата получения": "",
-            "Дата выдачи": "",
-            "Номер машины": "",
             "№ накладной": "",
-            "Код отправителя": "",
             "Фио отправителя": "",
-            "Код получателя": "",
             "Фио получателя": "",
             "Номер получателя": "",
-            "Город (с досыслом если есть)": "",
+            Город: "",
             "Номера мешков": service.bag_number_numeric || "",
             "Вес, кг": service.weight
               ? String(service.weight).replace(".", ",").slice(0, 5)
@@ -172,16 +160,9 @@ export const WarehouseStockGoodsReport = () => {
     });
 
     const totalRow = {
-      "№": "",
-      "Дата приемки": "",
       "Дата отправки": "",
-      "Дата получения": "",
-      "Дата выдачи": "",
-      "Номер машины": "",
       "№ накладной": "",
-      "Код отправителя": "",
       "Фио отправителя": "",
-      "Код получателя": "",
       "Фио получателя": "",
       "Номер получателя": "",
       Город: "",
@@ -194,7 +175,57 @@ export const WarehouseStockGoodsReport = () => {
       Долг: totalDebt,
     };
 
-    exportData.push(totalRow);
+    const totalRow2 = {
+      "Дата отправки": tableShipmentProps.dataSource?.find((item: any) => {
+        return item.id === shipmentId;
+      })?.truck_number,
+      "№ накладной": "",
+      "Фио отправителя": "",
+      "Фио получателя": "",
+      "Номер получателя": "",
+      Город: "",
+      "Номера мешков": "",
+      "Вес, кг": "",
+      "Кол-во мешков": "",
+      Сумма: "",
+      "Сумма за мешки": "",
+      Оплачено: "",
+      Долг: "",
+    };
+
+    const totalRow3 = {
+      "Дата отправки": "Общий вес",
+      "№ накладной": "Общий долг",
+      "Фио отправителя": "",
+      "Фио получателя": "",
+      "Номер получателя": "",
+      Город: "",
+      "Номера мешков": "",
+      "Вес, кг": "",
+      "Кол-во мешков": "",
+      Сумма: "",
+      "Сумма за мешки": "",
+      Оплачено: "",
+      Долг: "",
+    };
+
+    const totalRow4 = {
+      "Дата отправки": totalWeight,
+      "№ накладной": totalDebt,
+      "Фио отправителя": "",
+      "Фио получателя": "",
+      "Номер получателя": "",
+      Город: "",
+      "Номера мешков": "",
+      "Вес, кг": "",
+      "Кол-во мешков": "",
+      Сумма: "",
+      "Сумма за мешки": "",
+      Оплачено: "",
+      Долг: "",
+    };
+
+    exportData.push(totalRow, totalRow2, totalRow3, totalRow4);
 
     return exportData;
   };
@@ -218,7 +249,6 @@ export const WarehouseStockGoodsReport = () => {
       message.success("Файл XLSX успешно скачан");
     } catch (error) {
       message.error("Ошибка при скачивании XLSX файла");
-      console.error("XLSX download error:", error);
     } finally {
       setDownloadLoading(false);
     }
@@ -266,6 +296,7 @@ export const WarehouseStockGoodsReport = () => {
       console.error("CSV download error:", error);
     }
   };
+
   const sortData = (data: any, sortField: any, sortDirection: any) => {
     if (!data || data.length === 0) return data;
 
@@ -425,15 +456,6 @@ export const WarehouseStockGoodsReport = () => {
             </Checkbox>
           </Col>
           <Col>
-            <Checkbox
-              checked={showColumns}
-              onChange={(e) => setShowColumns(e.target.checked)}
-              style={{ marginRight: 8 }}
-            >
-              Показать лишние столбцы
-            </Checkbox>
-          </Col>
-          <Col>
             <Button
               icon={<FileExcelOutlined />}
               type="primary"
@@ -466,6 +488,7 @@ export const WarehouseStockGoodsReport = () => {
           </Col>
         </Row>
         <Table
+          size="small"
           dataSource={sortedData}
           pagination={false}
           rowKey="id"
@@ -544,25 +567,18 @@ export const WarehouseStockGoodsReport = () => {
               : undefined
           }
         >
-          <Table.Column dataIndex="invoice_number" title="№ накладной" />
           <Table.Column
-            dataIndex="sender"
-            title="Код отправителя"
-            render={(value) => {
-              return value?.clientPrefix + "-" + value?.clientCode;
-            }}
+            dataIndex="created_at"
+            title="Дата приемки"
+            render={(value) =>
+              value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
+            }
           />
+          <Table.Column dataIndex="invoice_number" title="№ накладной" />
           <Table.Column
             dataIndex="sender"
             title="Фио отправителя"
             render={(value) => value?.name}
-          />
-          <Table.Column
-            dataIndex="recipient"
-            title="Код получателя"
-            render={(value) => {
-              return value?.clientPrefix + "-" + value?.clientCode;
-            }}
           />
           <Table.Column
             dataIndex="recipient"
@@ -577,7 +593,7 @@ export const WarehouseStockGoodsReport = () => {
           <Table.Column
             dataIndex="destination"
             render={(value) => value?.name}
-            title="Город (с досыслом если есть)"
+            title="Город"
           />
           <Table.Column
             dataIndex="services"
@@ -608,12 +624,12 @@ export const WarehouseStockGoodsReport = () => {
           <Table.Column
             dataIndex="avgProductPrice"
             title="Сумма за мешки"
-                // render={(value) =>
-                //   value?.reduce(
-                //     (acc: number, item: any) => acc + Number(item.sum),
-                //     0
-                //   )
-                // }
+            // render={(value) =>
+            //   value?.reduce(
+            //     (acc: number, item: any) => acc + Number(item.sum),
+            //     0
+            //   )
+            // }
           />
           <Table.Column dataIndex="paid_sum" title="Оплачено" />
           <Table.Column
