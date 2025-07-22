@@ -109,6 +109,15 @@ export const routes = [
     },
   },
   {
+    name: "tracking",
+    list: "/tracking",
+    meta: {
+      canDelete: false,
+      label: "Отслеживание",
+      parent: "Продукты",
+    },
+  },
+  {
     name: "nomenclature",
     list: "/nomenclature",
     show: "/nomenclature/show/:id",

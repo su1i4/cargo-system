@@ -235,7 +235,58 @@ export const WarehouseStockGoodsReport = () => {
       setDownloadLoading(true);
       const exportData = prepareExportData();
 
+      // Convert data to worksheet
       const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+      // Example of styling: Apply styles to header row
+      const headerCells = worksheet["A1"];
+      if (headerCells) {
+        worksheet["A1"].s = {
+          font: { bold: true, sz: 12 },
+          fill: { fgColor: { rgb: "FFFF00" } }, // Yellow background
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            right: { style: "thin" },
+            bottom: { style: "thin" },
+          },
+        };
+      }
+
+      // Apply styles to all header row cells dynamically
+      Object.keys(worksheet).forEach((cell) => {
+        if (cell.includes("1")) {
+          worksheet[cell].s = {
+            font: { bold: true, sz: 12 },
+            fill: { fgColor: { rgb: "FFFF00" } }, // Yellow background for header
+            alignment: { horizontal: "center" },
+            border: {
+              top: { style: "thin" },
+              left: { style: "thin" },
+              right: { style: "thin" },
+              bottom: { style: "thin" },
+            },
+          };
+        }
+      });
+
+      // Example of styling: Apply styles to the data rows
+      Object.keys(worksheet).forEach((cell) => {
+        if (!cell.includes("1")) {
+          worksheet[cell].s = {
+            alignment: { horizontal: "center" },
+            border: {
+              top: { style: "thin" },
+              left: { style: "thin" },
+              right: { style: "thin" },
+              bottom: { style: "thin" },
+            },
+          };
+        }
+      });
+
+      // Create workbook and append worksheet
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
 
@@ -244,6 +295,8 @@ export const WarehouseStockGoodsReport = () => {
           return item.id === shipmentId;
         })?.truck_number
       }.xlsx`;
+
+      // Write file to disk
       XLSX.writeFile(workbook, fileName);
 
       message.success("Файл XLSX успешно скачан");

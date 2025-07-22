@@ -109,6 +109,7 @@ export const GoodsShow: React.FC = () => {
         }
 
         el.style.fontSize = `${fontSize}px`;
+        el.style.fontFamily = "Times New Roman, serif";
         el.style.width = "100%";
         el.style.height = "100vh";
         el.style.boxSizing = "border-box";
@@ -126,6 +127,7 @@ export const GoodsShow: React.FC = () => {
             );
             copy.style.setProperty("page-break-inside", "avoid", "important");
             copy.style.setProperty("flex", "none", "important");
+            copy.style.setProperty("font-family", "Times New Roman, serif", "important");
           });
 
           // Убираем divider если используем отдельные страницы
@@ -139,7 +141,8 @@ export const GoodsShow: React.FC = () => {
             copy.style.setProperty("height", "49.5vh", "important");
             copy.style.setProperty("page-break-before", "auto", "important");
             copy.style.setProperty("flex", "1", "important");
-          });
+            copy.style.setProperty("font-family", "Times New Roman, serif", "important");
+            });
 
           const divider = el.querySelector(".divider");
           if (divider) {
@@ -150,20 +153,23 @@ export const GoodsShow: React.FC = () => {
         const totalSum = el.querySelectorAll(".total-sum-text");
         totalSum.forEach((section: any) => {
           section.style.setProperty("font-size", "13px", "important");
+          section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
 
         const tableText = el.querySelectorAll(".table-text");
         tableText.forEach((section: any) => {
           section.style.setProperty("font-size", "11px", "important");
+          section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
 
         const termsSection = el.querySelectorAll(".terms-section");
         termsSection.forEach((section: any) => {
-          section.style.setProperty("font-size", "8px", "important");
+          section.style.setProperty("font-size", "10px", "important");
           section.style.setProperty("line-height", "1", "important");
           section.style.setProperty("font-weight", "400", "important");
           section.style.setProperty("margin", "0", "important");
           section.style.setProperty("padding", "0", "important");
+          section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
 
         const termsSectionInvoice = el.querySelectorAll(
@@ -171,13 +177,17 @@ export const GoodsShow: React.FC = () => {
         );
         termsSectionInvoice.forEach((section: any) => {
           section.style.setProperty("font-size", "14px", "important");
+          section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
       }
     },
     onAfterPrint: () => {
       const el = printRef.current;
       if (el) {
+        // Сохраняем fontFamily при сбросе других стилей
+        const currentFontFamily = el.style.fontFamily;
         el.removeAttribute("style");
+        el.style.fontFamily = currentFontFamily;
 
         // Сбрасываем стили копий накладной
         const invoiceCopies = el.querySelectorAll(".invoice-copy");
@@ -186,6 +196,7 @@ export const GoodsShow: React.FC = () => {
           copy.style.removeProperty("page-break-before");
           copy.style.removeProperty("page-break-inside");
           copy.style.removeProperty("flex");
+          copy.style.removeProperty("font-family");
         });
 
         // Возвращаем divider
@@ -200,6 +211,7 @@ export const GoodsShow: React.FC = () => {
           section.style.removeProperty("line-height");
           section.style.removeProperty("margin");
           section.style.removeProperty("padding");
+          section.style.removeProperty("font-family");
         });
 
         const tableText = el.querySelectorAll(".table-text");
@@ -217,6 +229,7 @@ export const GoodsShow: React.FC = () => {
         );
         termsSectionInvoice.forEach((section: any) => {
           section.style.removeProperty("font-size");
+          section.style.removeProperty("font-family");
         });
       }
     },
@@ -442,384 +455,379 @@ export const GoodsShow: React.FC = () => {
           </Flex>
         </Flex>
 
-        <Row
-          gutter={[4, 0]}
-          style={{
-            border: "1px solid black",
-            borderRadius: "4px",
-            overflow: "hidden",
-            marginBottom: "6px",
-          }}
-        >
-          <Col
-            style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
-            span={4}
-          >
-            <Text className="table-text">Отправитель</Text>
-          </Col>
-          <Col style={colStyle} span={8}></Col>
-          <Col
-            style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
-            span={4}
-          >
-            <Text className="table-text">Получатель</Text>
-          </Col>
-          <Col style={colStyle} span={8}></Col>
-
-          <Col style={colStyle} span={4}>
-            <Text className="table-text">Код</Text>
-          </Col>
-          <Col style={colStyle} span={8}>
-            <Text className="table-text">{`${
-              record?.sender?.clientPrefix || ""
-            }-${record?.sender?.clientCode || ""}`}</Text>
-          </Col>
-          <Col style={colStyle} span={4}>
-            <Text className="table-text">Код</Text>
-          </Col>
-          <Col style={colStyle} span={8}>
-            <Text className="table-text">{`${
-              record?.recipient?.clientPrefix || ""
-            }-${record?.recipient?.clientCode || ""}`}</Text>
-          </Col>
-          <Col style={colStyle} span={4}>
-            <Text className="table-text">Ф.И.О</Text>
-          </Col>
-          <Col style={colStyle} span={8}>
-            <Text className="table-text">{record?.sender?.name || ""}</Text>
-          </Col>
-          <Col style={colStyle} span={4}>
-            <Text className="table-text">Ф.И.О</Text>
-          </Col>
-          <Col style={colStyle} span={8}>
-            <Text className="table-text">{record?.recipient?.name || ""}</Text>
-          </Col>
-
-          <Col style={colStyle} span={4}>
-            <Text className="table-text">Контакты</Text>
-          </Col>
-          <Col style={colStyle} span={8}>
-            <Text className="table-text">
-              {record?.sender?.phoneNumber
-                ? `+${record?.sender?.phoneNumber}`
-                : ""}
-            </Text>
-          </Col>
-          <Col style={colStyle} span={4}>
-            <Text className="table-text">Контакты</Text>
-          </Col>
-          <Col style={colStyle} span={8}>
-            <Text className="table-text">
-              {record?.recipient?.phoneNumber
-                ? `+${record?.recipient?.phoneNumber}`
-                : ""}
-            </Text>
-          </Col>
-
-          <Col style={colStyle} span={4}>
-            <Text className="table-text">Адрес склада</Text>
-          </Col>
-          <Col style={colStyle} span={8}>
-            <Text className="table-text">{`${
-              record?.employee?.branch?.name || ""
-            } ${record?.employee?.under_branch?.address || ""}`}</Text>
-          </Col>
-          <Col style={colStyle} span={4}>
-            <Text className="table-text">Город назначения</Text>
-          </Col>
-          <Col style={colStyle} span={8}>
-            <Text className="table-text" style={{ fontWeight: 700 }}>
-              {record?.destination?.name || ""}
-            </Text>
-          </Col>
-
-          <Col style={{ ...colStyle, borderBottom: "none" }} span={4}>
-            <Text className="table-text">Комментарий</Text>
-          </Col>
-          <Col style={{ ...colStyle, borderBottom: "none" }} span={8}>
-            <Text className="table-text">{record?.comments || ""}</Text>
-          </Col>
-          <Col style={{ ...colStyle, borderBottom: "none" }} span={4}>
-            <Text className="table-text">Досыл</Text>
-          </Col>
-          <Col style={{ ...colStyle, borderBottom: "none" }} span={8}>
-            <Text className="table-text">{record?.sent_back?.name || ""}</Text>
-          </Col>
-        </Row>
-        <Row
-          gutter={[4, 0]}
-          style={{
-            border: "1px solid black",
-            borderRadius: "4px",
-            overflow: "hidden",
-          }}
-        >
-          <Col
-            style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
-            span={4}
-          >
-            <Text className="table-text">№ Мешка, Коробки</Text>
-          </Col>
-          <Col
-            style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
-            span={4}
-          >
-            <Text className="table-text">Наименование услуги</Text>
-          </Col>
-          <Col
-            style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
-            span={4}
-          >
-            <Text className="table-text">Наименование товара клиента</Text>
-          </Col>
-          <Col
-            style={{
-              ...colStyle,
-              backgroundColor: "#F5F5F4",
-              padding: 0,
-              overflow: "hidden",
-            }}
-            span={4}
-          >
-            <Row gutter={[12, 0]} style={{ overflow: "hidden" }}>
+        <Flex gap="5px">
+          {/* Левая часть - информация об отправителе и получателе (30%) */}
+          <div style={{ width: "30%" }}>
+            <Row
+              gutter={[2, 0]}
+              style={{
+                border: "1px solid black",
+                borderRadius: "4px",
+                overflow: "hidden",
+              }}
+            >
               <Col
+                style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600, borderRight: "none" }}
                 span={24}
-                style={{
-                  borderBottom: "1px solid black",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "8px",
-                }}
               >
-                <p
-                  className="table-text"
-                  style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
-                >
-                  Количество
-                </p>
+                <Text className="table-text">Отправитель</Text>
               </Col>
-              <Col
-                span={12}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRight: "1px solid black",
-                  padding: "8px",
-                }}
-              >
-                <p
-                  className="table-text"
-                  style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
-                >
-                  Мест
-                </p>
+              
+              <Col style={colStyle} span={8}>
+                <Text className="table-text">Код</Text>
               </Col>
-              <Col
-                span={12}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "8px",
-                }}
-              >
-                <p
-                  className="table-text"
-                  style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
-                >
-                  шт
-                </p>
+              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+                <Text className="table-text">{`${
+                  record?.sender?.clientPrefix || ""
+                }-${record?.sender?.clientCode || ""}`}</Text>
+              </Col>
+              
+              <Col style={colStyle} span={8}>
+                <Text className="table-text">Ф.И.О</Text>
+              </Col>
+              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+                <Text className="table-text">{record?.sender?.name || ""}</Text>
+              </Col>
+
+              <Col style={colStyle} span={8}>
+                <Text className="table-text">Контакты</Text>
+              </Col>
+              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+                <Text className="table-text">
+                  {record?.sender?.phoneNumber
+                    ? `+${record?.sender?.phoneNumber}`
+                    : ""}
+                </Text>
+              </Col>
+
+              <Col style={colStyle} span={8}>
+                <Text className="table-text">Адрес склада</Text>
+              </Col>
+              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+                <Text className="table-text">{`${
+                  record?.employee?.branch?.name || ""
+                } ${record?.employee?.under_branch?.address || ""}`}</Text>
+              </Col>
+
+              <Col style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600, borderRight: "none" }} span={24}>
+                <Text className="table-text">Получатель</Text>
+              </Col>
+              
+              <Col style={colStyle} span={8}>
+                <Text className="table-text">Код</Text>
+              </Col>
+              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+                <Text className="table-text">{`${
+                  record?.recipient?.clientPrefix || ""
+                }-${record?.recipient?.clientCode || ""}`}</Text>
+              </Col>
+              
+              <Col style={colStyle} span={8}>
+                <Text className="table-text">Ф.И.О</Text>
+              </Col>
+              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+                <Text className="table-text">{record?.recipient?.name || ""}</Text>
+              </Col>
+
+              <Col style={colStyle} span={8}>
+                <Text className="table-text">Контакты</Text>
+              </Col>
+              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+                <Text className="table-text">
+                  {record?.recipient?.phoneNumber
+                    ? `+${record?.recipient?.phoneNumber}`
+                    : ""}
+                </Text>
+              </Col>
+
+              <Col style={colStyle} span={8}>
+                <Text className="table-text">Город назначения</Text>
+              </Col>
+              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+                <Text className="table-text" style={{ fontWeight: 700 }}>
+                  {record?.destination?.name || ""}
+                </Text>
+              </Col>
+
+              <Col style={colStyle} span={8}>
+                <Text className="table-text">Комментарий</Text>
+              </Col>
+              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+                <Text className="table-text">{record?.comments || ""}</Text>
+              </Col>
+              
+              <Col style={{ ...colStyle, borderBottom: "none" }} span={8}>
+                <Text className="table-text">Фактический конечный город</Text>
+              </Col>
+              <Col style={{ ...colStyle, borderBottom: "none", borderRight: "none" }} span={16}>
+                <Text className="table-text">{record?.sent_back?.name || ""}</Text>
               </Col>
             </Row>
-          </Col>
-          <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={2}>
-            <Text className="table-text" style={{ fontWeight: 600 }}>
-              Вес, кг
-            </Text>
-          </Col>
-          <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={4}>
-            <Text className="table-text" style={{ fontWeight: 600 }}>
-              Стоимость услуг
-            </Text>
-          </Col>
-          <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={2}>
-            <Text className="table-text" style={{ fontWeight: 600 }}>
-              Сумма
-            </Text>
-          </Col>
+          </div>
 
-          {grouped?.map((service: any, index: number) => (
-            <React.Fragment key={index}>
-              <Col style={colStyle} span={4}>
-                <Text className="table-text">{service.bag_number_numeric}</Text>
-              </Col>
-              <Col style={colStyle} span={4}>
-                <Text
-                  className="table-text"
-                  style={{ fontSize: 13, lineHeight: "5px", fontWeight: 600 }}
-                >
-                  Грузоперевозка{" "}
-                  {`${record?.employee?.branch?.name} - ${record?.destination?.name}`}
-                </Text>
-              </Col>
-              <Col style={colStyle} span={4}>
-                <Text className="table-text">{service.nomenclature?.name}</Text>
-              </Col>
-              <Col style={colStyle} span={2}>
-                <Text className="table-text">{service.count || 0}</Text>
-              </Col>
-              <Col style={colStyle} span={2}>
-                <Text className="table-text">{service.quantity || 0}</Text>
-              </Col>
-              <Col style={colStyle} span={2}>
-                <Text className="table-text">
-                  {String(service.weight?.toFixed(2)).replace(".", ",") || 0}
-                </Text>
-              </Col>
-              <Col style={colStyle} span={4}>
-                <Text className="table-text">
-                  {service.price - discount || 0}
-                </Text>
-              </Col>
-              <Col style={colStyle} span={2}>
-                <Text className="table-text">
-                  {service.sum?.toFixed(2) || 0}
-                </Text>
-              </Col>
-            </React.Fragment>
-          ))}
-          <Col style={{ ...colStyle, borderBottom: "none" }} span={12}>
-            <Text
-              className="table-text"
-              style={{ textAlign: "end", fontWeight: "bold" }}
-            >
-              Итого
-            </Text>
-          </Col>
-          <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
-            <Text className="table-text" style={{ fontWeight: "bold" }}>
-              {totalPlaces}
-            </Text>
-          </Col>
-          <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
-            <Text className="table-text" style={{ fontWeight: "bold" }}>
-              {totalQuantity}
-            </Text>
-          </Col>
-          <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
-            <Text className="table-text" style={{ fontWeight: "bold" }}>
-              {String(totalWeight?.toFixed(2)).replace(".", ",") || 0}
-            </Text>
-          </Col>
-          <Col style={{ ...colStyle, borderBottom: "none" }} span={4}>
-            <Text className="table-text" style={{ fontWeight: "bold" }}>
-              -
-            </Text>
-          </Col>
-          <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
-            <Text className="table-text" style={{ fontWeight: "bold" }}>
-              {totalSum?.toFixed(2)}
-            </Text>
-          </Col>
-        </Row>
-        {record?.products?.length ? (
-          <Row
-            gutter={[4, 0]}
-            style={{
-              border: "1px solid black",
-              borderRadius: "4px",
-              overflow: "hidden",
-              marginTop: "6px",
-            }}
-          >
-            <Col
-              span={10}
+          {/* Правая часть - таблицы с услугами и товарами (70%) */}
+          <div style={{ width: "70%" }}>
+            <Row
+              gutter={[2, 0]}
               style={{
-                ...colStyle,
-                backgroundColor: "#F5F5F4",
-                fontWeight: 600,
+                border: "1px solid black",
+                borderRadius: "4px",
+                overflow: "hidden",
               }}
             >
-              <Text className="table-text">Номенклатура</Text>
-            </Col>
-            <Col
-              span={4}
-              style={{
-                ...colStyle,
-                backgroundColor: "#F5F5F4",
-                fontWeight: 600,
-              }}
-            >
-              <Text className="table-text">Цена</Text>
-            </Col>
-            <Col
-              span={4}
-              style={{
-                ...colStyle,
-                backgroundColor: "#F5F5F4",
-                fontWeight: 600,
-              }}
-            >
-              <Text className="table-text">Количество, шт</Text>
-            </Col>
-            <Col
-              span={6}
-              style={{
-                ...colStyle,
-                backgroundColor: "#F5F5F4",
-                borderRight: "none",
-              }}
-            >
-              <Text className="table-text" style={{ fontWeight: 600 }}>
-                Сумма
-              </Text>
-            </Col>
+              <Col
+                style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
+                span={6}
+              >
+                <Text className="table-text">№ Мешка, Коробки</Text>
+              </Col>
+              <Col
+                style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
+                span={5}
+              >
+                <Text className="table-text">Наименование услуги</Text>
+              </Col>
+              <Col
+                style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
+                span={5}
+              >
+                <Text className="table-text">Наименование товара клиента</Text>
+              </Col>
+              <Col
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  padding: 0,
+                  overflow: "hidden",
+                }}
+                span={4}
+              >
+                <Row gutter={[12, 0]} style={{ overflow: "hidden" }}>
+                  <Col
+                    span={24}
+                    style={{
+                      borderBottom: "1px solid black",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "4px",
+                    }}
+                  >
+                    <p
+                      className="table-text"
+                      style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
+                    >
+                      Количество
+                    </p>
+                  </Col>
+                  <Col
+                    span={12}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRight: "1px solid black",
+                      padding: "4px",
+                    }}
+                  >
+                    <p
+                      className="table-text"
+                      style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
+                    >
+                      Мест
+                    </p>
+                  </Col>
+                  <Col
+                    span={12}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "4px",
+                    }}
+                  >
+                    <p
+                      className="table-text"
+                      style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
+                    >
+                      шт
+                    </p>
+                  </Col>
+                </Row>
+              </Col>
+              <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={2}>
+                <Text className="table-text" style={{ fontWeight: 600 }}>
+                  Вес, кг
+                </Text>
+              </Col>
+              <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={2}>
+                <Text className="table-text" style={{ fontWeight: 600 }}>
+                  Сумма
+                </Text>
+              </Col>
 
-            {record?.products?.map(
-              ({ id, name, price, quantity, sum }: any) => (
-                <React.Fragment key={id}>
-                  <Col span={10} style={colStyle}>
-                    <Text className="table-text">{name}</Text>
+              {grouped?.map((service: any, index: number) => (
+                <React.Fragment key={index}>
+                  <Col style={colStyle} span={6}>
+                    <Text className="table-text">{service.bag_number_numeric}</Text>
                   </Col>
-                  <Col span={4} style={colStyle}>
-                    <Text className="table-text">{price}</Text>
+                  <Col style={colStyle} span={5}>
+                    <Text
+                      className="table-text"
+                      style={{ fontSize: 11, lineHeight: "12px", fontWeight: 600 }}
+                    >
+                      Грузоперевозка{" "}
+                      {`${record?.employee?.branch?.name} - ${record?.destination?.name}`}
+                    </Text>
                   </Col>
-                  <Col span={4} style={colStyle}>
-                    <Text className="table-text">{quantity}</Text>
+                  <Col style={colStyle} span={5}>
+                    <Text className="table-text">{service.nomenclature?.name}</Text>
                   </Col>
-                  <Col span={6} style={{ ...colStyle, borderRight: "none" }}>
-                    <Text className="table-text">{sum}</Text>
+                  <Col style={colStyle} span={2}>
+                    <Text className="table-text">{service.count || 0}</Text>
+                  </Col>
+                  <Col style={colStyle} span={2}>
+                    <Text className="table-text">{service.quantity || 0}</Text>
+                  </Col>
+                  <Col style={colStyle} span={2}>
+                    <Text className="table-text">
+                      {String(service.weight?.toFixed(2)).replace(".", ",") || 0}
+                    </Text>
+                  </Col>
+                  <Col style={colStyle} span={2}>
+                    <Text className="table-text">
+                      {service.sum?.toFixed(2) || 0}
+                    </Text>
                   </Col>
                 </React.Fragment>
-              )
-            )}
-            <Col span={10} style={{ ...colStyle, borderBottom: "none" }}>
-              <Text className="table-text" style={{ fontWeight: "bold" }}>
-                Итого
-              </Text>
-            </Col>
-            <Col span={4} style={{ ...colStyle, borderBottom: "none" }}>
-              <Text
-                className="table-text"
-                style={{ fontWeight: "bold" }}
-              ></Text>
-            </Col>
-            <Col span={4} style={{ ...colStyle, borderBottom: "none" }}>
-              <Text className="table-text" style={{ fontWeight: "bold" }}>
-                {totalProdQty}
-              </Text>
-            </Col>
-            <Col span={6} style={{ ...colStyle, border: "none" }}>
-              <Text className="table-text" style={{ fontWeight: "bold" }}>
-                {totalProdSum}
-              </Text>
-            </Col>
-          </Row>
-        ) : (
-          ""
-        )}
+              ))}
+              <Col style={{ ...colStyle, borderBottom: "none" }} span={16}>
+                <Text
+                  className="table-text"
+                  style={{ textAlign: "end", fontWeight: "bold" }}
+                >
+                  Итого
+                </Text>
+              </Col>
+              <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
+                <Text className="table-text" style={{ fontWeight: "bold" }}>
+                  {totalPlaces}
+                </Text>
+              </Col>
+              <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
+                <Text className="table-text" style={{ fontWeight: "bold" }}>
+                  {totalQuantity}
+                </Text>
+              </Col>
+              <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
+                <Text className="table-text" style={{ fontWeight: "bold" }}>
+                  {String(totalWeight?.toFixed(2)).replace(".", ",") || 0}
+                </Text>
+              </Col>
+              <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
+                <Text className="table-text" style={{ fontWeight: "bold" }}>
+                  {totalSum?.toFixed(2)}
+                </Text>
+              </Col>
+            </Row>
+            
+            {/* Таблица с товарами в правой части */}
+            {record?.products?.length ? (
+              <Row
+                gutter={[2, 0]}
+                style={{
+                  border: "1px solid black",
+                  borderRadius: "4px",
+                  overflow: "hidden",
+                  marginTop: "6px",
+                }}
+              >
+                <Col
+                  span={10}
+                  style={{
+                    ...colStyle,
+                    backgroundColor: "#F5F5F4",
+                    fontWeight: 600,
+                  }}
+                >
+                  <Text className="table-text">Номенклатура</Text>
+                </Col>
+                <Col
+                  span={4}
+                  style={{
+                    ...colStyle,
+                    backgroundColor: "#F5F5F4",
+                    fontWeight: 600,
+                  }}
+                >
+                  <Text className="table-text">Цена</Text>
+                </Col>
+                <Col
+                  span={4}
+                  style={{
+                    ...colStyle,
+                    backgroundColor: "#F5F5F4",
+                    fontWeight: 600,
+                  }}
+                >
+                  <Text className="table-text">Количество, шт</Text>
+                </Col>
+                <Col
+                  span={6}
+                  style={{
+                    ...colStyle,
+                    backgroundColor: "#F5F5F4",
+                    borderRight: "none",
+                  }}
+                >
+                  <Text className="table-text" style={{ fontWeight: 600 }}>
+                    Сумма
+                  </Text>
+                </Col>
+
+                {record?.products?.map(
+                  ({ id, name, price, quantity, sum }: any) => (
+                    <React.Fragment key={id}>
+                      <Col span={10} style={colStyle}>
+                        <Text className="table-text">{name}</Text>
+                      </Col>
+                      <Col span={4} style={colStyle}>
+                        <Text className="table-text">{price}</Text>
+                      </Col>
+                      <Col span={4} style={colStyle}>
+                        <Text className="table-text">{quantity}</Text>
+                      </Col>
+                      <Col span={6} style={{ ...colStyle, borderRight: "none" }}>
+                        <Text className="table-text">{sum}</Text>
+                      </Col>
+                    </React.Fragment>
+                  )
+                )}
+                <Col span={10} style={{ ...colStyle, borderBottom: "none" }}>
+                  <Text className="table-text" style={{ fontWeight: "bold" }}>
+                    Итого
+                  </Text>
+                </Col>
+                <Col span={4} style={{ ...colStyle, borderBottom: "none" }}>
+                  <Text
+                    className="table-text"
+                    style={{ fontWeight: "bold" }}
+                  ></Text>
+                </Col>
+                <Col span={4} style={{ ...colStyle, borderBottom: "none" }}>
+                  <Text className="table-text" style={{ fontWeight: "bold" }}>
+                    {totalProdQty}
+                  </Text>
+                </Col>
+                <Col span={6} style={{ ...colStyle, border: "none" }}>
+                  <Text className="table-text" style={{ fontWeight: "bold" }}>
+                    {totalProdSum}
+                  </Text>
+                </Col>
+              </Row>
+            ) : null}
+          </div>
+        </Flex>
         <Flex
           justify="space-between"
           align="center"
@@ -851,46 +859,25 @@ export const GoodsShow: React.FC = () => {
             </Text>
           </Flex>
         </Flex>
-        <Flex gap="3px" style={{ marginTop: "3px" }}>
+        <Flex gap="10px" style={{ marginTop: "3px" }}>
           <Flex vertical style={{ width: "50%" }}>
             <Text
               className="terms-section"
               style={{ margin: 0, fontWeight: "bold", fontSize: "0.7em" }}
             >
-              Условия перевозок:
+              Условия доставки:
             </Text>
             <Text
               className="terms-section"
               style={{ fontSize: "0.8em", margin: 0, lineHeight: "1.0" }}
             >
-              1. Клиент / представитель Клиента гарантирует, что отправляемый
-              груз не содержит предметов, запрещенных к перевозке, в
-              соответствии с правилами компании, указанными на сайте
-              www.rosscargo.kg и действующим законодательством КР, и несет
-              полную ответственность за достоверность предоставляемой
-              информации.
+              Согласно накладному стоимость доставки указана только до «Городов назначения», за «Фактический конечный город» взимается дополнительная плата в соответствии с тарифами местных транспортных компании.
             </Text>
             <Text
               className="terms-section"
-              style={{
-                fontSize: "0.8em",
-                fontWeight: "600 !important",
-                margin: "1px 0",
-                lineHeight: "1.0",
-              }}
+              style={{ fontSize: "0.8em", margin: "1px 0", lineHeight: "1.0" }}
             >
-              2. В случае пропажи или порчи товара, или пожара Клиенту
-              возмещается стоимость 1 кг груза по следующим тарифам: а) товары
-              производства Кыргызстана - по 600 руб., б) товары производства
-              Турции - по 1000 руб., в) товары производства Китая и других стран
-              - по 750 руб. Гарантия не распространяется на досылы
-            </Text>
-            <Text
-              className="terms-section"
-              style={{ fontSize: "0.8em", margin: 0, lineHeight: "1.0" }}
-            >
-              3. При сдаче и перевозки груза Росс Карго несет ответственность
-              только на массу груза, за количество ответственности не несет.
+              Получатель несет дополнительные расходы, связанные с хранением и иными услугами, взимаемыми в соответствии с требованиями администрации склада, рынка или перегрузочного пункта по месту доставки.
             </Text>
           </Flex>
           <Flex vertical style={{ width: "50%" }}>
@@ -898,24 +885,13 @@ export const GoodsShow: React.FC = () => {
               className="terms-section"
               style={{ fontSize: "0.8em", margin: 0, lineHeight: "1.0" }}
             >
-              4. Стоимость доставки указана только до конечных городов: Москва,
-              Новосибирск, Екатеринбург. За досыл в другие города взимается
-              дополнительная плата в соответствии с тарифами местных
-              транспортных компании, кроме того, возможны дополнительные
-              расходы, связанные с обработкой груза, таких как перегруз,
-              хранение и другое в соответствии с требованиями администрации
-              (склада, рынка, пункта перегрузки) на местах.
+              Предоставляя свои персональные данные, «Отправитель» дает полное и безусловное согласие на их хранение и обработку.
             </Text>
             <Text
               className="terms-section"
               style={{ fontSize: "0.8em", margin: 0, lineHeight: "1.0" }}
             >
-              5. Предоставляя свои персональные данные, Клиент / представитель
-              Клиента дает полное и безусловное согласие на их хранение и
-              обработку. 6. Подписанием данного документа Клиент / представитель
-              Клиента подтверждает, что ознакомлен и согласен со всеми его
-              условиями. Накладная составлена в двух экземплярах, по одной для
-              каждой из сторон, и имеет равную юридическую силу
+              Подписанием данного накладного «Отправитель» подтверждает, что ознакомлен и согласен со всеми его условиями. Накладная составлена в двух экземплярах, по одной для каждой из сторон, и имеет равную юридическую силу.
             </Text>
           </Flex>
         </Flex>
@@ -925,19 +901,19 @@ export const GoodsShow: React.FC = () => {
           style={{ marginTop: "4px" }}
         >
           <Flex vertical>
-            <Text style={{ margin: 0, fontSize: "1.1em" }}>
+            <Text style={{ margin: 0, fontSize: "1.2em" }}>
               Принял(а): _______________________
             </Text>
-            <Text style={{ margin: 0, fontSize: "1.1em" }}>
+            <Text style={{ margin: 0, fontSize: "1.2em" }}>
               Менеджер: {record?.employee?.firstName}{" "}
               {record?.employee?.lastName}
             </Text>
           </Flex>
           <Flex vertical>
-            <Text style={{ margin: 0, fontSize: "1.1em" }}>
+            <Text style={{ margin: 0, fontSize: "1.2em" }}>
               Сдал(а): _____________________________________
             </Text>
-            <Text style={{ margin: 0, fontSize: "1.1em" }}>
+            <Text style={{ margin: 0, fontSize: "1.2em" }}>
               ФИО клиента / представителя клиента{" "}
               <span style={{ marginLeft: "20px" }}>подпись</span>
             </Text>
@@ -1096,6 +1072,7 @@ export const GoodsShow: React.FC = () => {
       <div
         ref={printRef}
         className={`print-container ${isLargeInvoice ? "large-invoice" : ""}`}
+        style={{ fontFamily: "Times New Roman, serif" }}
       >
         <div className="invoice-copy">
           <InvoiceContent />

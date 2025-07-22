@@ -92,7 +92,7 @@ import { ProductsList } from "./pages/products/list";
 import { PackersList } from "./pages/packers/list";
 import { OutGroupList } from "./pages/out-group/list";
 import { TariffList } from "./pages/tarif/list";
-import { TrackList } from "./pages/track/list";
+import { TrackingPage } from "./pages/track/tracking";
 import { CustomLayout } from "./components/layout";
 import { SentTheCityList } from "./pages/sent-the-city";
 import { ReportList } from "./pages/reports/list";
@@ -116,6 +116,7 @@ import { GoodsProcessingCreate } from "./pages/goods-processing/create/index";
 import { WarehouseStockGoodsReport } from "./pages/reports/shipment-lam";
 
 import "./styles/global.css";
+import { TrackList } from "./pages/track/list";
 
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
@@ -419,6 +420,10 @@ function App() {
 
                   <Route path="/shipment">
                     <Route index element={<TrackList />} />
+                  </Route>
+
+                  <Route path="/tracking">
+                    <Route index element={<TrackingPage />} />
                   </Route>
 
                   <Route path="/nomenclature">
