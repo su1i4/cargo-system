@@ -322,7 +322,6 @@ export const BankShow = () => {
           title="Код клиента"
           dataIndex="counterparty_id"
           render={(value) => {
-            console.log(value);
             return (
               <p>{`${
                 counterparties.find((item: any) => item.id === value)

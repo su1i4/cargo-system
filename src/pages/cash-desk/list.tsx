@@ -349,7 +349,6 @@ export const CashDeskList: React.FC = () => {
           width={150}
           render={(check_file) => {
             const downloadUrl = `${API_URL}/${check_file}`;
-            console.log(downloadUrl, "downloadUrl");
             return check_file ? (
               <Space direction="vertical" align="center">
                 {downloadUrl.endsWith(".pdf") ? (

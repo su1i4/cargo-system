@@ -54,7 +54,7 @@ interface SearchFilterProps {
   className?: string;
   allowEmpty?: boolean;
   emptyValue?: string;
-  useOrLogic?: boolean; // Новое свойство для включения логики OR
+  useOrLogic?: boolean;
 }
 
 export const SearchFilter: FC<SearchFilterProps> = ({
@@ -69,11 +69,10 @@ export const SearchFilter: FC<SearchFilterProps> = ({
   className,
   allowEmpty = false,
   emptyValue = "",
-  useOrLogic = false, // По умолчанию используем AND
+  useOrLogic = false,
 }) => {
   const [searchValue, setSearchValue] = useState<string>("");
 
-  // Форматируем поля поиска один раз при инициализации
   const formattedSearchFields = React.useMemo(() => {
     return searchFields.map((field) => {
       if (typeof field === "string") {
@@ -83,27 +82,22 @@ export const SearchFilter: FC<SearchFilterProps> = ({
     });
   }, [searchFields]);
 
-  // Функция для применения фильтров без debounce
   const applyFilters = React.useCallback((value: string) => {
-    console.log("Применяем фильтр:", value);
     
     if (!value && !allowEmpty) {
-      console.log("Сбрасываем фильтры");
       setFilters([], filterMode);
       return;
     }
 
     const searchInput = value || emptyValue;
-    const filters: any[] = []; // Основные фильтры
-    const regularFieldFilters: any[] = []; // Фильтры для обычных полей
+    const filters: any[] = [];
+    const regularFieldFilters: any[] = [];
     
     let hasAppliedCombinedFilter = false;
 
-    // Сначала проверяем комбинированные поля с разделителем
     if (combinedFields && combinedFields.length > 0) {
       for (const { fields, separator = "-", operator = "containss" } of combinedFields) {
         if (searchInput.includes(separator)) {
-          console.log(`Найден разделитель: "${separator}"`);
           
           const parts = searchInput.split(separator);
           
@@ -111,9 +105,7 @@ export const SearchFilter: FC<SearchFilterProps> = ({
             const prefix = parts[0].trim();
             const code = parts[1].trim();
             
-            console.log(`Префикс: "${prefix}", Код: "${code}"`);
             
-            // Только если обе части не пустые, применяем комбинированный фильтр
             if (prefix && code) {
               filters.push({
                 field: fields[0],
@@ -128,19 +120,14 @@ export const SearchFilter: FC<SearchFilterProps> = ({
               });
               
               hasAppliedCombinedFilter = true;
-              console.log("Применен комбинированный фильтр");
             }
           }
         }
       }
     }
 
-    // Если комбинированный фильтр не был применен, используем обычные поля
     if (!hasAppliedCombinedFilter) {
-      // Добавляем обычные поля поиска
       formattedSearchFields.forEach(({ field, operator }) => {
-        console.log(`Добавляем обычный фильтр: поле ${field}, оператор ${operator}`);
-        // Сохраняем обычные фильтры в отдельный массив для дальнейшей обработки
         regularFieldFilters.push({
           field,
           operator,
@@ -148,94 +135,44 @@ export const SearchFilter: FC<SearchFilterProps> = ({
         });
       });
       
-    //   // Для кода клиента, если нет разделителя, проверяем является ли ввод больше похожим 
-    //   // на префикс или на код
-    //   if (combinedFields && combinedFields.length > 0) {
-    //     combinedFields.forEach(({ fields }) => {
-    //       // Если ввод похож на буквенный код, ищем по префиксу
-    //       if (/^[a-zA-Zа-яА-Я]+$/.test(searchInput)) {
-    //         console.log(`Ввод "${searchInput}" похож на префикс, ищем по полю ${fields[0]}`);
-    //         filters.push({
-    //           field: fields[0],
-    //           operator: "containss",
-    //           value: searchInput,
-    //         });
-    //       } 
-    //       // Если ввод похож на числовой код, ищем по коду
-    //       else if (/^\d+$/.test(searchInput)) {
-    //         console.log(`Ввод "${searchInput}" похож на код, ищем по полю ${fields[1]}`);
-    //         filters.push({
-    //           field: fields[1],
-    //           operator: "containss",
-    //           value: searchInput,
-    //         });
-    //       }
-    //       // Если ввод смешанный, ищем по обоим полям
-    //       else {
-    //         console.log(`Ввод "${searchInput}" смешанный, ищем по обоим полям`);
-    //         fields.forEach(field => {
-    //           filters.push({
-    //             field,
-    //             operator: "containss",
-    //             value: searchInput,
-    //           });
-    //         });
-    //       }
-    //     });
-    //   }
       
-      // Добавляем обычные поля поиска в итоговый фильтр с учетом логики OR/AND
       if (regularFieldFilters.length > 0) {
         if (useOrLogic && regularFieldFilters.length > 1) {
-          // Если нужна логика OR между обычными полями, создаем объект с оператором OR
-          console.log("Применяем логику OR для обычных полей");
           filters.push({
             operator: "or",
             value: regularFieldFilters
           });
         } else {
-          // Иначе добавляем все поля как отдельные фильтры (логика AND по умолчанию)
-          console.log("Применяем логику AND для обычных полей");
           filters.push(...regularFieldFilters);
         }
       }
     }
 
-    console.log("Итоговые фильтры:", JSON.stringify(filters));
     
     try {
       setFilters(filters, filterMode);
-      console.log("Фильтры успешно применены");
     } catch (error) {
-      console.error("Ошибка при применении фильтров:", error);
     }
   }, [setFilters, formattedSearchFields, combinedFields, filterMode, allowEmpty, emptyValue, useOrLogic]);
 
-  // Создаем debounced функцию для отложенного вызова
   const debouncedApplyFilters = React.useMemo(
     () => debounce(applyFilters, debounceMs),
     [applyFilters, debounceMs]
   );
 
-  // Обработчик изменения текста
   const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    console.log("Ввод текста:", value);
     setSearchValue(value);
     debouncedApplyFilters(value);
   }, [debouncedApplyFilters]);
 
-  // Обработчик нажатия клавиши Enter
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      console.log("Нажата клавиша Enter, мгновенный поиск:", searchValue);
-      // Отменяем debounce и производим мгновенный поиск
       debouncedApplyFilters.cancel();
       applyFilters(searchValue);
     }
   }, [applyFilters, debouncedApplyFilters, searchValue]);
 
-  // Очищаем debounce при размонтировании компонента
   useEffect(() => {
     return () => {
       debouncedApplyFilters.cancel();

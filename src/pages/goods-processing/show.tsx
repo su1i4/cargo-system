@@ -1,8 +1,27 @@
 import React, { useRef } from "react";
-import { Show, EditButton, DeleteButton, useTable } from "@refinedev/antd";
-import { useNavigation, useShow } from "@refinedev/core";
-import { Typography, Flex, Row, Col, Button, message } from "antd";
-import { MoneyCollectOutlined, PrinterOutlined, SendOutlined } from "@ant-design/icons";
+import {
+  Show,
+  EditButton,
+  DeleteButton,
+  useTable,
+  useSelect,
+  useForm,
+} from "@refinedev/antd";
+import { useNavigation, useShow, useUpdateMany } from "@refinedev/core";
+import {
+  Typography,
+  Flex,
+  Row,
+  Col,
+  Button,
+  message,
+  Dropdown,
+  Card,
+  Form,
+  Select,
+  Input,
+} from "antd";
+import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import QRCode from "react-qr-code";
 
@@ -18,12 +37,61 @@ dayjs.tz.setDefault("Asia/Bishkek");
 
 const { Title, Text } = Typography;
 
+const paymentTypes = [
+  "Оплата наличными",
+  "Оплата переводом",
+  "Оплата перечислением",
+  "Оплата балансом",
+];
+
+const incomeTypes = [
+  "Извне",
+  "Контрагент оптом",
+  "Контрагент частично",
+  "Контрагент частично с баланса",
+];
+
 export const GoodsShow: React.FC = () => {
   const { queryResult } = useShow();
   const { data, isLoading, refetch } = queryResult;
   const record = data?.data;
   const printRef = useRef<HTMLDivElement>(null);
   const token = localStorage.getItem("cargo-system-token");
+
+  const { mutate: updateManyGoods } = useUpdateMany({
+    resource: "goods-processing",
+  });
+
+  const { formProps, saveButtonProps, form, formLoading } = useForm({
+    // onMutationSuccess(data: any) {
+    //   const id = data?.data?.id;
+    //   if (record?.id) {
+    //     updateManyGoods({
+    //       ids: [record?.id],
+    //       values: {
+    //         operation_id: id,
+    //       },
+    //     });
+    //   }
+    // },
+    resource: "cash-desk",
+    redirect: false,
+    //@ts-ignore
+    defaultValues: {
+      type: "income",
+      date: dayjs(),
+    },
+  });
+
+  const { selectProps: bankSelectProps } = useSelect({
+    resource: "bank",
+    optionLabel: "name",
+  });
+
+  const { selectProps: currencySelectProps } = useSelect({
+    resource: "currency",
+    optionLabel: "name",
+  });
   const { push } = useNavigation();
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -86,14 +154,14 @@ export const GoodsShow: React.FC = () => {
 
         const tableText = el.querySelectorAll(".table-text");
         tableText.forEach((section: any) => {
-          section.style.setProperty("font-size", "10px", "important");
+          section.style.setProperty("font-size", "11px", "important");
         });
 
         const termsSection = el.querySelectorAll(".terms-section");
         termsSection.forEach((section: any) => {
-          section.style.setProperty("font-size", "7px", "important");
+          section.style.setProperty("font-size", "8px", "important");
           section.style.setProperty("line-height", "1", "important");
-          section.style.setProperty("font-weight", "300", "important");
+          section.style.setProperty("font-weight", "400", "important");
           section.style.setProperty("margin", "0", "important");
           section.style.setProperty("padding", "0", "important");
         });
@@ -895,20 +963,115 @@ export const GoodsShow: React.FC = () => {
     );
     if (response.ok) {
       message.success("Сообщение отправлено");
-      refetch();
+      // refetch();
     } else {
       const data = await response.json();
       message.error(data?.message);
     }
   };
 
+  const handleSaveCashDesk = () => {
+    form.submit();
+  };
+
   return (
     <Show
       headerButtons={({ deleteButtonProps, editButtonProps }) => (
         <>
-          <Button icon={<MoneyCollectOutlined />} onClick={handleCashDeskCreate}>
-            Оплатить
-          </Button>
+          <Dropdown
+            trigger={["click"]}
+            overlayStyle={{ width: "200px" }}
+            overlay={
+              <Card
+                size="small"
+                style={{
+                  width: 480,
+                  boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.3)",
+                }}
+              >
+                <Row gutter={[16, 0]}>
+                  <Col span={12}>
+                    <Form.Item
+                      label="Банк"
+                      name={["bank_id"]}
+                      rules={[
+                        {
+                          required: true,
+                          message: "Пожалуйста, выберите Банк",
+                        },
+                      ]}
+                    >
+                      <Select
+                        {...bankSelectProps}
+                        placeholder="Выберите код банк"
+                        style={{ width: "100%" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      label="Метод оплаты"
+                      name="method_payment"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Пожалуйста, выберите метод оплаты",
+                        },
+                      ]}
+                    >
+                      <Select
+                        options={paymentTypes.map((enumValue) => ({
+                          label: enumValue,
+                          value: enumValue,
+                        }))}
+                        placeholder="Выберите метод оплаты"
+                        style={{ width: "100%" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="type_currency"
+                      label="Валюта"
+                      rules={[{ required: true, message: "Выберите Валюту" }]}
+                    >
+                      <Select
+                        {...currencySelectProps}
+                        showSearch
+                        placeholder="Выберите валюту"
+                        style={{ width: "100%" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      label="Сумма для прихода"
+                      name="amount"
+                      rules={[{ required: true, message: "Укажите сумму" }]}
+                    >
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="Введите сумму прихода"
+                        style={{ width: "100%" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Button
+                      type="primary"
+                      {...saveButtonProps}
+                      loading={formLoading}
+                    >
+                      Сохранить
+                    </Button>
+                  </Col>
+                </Row>
+              </Card>
+            }
+          >
+            <Button>Оплатить частично</Button>
+          </Dropdown>
           {!record?.send_notification && (
             <Button icon={<SendOutlined />} onClick={handleSend}>
               Отправить смс

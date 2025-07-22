@@ -98,27 +98,6 @@ export const WarehouseStockGoodsReport = () => {
     let totalWeight = 0;
     dataSource.forEach((record: any, index: number) => {
       const mainRow = {
-        "№": index + 1,
-        "Дата приемки": record.created_at
-          ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
-          : "",
-        "Дата отправки": record.created_at
-          ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
-          : "",
-        "Дата получения": record.created_at
-          ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
-          : "",
-        "Дата выдачи": (() => {
-          const issuedStatus = Array.isArray(record.tracking_status)
-            ? record.tracking_status.find(
-                (item: any) => item.status === "Выдали"
-              )
-            : null;
-          return issuedStatus?.createdAt
-            ? dayjs(issuedStatus.createdAt).utc().format("DD.MM.YYYY HH:mm")
-            : "";
-        })(),
-        "Номер машины": record.truck_number || "",
         "№ накладной": record.invoice_number || "",
         "Код отправителя": record.sender
           ? `${record.sender.clientPrefix}-${record.sender.clientCode}`
@@ -140,10 +119,7 @@ export const WarehouseStockGoodsReport = () => {
         "Кол-во мешков": record.services?.length || 0,
         Сумма: record.amount || 0,
         "Сумма за мешки":
-          record.products?.reduce(
-            (acc: number, item: any) => acc + Number(item.sum),
-            0
-          ) || 0,
+          record.avgProductPrice,
         Оплачено: record.paid_sum || 0,
         Долг: Number(record.amount || 0) - Number(record.paid_sum || 0),
       };
@@ -568,48 +544,6 @@ export const WarehouseStockGoodsReport = () => {
               : undefined
           }
         >
-          <Table.Column
-            title="№"
-            render={(_: any, __: any, index: number) => {
-              return index + 1;
-            }}
-          />
-          <Table.Column
-            dataIndex="created_at"
-            title="Дата приемки"
-            render={(value) =>
-              value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
-            }
-          />
-          <Table.Column
-            dataIndex="created_at"
-            title="Дата отправки"
-            render={(value) =>
-              value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
-            }
-          />
-          <Table.Column
-            dataIndex="created_at"
-            title="Дата получения"
-            render={(value) =>
-              value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
-            }
-          />
-          <Table.Column
-            dataIndex="tracking_status"
-            title="Дата выдачи"
-            render={(value) => {
-              const issuedStatus = Array.isArray(value)
-                ? value.find((item: any) => item.status === "Выдали")
-                : null;
-
-              return issuedStatus?.createdAt
-                ? dayjs(issuedStatus.createdAt).utc().format("DD.MM.YYYY HH:mm")
-                : "";
-            }}
-          />
-
-          <Table.Column dataIndex="truck_number" title="Номер машины" />
           <Table.Column dataIndex="invoice_number" title="№ накладной" />
           <Table.Column
             dataIndex="sender"
@@ -672,14 +606,14 @@ export const WarehouseStockGoodsReport = () => {
             }}
           />
           <Table.Column
-            dataIndex="products"
+            dataIndex="avgProductPrice"
             title="Сумма за мешки"
-            render={(value) =>
-              value?.reduce(
-                (acc: number, item: any) => acc + Number(item.sum),
-                0
-              )
-            }
+                // render={(value) =>
+                //   value?.reduce(
+                //     (acc: number, item: any) => acc + Number(item.sum),
+                //     0
+                //   )
+                // }
           />
           <Table.Column dataIndex="paid_sum" title="Оплачено" />
           <Table.Column

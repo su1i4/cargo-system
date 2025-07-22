@@ -170,11 +170,9 @@ const ShipmentEdit = () => {
             },
             {
               onSuccess: (data) => {
-                console.log("Selected services updated successfully:", data);
                 resolve(data);
               },
               onError: (error) => {
-                console.error("Error updating selected services:", error);
                 reject(error);
               },
             }
@@ -202,10 +200,8 @@ const ShipmentEdit = () => {
       e.preventDefault();
 
       try {
-        console.log("Save button clicked");
 
         const values = await form.validateFields();
-        console.log("Form validation passed:", values);
 
         form.submit();
 
@@ -226,14 +222,12 @@ const ShipmentEdit = () => {
         .filter((item: any) => item.shipment_id === parseInt(id as string))
         .map((item: any) => item.id);
 
-      console.log("Setting selected row keys:", assignedGoods);
       setSelectedRowKeys(assignedGoods);
     }
   }, [tableProps.dataSource, id]);
 
   useEffect(() => {
     if (shipmentData?.data && form) {
-      console.log("Setting form values:", shipmentData.data);
       form.setFieldsValue({
         ...shipmentData.data,
       });
@@ -258,7 +252,6 @@ const ShipmentEdit = () => {
     selectedRowKeys,
     preserveSelectedRowKeys: true,
     onChange: (keys: React.Key[]) => {
-      console.log("Row selection changed:", keys);
       setSelectedRowKeys(keys as number[]);
     },
   };

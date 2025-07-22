@@ -154,13 +154,6 @@ export const TrackList = () => {
     setFilters(filterValue, "replace");
   }, [filtersState]);
 
-  console.log(
-    selectedShipment?.employee?.branch?.latitude,
-    selectedShipment?.employee?.branch?.latitude,
-    selectedShipment?.branch?.latitude,
-    selectedShipment?.branch?.longitude
-  );
-
   return (
     <Flex
       style={{

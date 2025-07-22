@@ -145,7 +145,6 @@ const ShipmentCreate = () => {
     selectedRowKeys,
     preserveSelectedRowKeys: true,
     onChange: (keys: React.Key[]) => {
-      console.log("Выбранные ключи:", keys);
       setSelectedRowKeys(keys);
     },
   };

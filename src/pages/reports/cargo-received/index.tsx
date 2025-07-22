@@ -182,8 +182,6 @@ export const CargoReceivedReport = () => {
     " " +
     toDate.toLocaleDateString("ru-RU");
 
-  console.log(isWarehouse, "isWarehouse");
-
   const { data, isLoading, refetch } = useCustom<any>({
     url: `${API_URL}/report/reportOnReceivedCargo`,
     method: "get",

@@ -30,7 +30,6 @@ export const PrintPage: React.FC = () => {
       }
     `,
     documentTitle: 'Накладная',
-    onAfterPrint: () => console.log('Печать завершена'),
     // @ts-ignore
     content: () => componentRef.current,
   });

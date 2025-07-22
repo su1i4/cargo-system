@@ -19,7 +19,7 @@ import routerBindings, {
   UnsavedChangesNotifier,
 } from "@refinedev/react-router";
 
-import { App as AntdApp, Layout as AntLayout } from "antd";
+import { App as AntdApp } from "antd";
 import { BrowserRouter, Outlet, Route, Routes } from "react-router";
 import { Header } from "./components/header";
 import { CustomSider } from "./components/sider";
@@ -73,23 +73,16 @@ import { DiscountCreate } from "./pages/discount/create";
 import { DiscountShow } from "./pages/discount/show";
 import { DiscountEdit } from "./pages/discount/edit";
 import { IssueProcessingListReceived } from "./pages/Issue/listReceived";
-import "./styles/global.css";
 import ShipmentAdd from "./pages/shipments/ShipmentAdd";
 import { CurrencyCreate } from "./pages/currency/create";
 import { CurrencyList } from "./pages/currency/list";
 import { CurrencyShow } from "./pages/currency/show";
 import { CurrencyEdit } from "./pages/currency/edit";
-import { TriggersList } from "./pages/triggers/list";
-import { TriggersCreate } from "./pages/triggers/create";
 import ShipmentHistory from "./pages/shipments/ShipmentHistory";
 import { ReceivingHistory } from "./pages/receiving/ReceivingHistory";
 import { ReceivingHistoryShow } from "./pages/receiving/ReceivingHistoryShow";
 import ShipmentHistoryShow from "./pages/shipments/ShipmentHistoryShow";
 import { routes } from "./lib/routes";
-import { TriggersEdit } from "./pages/triggers/edit";
-import { TriggersShow } from "./pages/triggers/show";
-import { NotificationsList } from "./pages/notifications/list";
-import { NotificationsCreate } from "./pages/notifications/create";
 import { ScrollRestoration } from "./components/save-scroll";
 import ReceivingAll from "./pages/receiving/ReceivingAll";
 import { IncomeShow } from "./pages/cash-desk/incomeShow";
@@ -121,6 +114,8 @@ import { CashDeskOutcomeReport } from "./pages/reports/cash-desk-outcome";
 import { WarehouseStockReport } from "./pages/reports/warehouse-stock";
 import { GoodsProcessingCreate } from "./pages/goods-processing/create/index";
 import { WarehouseStockGoodsReport } from "./pages/reports/shipment-lam";
+
+import "./styles/global.css";
 
 export const API_URL = import.meta.env.VITE_DEV_URL;
 
@@ -222,9 +217,7 @@ function App() {
                 },
               }}
               resources={routes}
-              Title={() => (
-                <img src="/cargo-system-logo.png" alt="Logo" />
-              )}
+              Title={() => <img src="/cargo-system-logo.png" alt="Logo" />}
               options={{
                 syncWithLocation: true,
                 warnWhenUnsavedChanges: true,
@@ -396,18 +389,6 @@ function App() {
                       path="warehouse-stock-goods"
                       element={<WarehouseStockGoodsReport />}
                     />
-                  </Route>
-
-                  <Route path="/notification">
-                    <Route index element={<NotificationsList />} />
-                    <Route path="create" element={<GoodsProcessingCreate />} />
-                  </Route>
-
-                  <Route path="/answer-ready">
-                    <Route index element={<TriggersList />} />
-                    <Route path="create" element={<TriggersCreate />} />
-                    <Route path="edit/:id" element={<TriggersEdit />} />
-                    <Route path="show/:id" element={<TriggersShow />} />
                   </Route>
 
                   <Route path="/bank">

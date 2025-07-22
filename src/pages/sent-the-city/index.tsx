@@ -46,8 +46,6 @@ export const SentTheCityList = () => {
     optionLabel: "name",
   });
 
-  console.log(branchSelectProps);
-
   return (
     <List
       title
