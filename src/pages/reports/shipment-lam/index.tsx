@@ -97,6 +97,7 @@ export const WarehouseStockGoodsReport = () => {
     let totalWeight = 0;
     dataSource.forEach((record: any, index: number) => {
       const mainRow = {
+        "№": index + 1,
         "Дата отправки": record.created_at
           ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
           : "",
@@ -114,7 +115,7 @@ export const WarehouseStockGoodsReport = () => {
           : "",
         "Кол-во мешков": record.services?.length || 0,
         Сумма: record.amount || 0,
-        "Сумма за мешки": record.avgProductPrice,
+        "Сумма за мешки": record.avgProductPrice || 0,
         Оплачено: record.paid_sum || 0,
         Долг: Number(record.amount || 0) - Number(record.paid_sum || 0),
       };
@@ -134,12 +135,13 @@ export const WarehouseStockGoodsReport = () => {
       if (showBags && record.services && record.services.length > 0) {
         record.services.forEach((service: any, serviceIndex: number) => {
           const serviceRow = {
+            "№": "",
             "Дата отправки": "",
             "№ накладной": "",
             "Фио отправителя": "",
             "Фио получателя": "",
-            "Номер получателя": "",
             Город: "",
+            "Номер получателя": "",
             "Номера мешков": service.bag_number_numeric || "",
             "Вес, кг": service.weight
               ? String(service.weight).replace(".", ",").slice(0, 5)
@@ -160,12 +162,13 @@ export const WarehouseStockGoodsReport = () => {
     });
 
     const totalRow = {
+      "№": "",
       "Дата отправки": "",
       "№ накладной": "",
       "Фио отправителя": "",
       "Фио получателя": "",
-      "Номер получателя": "",
       Город: "",
+      "Номер получателя": "",
       "Номера мешков": "",
       "Вес, кг": totalWeight,
       "Кол-во мешков": totalBagsCount,
@@ -176,14 +179,15 @@ export const WarehouseStockGoodsReport = () => {
     };
 
     const totalRow2 = {
+      "№": "",
       "Дата отправки": tableShipmentProps.dataSource?.find((item: any) => {
         return item.id === shipmentId;
-      })?.truck_number,
+      })?.truck_number || "",
       "№ накладной": "",
       "Фио отправителя": "",
       "Фио получателя": "",
-      "Номер получателя": "",
       Город: "",
+      "Номер получателя": "",
       "Номера мешков": "",
       "Вес, кг": "",
       "Кол-во мешков": "",
@@ -194,12 +198,13 @@ export const WarehouseStockGoodsReport = () => {
     };
 
     const totalRow3 = {
+      "№": "",
       "Дата отправки": "Общий вес",
       "№ накладной": "Общий долг",
       "Фио отправителя": "",
       "Фио получателя": "",
-      "Номер получателя": "",
       Город: "",
+      "Номер получателя": "",
       "Номера мешков": "",
       "Вес, кг": "",
       "Кол-во мешков": "",
@@ -210,12 +215,13 @@ export const WarehouseStockGoodsReport = () => {
     };
 
     const totalRow4 = {
+      "№": "",
       "Дата отправки": totalWeight,
       "№ накладной": totalDebt,
       "Фио отправителя": "",
       "Фио получателя": "",
-      "Номер получателя": "",
       Город: "",
+      "Номер получателя": "",
       "Номера мешков": "",
       "Вес, кг": "",
       "Кол-во мешков": "",
@@ -235,72 +241,68 @@ export const WarehouseStockGoodsReport = () => {
       setDownloadLoading(true);
       const exportData = prepareExportData();
 
+      if (!exportData || exportData.length === 0) {
+        message.warning("Нет данных для экспорта");
+        return;
+      }
+
       // Convert data to worksheet
       const worksheet = XLSX.utils.json_to_sheet(exportData);
 
-      // Example of styling: Apply styles to header row
-      const headerCells = worksheet["A1"];
-      if (headerCells) {
-        worksheet["A1"].s = {
-          font: { bold: true, sz: 12 },
-          fill: { fgColor: { rgb: "FFFF00" } }, // Yellow background
-          alignment: { horizontal: "center", vertical: "center" },
-          border: {
-            top: { style: "thin" },
-            left: { style: "thin" },
-            right: { style: "thin" },
-            bottom: { style: "thin" },
-          },
-        };
+      // Получаем диапазон ячеек
+      const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
+
+      // Автоматическая ширина колонок
+      const colWidths: any[] = [];
+      const headers = Object.keys(exportData[0] || {});
+      
+      headers.forEach((header, colIndex) => {
+        let maxLength = header.length;
+        exportData.forEach((row) => {
+          const cellValue = String(row[header] || "");
+          if (cellValue.length > maxLength) {
+            maxLength = cellValue.length;
+          }
+        });
+        colWidths.push({ wch: Math.min(Math.max(maxLength + 2, 10), 50) });
+      });
+
+      worksheet["!cols"] = colWidths;
+
+      // Создаем стили для ячеек (базовая версия без расширенных стилей)
+      try {
+        // Применяем базовое форматирование только если поддерживается
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
+            if (!worksheet[cellAddress]) continue;
+            
+            // Базовое форматирование текста
+            if (typeof worksheet[cellAddress].v === 'number') {
+              worksheet[cellAddress].z = '#,##0.00';
+            }
+          }
+        }
+      } catch (styleError) {
+        console.log("Стили не поддерживаются в данной версии XLSX");
       }
-
-      // Apply styles to all header row cells dynamically
-      Object.keys(worksheet).forEach((cell) => {
-        if (cell.includes("1")) {
-          worksheet[cell].s = {
-            font: { bold: true, sz: 12 },
-            fill: { fgColor: { rgb: "FFFF00" } }, // Yellow background for header
-            alignment: { horizontal: "center" },
-            border: {
-              top: { style: "thin" },
-              left: { style: "thin" },
-              right: { style: "thin" },
-              bottom: { style: "thin" },
-            },
-          };
-        }
-      });
-
-      // Example of styling: Apply styles to the data rows
-      Object.keys(worksheet).forEach((cell) => {
-        if (!cell.includes("1")) {
-          worksheet[cell].s = {
-            alignment: { horizontal: "center" },
-            border: {
-              top: { style: "thin" },
-              left: { style: "thin" },
-              right: { style: "thin" },
-              bottom: { style: "thin" },
-            },
-          };
-        }
-      });
 
       // Create workbook and append worksheet
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
 
-      const fileName = `${
-        tableShipmentProps.dataSource?.find((item: any) => {
-          return item.id === shipmentId;
-        })?.truck_number
-      }.xlsx`;
+      const truckNumber = tableShipmentProps.dataSource?.find((item: any) => {
+        return item.id === shipmentId;
+      })?.truck_number || "report";
+
+      const fileName = `Отчет_${truckNumber}_${dayjs().format("DD-MM-YYYY_HH-mm")}.xlsx`;
 
       // Write file to disk
       XLSX.writeFile(workbook, fileName);
 
       message.success("Файл XLSX успешно скачан");
     } catch (error) {
+      console.error("Ошибка при скачивании XLSX файла:", error);
       message.error("Ошибка при скачивании XLSX файла");
     } finally {
       setDownloadLoading(false);
@@ -310,6 +312,11 @@ export const WarehouseStockGoodsReport = () => {
   const downloadCSV = async () => {
     try {
       const exportData = prepareExportData();
+
+      if (!exportData || exportData.length === 0) {
+        message.warning("Нет данных для экспорта");
+        return;
+      }
 
       const headers = Object.keys(exportData[0] || {});
       const csvContent = [
@@ -330,13 +337,14 @@ export const WarehouseStockGoodsReport = () => {
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
+
+      const truckNumber = tableShipmentProps.dataSource?.find((item: any) => {
+        return item.id === shipmentId;
+      })?.truck_number || "report";
+
       link.setAttribute(
         "download",
-        `${
-          tableShipmentProps.dataSource?.find((item: any) => {
-            return item.id === shipmentId;
-          })?.truck_number
-        }.csv`
+        `Отчет_${truckNumber}_${dayjs().format("DD-MM-YYYY_HH-mm")}.csv`
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -345,8 +353,8 @@ export const WarehouseStockGoodsReport = () => {
 
       message.success("Файл CSV успешно скачан");
     } catch (error) {
+      console.error("Ошибка при скачивании CSV файла:", error);
       message.error("Ошибка при скачивании CSV файла");
-      console.error("CSV download error:", error);
     }
   };
 
@@ -620,6 +628,11 @@ export const WarehouseStockGoodsReport = () => {
               : undefined
           }
         >
+          <Table.Column
+            title="№"
+            width={50}
+            render={(value, record, index) => index + 1}
+          />
           <Table.Column
             dataIndex="created_at"
             title="Дата приемки"
