@@ -38,15 +38,15 @@ export const BranchEdit = () => {
         <Form.Item name="is_sent" valuePropName="checked">
           <Checkbox>Досыльный город</Checkbox>
         </Form.Item>
-        <Form.Item
-          label="latitude"
-          name="latitude"
-        >
+        <Form.Item label="latitude" name="latitude">
+          <Input />
+        </Form.Item>
+        <Form.Item label="longitude" name="longitude">
           <Input />
         </Form.Item>
         <Form.Item
-          label="longitude"
-          name="longitude"
+          label="Рабочее время"
+          name="workingHours"
         >
           <Input />
         </Form.Item>
