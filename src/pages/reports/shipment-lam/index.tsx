@@ -34,15 +34,6 @@ export const WarehouseStockGoodsReport = () => {
 
   const { tableProps: tableShipmentProps } = useTable({
     resource: "shipments",
-    filters: {
-      permanent: [
-        {
-          field: "status",
-          operator: "eq",
-          value: "В пути",
-        },
-      ],
-    },
     sorters: {
       initial: [{ field: "created_at", order: "desc" }],
     },
@@ -118,6 +109,7 @@ export const WarehouseStockGoodsReport = () => {
         "Сумма за мешки": record.avgProductPrice || 0,
         Оплачено: record.paid_sum || 0,
         Долг: Number(record.amount || 0) - Number(record.paid_sum || 0),
+        Статус: record.status || "",
       };
 
       totalSum += Number(record.amount || 0);
@@ -176,6 +168,7 @@ export const WarehouseStockGoodsReport = () => {
       "Сумма за мешки": totalBagSum,
       Оплачено: totalPaid,
       Долг: totalDebt,
+      Статус: "",
     };
 
     const totalRow2 = {
@@ -195,6 +188,7 @@ export const WarehouseStockGoodsReport = () => {
       "Сумма за мешки": "",
       Оплачено: "",
       Долг: "",
+      Статус: "",
     };
 
     const totalRow3 = {
@@ -212,6 +206,7 @@ export const WarehouseStockGoodsReport = () => {
       "Сумма за мешки": "",
       Оплачено: "",
       Долг: "",
+      Статус: "",
     };
 
     const totalRow4 = {
@@ -229,6 +224,7 @@ export const WarehouseStockGoodsReport = () => {
       "Сумма за мешки": "",
       Оплачено: "",
       Долг: "",
+      Статус: "",
     };
 
     exportData.push(totalRow, totalRow2, totalRow3, totalRow4);
@@ -755,6 +751,7 @@ export const WarehouseStockGoodsReport = () => {
           render={(value) => value?.name}
         />
         <Table.Column width={50} title="Водитель" dataIndex="driver" />
+        <Table.Column width={50} title="Статус" dataIndex="status" />
         <Table.Column
           width={50}
           title="Сотрудник"

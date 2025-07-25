@@ -217,6 +217,48 @@ export const GoodsCreate = () => {
   }, []);
 
   useEffect(() => {
+    const checkBagNumbers = async () => {
+      if (values?.destination_id && services.length > 0) {
+        setHasBagNumber([]);
+        
+        const checkPromises = services
+          .filter(service => service.bag_number_numeric)
+          .map(async (service) => {
+            try {
+              const response = await fetch(
+                `${API_URL}/service/checking-service-number?destination_id=${values.destination_id}&bag_number=${service.bag_number_numeric}`,
+                {
+                  method: "GET",
+                }
+              );
+
+              const data = await response.json();
+              if (data) {
+                message.error(
+                  `Номер мешка ${service.bag_number_numeric} уже существует для выбранного города назначения`
+                );
+                return { id: service.id, has: true };
+              }
+              return null;
+            } catch (error) {
+              console.error("Ошибка при проверке номера мешка:", error);
+              return null;
+            }
+          });
+
+        const results = await Promise.all(checkPromises);
+        const invalidBags = results.filter(result => result !== null);
+        
+        if (invalidBags.length > 0) {
+          setHasBagNumber(invalidBags);
+        }
+      }
+    };
+
+    checkBagNumbers();
+  }, [values?.destination_id]);
+
+  useEffect(() => {
     if (values?.declared_value && values?.commission) {
       const declaredValue = Number(values.declared_value);
       const commissionPercent = Number(values.commission);
@@ -379,6 +421,7 @@ export const GoodsCreate = () => {
                 type.product_type_id ===
                   (field === "weight" ? Number(item.type_id) : value)
             );
+            
 
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
@@ -502,6 +545,11 @@ export const GoodsCreate = () => {
   const handleFormSubmit = (values: any) => {
     if (services.length === 0) {
       message.warning("Выберите услуги");
+      return;
+    }
+
+    if (hasBagNumber.length > 0) {
+      message.error("Обнаружены дублированные номера мешков. Исправьте перед отправкой.");
       return;
     }
 

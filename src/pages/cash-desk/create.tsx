@@ -269,7 +269,6 @@ export const CashDeskCreate: React.FC = () => {
 
   // Функция для построения фильтров запроса
   const buildGoodsQuery = () => {
-    // Если есть предварительно выбранные товары (переданные через URL), загружаем их по ID
     if (preselectedGoodsIds.length > 0) {
       return {
         s: JSON.stringify({
