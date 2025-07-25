@@ -421,6 +421,7 @@ export const GoodsCreate = () => {
                 type.product_type_id ===
                   (field === "weight" ? Number(item.type_id) : value)
             );
+            
 
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
