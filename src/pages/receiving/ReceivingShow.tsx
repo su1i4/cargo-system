@@ -58,7 +58,31 @@ const ReceivingShow = () => {
         },
       ],
     },
-    queryOptions: {},
+    pagination: {
+      pageSize: 100,
+    },
+  });
+
+  const { tableProps: tableProps2, setFilters: setFilters2, setSorters: setSorters2 } = useTable({
+    resource: "service",
+    syncWithLocation: false,
+    filters: {
+      permanent: [
+        {
+          field: "shipment_id",
+          operator: "eq",
+          value: Number(id),
+        },
+        {
+          field: "status",
+          operator: "eq",
+          value: "В пути",
+        },
+      ],
+    },
+    pagination: {
+      pageSize: 1000,
+    },
   });
 
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
@@ -194,16 +218,16 @@ const ReceivingShow = () => {
 
         <Col xs={24} md={6}>
           <Title level={5}>Количество мест</Title>
-          <TextField value={tableProps?.dataSource?.length ?? "-"} />
+          <TextField value={tableProps2?.dataSource?.length ?? "-"} />
         </Col>
 
         <Col xs={24} md={6}>
           <Title level={5}>Вес кг</Title>
           <TextField
-            value={tableProps?.dataSource?.reduce(
+            value={tableProps2?.dataSource?.reduce(
               (sum: any, i: any) => sum + Number(i.weight),
               0
-            )}
+            ).toFixed(2) || 0}
           />
         </Col>
 
