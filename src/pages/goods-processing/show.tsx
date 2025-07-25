@@ -35,6 +35,9 @@ dayjs.extend(timezone);
 
 dayjs.tz.setDefault("Asia/Bishkek");
 
+// Функция для получения исторического курса валюты на конкретную дату
+
+
 const { Title, Text } = Typography;
 
 const paymentTypes = [
@@ -63,17 +66,19 @@ export const GoodsShow: React.FC = () => {
   });
 
   const { formProps, saveButtonProps, form, formLoading } = useForm({
-    // onMutationSuccess(data: any) {
-    //   const id = data?.data?.id;
-    //   if (record?.id) {
-    //     updateManyGoods({
-    //       ids: [record?.id],
-    //       values: {
-    //         operation_id: id,
-    //       },
-    //     });
-    //   }
-    // },
+    onMutationSuccess(data: any) {
+      const id = data?.data?.id;
+      if (record?.id) {
+        updateManyGoods({
+          ids: [record?.id],
+          values: {
+            operation_id: id,
+          },
+        });
+        message.success("Частичная оплата создана успешно");
+        refetch();
+      }
+    },
     resource: "cash-desk",
     redirect: false,
     //@ts-ignore
@@ -127,7 +132,7 @@ export const GoodsShow: React.FC = () => {
             );
             copy.style.setProperty("page-break-inside", "avoid", "important");
             copy.style.setProperty("flex", "none", "important");
-            copy.style.setProperty("font-family", "Times New Roman, serif", "important");
+            // copy.style.setProperty("font-family", "Times New Roman, serif", "important");
           });
 
           // Убираем divider если используем отдельные страницы
@@ -141,7 +146,7 @@ export const GoodsShow: React.FC = () => {
             copy.style.setProperty("height", "49.5vh", "important");
             copy.style.setProperty("page-break-before", "auto", "important");
             copy.style.setProperty("flex", "1", "important");
-            copy.style.setProperty("font-family", "Times New Roman, serif", "important");
+            // copy.style.setProperty("font-family", "Times New Roman, serif", "important");
             });
 
           const divider = el.querySelector(".divider");
@@ -153,13 +158,13 @@ export const GoodsShow: React.FC = () => {
         const totalSum = el.querySelectorAll(".total-sum-text");
         totalSum.forEach((section: any) => {
           section.style.setProperty("font-size", "13px", "important");
-          section.style.setProperty("font-family", "Times New Roman, serif", "important");
+          // section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
 
         const tableText = el.querySelectorAll(".table-text");
         tableText.forEach((section: any) => {
           section.style.setProperty("font-size", "11px", "important");
-          section.style.setProperty("font-family", "Times New Roman, serif", "important");
+          // section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
 
         const termsSection = el.querySelectorAll(".terms-section");
@@ -169,7 +174,7 @@ export const GoodsShow: React.FC = () => {
           section.style.setProperty("font-weight", "400", "important");
           section.style.setProperty("margin", "0", "important");
           section.style.setProperty("padding", "0", "important");
-          section.style.setProperty("font-family", "Times New Roman, serif", "important");
+          // section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
 
         const termsSectionInvoice = el.querySelectorAll(
@@ -177,7 +182,7 @@ export const GoodsShow: React.FC = () => {
         );
         termsSectionInvoice.forEach((section: any) => {
           section.style.setProperty("font-size", "14px", "important");
-          section.style.setProperty("font-family", "Times New Roman, serif", "important");
+          // section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
       }
     },
@@ -256,7 +261,10 @@ export const GoodsShow: React.FC = () => {
     },
   });
 
-  if (isLoading) {
+  // Проверяем готовность данных о валютах
+  const currenciesLoading = !currencyTableProps?.dataSource;
+
+  if (isLoading || currenciesLoading) {
     return <div>Загрузка...</div>;
   }
 
@@ -320,16 +328,17 @@ export const GoodsShow: React.FC = () => {
     }, {})
   );
 
+  // Получаем валюту "Сом" из загруженных данных
   const som = currencyTableProps?.dataSource?.find(
     (item: any) => item.name === "Сом"
   );
 
+  // Универсальная функция для получения исторического курса валюты
   const getHistoricalRate = (currency: any, targetDate: string) => {
     if (!currency?.currency_history || !targetDate) {
       return currency?.rate || 1;
     }
 
-    // Сортируем историю по дате (по убыванию)
     const sortedHistory = [...currency.currency_history].sort(
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -337,7 +346,6 @@ export const GoodsShow: React.FC = () => {
 
     const targetDateTime = new Date(targetDate).getTime();
 
-    // Ищем курс, который был актуален на дату создания накладной
     for (const historyRecord of sortedHistory) {
       const historyDateTime = new Date(historyRecord.created_at).getTime();
       if (historyDateTime <= targetDateTime) {
@@ -345,11 +353,11 @@ export const GoodsShow: React.FC = () => {
       }
     }
 
-    // Если не нашли подходящий исторический курс, берем самый ранний
     return sortedHistory[sortedHistory.length - 1]?.rate || currency?.rate || 1;
   };
 
-  const somRate = getHistoricalRate(som, record?.created_at);
+  // Получаем курс сома на дату создания накладной
+  const somRate = som ? getHistoricalRate(som, record?.created_at) : 1;
 
   const getDiscount = () => {
     if (record?.discount_id) {
@@ -362,27 +370,10 @@ export const GoodsShow: React.FC = () => {
     return 0;
   };
 
-  const discount = getDiscount();
-
   const servicesCount = record?.services?.length || 0;
   const productsCount = record?.products?.length || 0;
   const totalItems = servicesCount + productsCount;
   const isLargeInvoice = totalItems > 15;
-
-  const handleCashDeskCreate = () => {
-    if (record?.id === 0) {
-      message.warning(
-        "Выберите товары для создания приходного кассового ордера"
-      );
-      return;
-    }
-
-    const selectedIds = record?.id;
-
-    push(
-      `/income/create?type_operation=Контрагент оптом&goods_ids=${selectedIds}`
-    );
-  };
 
   const InvoiceContent = () => {
     return (
@@ -404,7 +395,7 @@ export const GoodsShow: React.FC = () => {
               </Text>
             </Flex>
             <Text style={{ fontSize: "15px", color: "#010801", margin: 0 }}>
-              Досыл, услуги грузчиков и адресная доставка оплачивается отдельно
+              Фактический конечный город, услуги грузчиков и адресная доставка оплачивается отдельно
             </Text>
             <Text style={{ fontSize: "15px", color: "#010101", margin: 0 }}>
               Адрес склада:{" "}
@@ -691,12 +682,12 @@ export const GoodsShow: React.FC = () => {
                   </Col>
                   <Col style={colStyle} span={2}>
                     <Text className="table-text">
-                      {String(service.weight?.toFixed(2)).replace(".", ",") || 0}
+                      {String(Number(service.weight || 0).toFixed(2)).replace(".", ",") || 0}
                     </Text>
                   </Col>
                   <Col style={colStyle} span={2}>
                     <Text className="table-text">
-                      {service.sum?.toFixed(2) || 0}
+                      {Number(service.sum || 0).toFixed(2)}
                     </Text>
                   </Col>
                 </React.Fragment>
@@ -721,12 +712,12 @@ export const GoodsShow: React.FC = () => {
               </Col>
               <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
                 <Text className="table-text" style={{ fontWeight: "bold" }}>
-                  {String(totalWeight?.toFixed(2)).replace(".", ",") || 0}
+                  {String(Number(totalWeight || 0).toFixed(2)).replace(".", ",") || 0}
                 </Text>
               </Col>
               <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
                 <Text className="table-text" style={{ fontWeight: "bold" }}>
-                  {totalSum?.toFixed(2)}
+                  {Number(totalSum || 0).toFixed(2)}
                 </Text>
               </Col>
             </Row>
@@ -855,7 +846,10 @@ export const GoodsShow: React.FC = () => {
               className="total-sum-text"
               style={{ fontWeight: "bold", fontSize: "14px", margin: 0 }}
             >
-              {((record?.amount || 0) * Number(somRate)).toFixed(2)} KGS
+              {som && somRate 
+                ? Number((Number(record?.amount || 0) * Number(somRate)) || 0).toFixed(2)
+                : "Курс загружается..."
+              } KGS
             </Text>
           </Flex>
         </Flex>
@@ -965,84 +959,138 @@ export const GoodsShow: React.FC = () => {
                   boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.3)",
                 }}
               >
-                <Row gutter={[16, 0]}>
-                  <Col span={12}>
-                    <Form.Item
-                      label="Банк"
-                      name={["bank_id"]}
-                      rules={[
-                        {
-                          required: true,
-                          message: "Пожалуйста, выберите Банк",
-                        },
-                      ]}
-                    >
-                      <Select
-                        {...bankSelectProps}
-                        placeholder="Выберите код банк"
-                        style={{ width: "100%" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      label="Метод оплаты"
-                      name="method_payment"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Пожалуйста, выберите метод оплаты",
-                        },
-                      ]}
-                    >
-                      <Select
-                        options={paymentTypes.map((enumValue) => ({
-                          label: enumValue,
-                          value: enumValue,
-                        }))}
-                        placeholder="Выберите метод оплаты"
-                        style={{ width: "100%" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="type_currency"
-                      label="Валюта"
-                      rules={[{ required: true, message: "Выберите Валюту" }]}
-                    >
-                      <Select
-                        {...currencySelectProps}
-                        showSearch
-                        placeholder="Выберите валюту"
-                        style={{ width: "100%" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      label="Сумма для прихода"
-                      name="amount"
-                      rules={[{ required: true, message: "Укажите сумму" }]}
-                    >
-                      <Input
-                        type="number"
-                        min={0}
-                        placeholder="Введите сумму прихода"
-                        style={{ width: "100%" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Button
-                      type="primary"
-                      {...saveButtonProps}
-                      loading={formLoading}
-                    >
-                      Сохранить
-                    </Button>
-                  </Col>
-                </Row>
+                <Form
+                  {...formProps}
+                  layout="vertical"
+                  onFinish={(values: any) => {
+                    // Рассчитываем общую сумму услуг и товаров
+                    const totalServiceAmount = record?.services?.reduce(
+                      (acc: number, service: any) => acc + Number(service.sum || 0),
+                      0
+                    ) || 0;
+                    const totalProductAmount = record?.products?.reduce(
+                      (acc: number, product: any) => acc + Number(product.sum || 0),
+                      0
+                    ) || 0;
+                    const totalGoodAmount = totalServiceAmount + totalProductAmount;
+
+                    // Получаем курс валюты для конвертации
+                    const selectedCurrency = currencyTableProps?.dataSource?.find(
+                      (item: any) => item.name === values.type_currency
+                    );
+                    const historicalRate = getHistoricalRate(selectedCurrency, record?.created_at);
+                    
+                    // Конвертируем в выбранную валюту
+                    const convertedAmount = historicalRate > 0 ? historicalRate * totalGoodAmount : totalGoodAmount;
+                    const remainingToPay = convertedAmount - (record?.paid_sum || 0);
+
+                    // Проверяем что сумма не превышает остаток к доплате
+                    if (values.amount > remainingToPay) {
+                      message.error("Сумма к оплате не может превышать оставшуюся сумму к доплате");
+                      return;
+                    }
+
+                    const finalValues = {
+                      ...values,
+                      type: "income",
+                      type_operation: "Контрагент частично",
+                      counterparty_id: record?.sender?.id,
+                      good_id: record?.id,
+                      paid_sum: remainingToPay, // Общая сумма к доплате
+                      date: dayjs(),
+                    };
+
+                    formProps.onFinish && formProps.onFinish(finalValues);
+                  }}
+                >
+                  <Row gutter={[16, 0]}>
+                    <Col span={12}>
+                      <Form.Item
+                        label="Банк"
+                        name={["bank_id"]}
+                        rules={[
+                          {
+                            required: true,
+                            message: "Пожалуйста, выберите Банк",
+                          },
+                        ]}
+                      >
+                        <Select
+                          {...bankSelectProps}
+                          placeholder="Выберите код банк"
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        label="Метод оплаты"
+                        name="method_payment"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Пожалуйста, выберите метод оплаты",
+                          },
+                        ]}
+                      >
+                        <Select
+                          options={paymentTypes.map((enumValue) => ({
+                            label: enumValue,
+                            value: enumValue,
+                          }))}
+                          placeholder="Выберите метод оплаты"
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="type_currency"
+                        label="Валюта"
+                        rules={[{ required: true, message: "Выберите Валюту" }]}
+                      >
+                        <Select
+                          {...currencySelectProps}
+                          showSearch
+                          placeholder="Выберите валюту"
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        label="Сумма для прихода"
+                        name="amount"
+                        rules={[{ required: true, message: "Укажите сумму" }]}
+                      >
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="Введите сумму прихода"
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <div style={{ marginBottom: "8px", fontSize: "14px", color: "#666" }}>
+                        <strong>Общая сумма:</strong> {Number((Number(record?.services?.reduce((acc: number, service: any) => acc + Number(service.sum || 0), 0) || 0) + Number(record?.products?.reduce((acc: number, product: any) => acc + Number(product.sum || 0), 0) || 0)) || 0).toFixed(2)} RUB
+                        <br />
+                        <strong>Уже оплачено:</strong> {Number(record?.paid_sum || 0).toFixed(2)} RUB
+                        <br />
+                        <strong>К доплате:</strong> {Number((Number(record?.services?.reduce((acc: number, service: any) => acc + Number(service.sum || 0), 0) || 0) + Number(record?.products?.reduce((acc: number, product: any) => acc + Number(product.sum || 0), 0) || 0)) - Number(record?.paid_sum || 0) || 0).toFixed(2)} RUB
+                      </div>
+                    </Col>
+                    <Col span={12}>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={formLoading}
+                      >3
+                        Сохранить
+                      </Button>
+                    </Col>
+                  </Row>
+                </Form>
               </Card>
             }
           >
