@@ -548,35 +548,35 @@ export const GoodsCreate = () => {
       return;
     }
 
-    if (hasBagNumber.length > 0) {
-      message.error("Обнаружены дублированные номера мешков. Исправьте перед отправкой.");
-      return;
-    }
+    // if (hasBagNumber.length > 0) {
+    //   message.error("Обнаружены дублированные номера мешков. Исправьте перед отправкой.");
+    //   return;
+    // }
 
-    let hasInvalidFields = false;
-    services.forEach((service, index) => {
-      if (
-        !service.type_id ||
-        !service.weight ||
-        service.weight <= 0 ||
-        !service.bag_number_numeric
-      ) {
-        hasInvalidFields = true;
-        let missingFields = [];
-        if (!service.type_id) missingFields.push("Тип товара");
-        if (!service.weight || service.weight <= 0) missingFields.push("Вес");
-        if (!service.bag_number_numeric) missingFields.push("Номер мешка");
-        message.warning(
-          `Услуга #${
-            index + 1
-          }: Заполните все обязательные поля (${missingFields.join(", ")})`
-        );
-      }
-    });
+    // let hasInvalidFields = false;
+    // services.forEach((service, index) => {
+    //   if (
+    //     !service.type_id ||
+    //     !service.weight ||
+    //     service.weight <= 0 ||
+    //     !service.bag_number_numeric
+    //   ) {
+    //     hasInvalidFields = true;
+    //     let missingFields = [];
+    //     if (!service.type_id) missingFields.push("Тип товара");
+    //     if (!service.weight || service.weight <= 0) missingFields.push("Вес");
+    //     if (!service.bag_number_numeric) missingFields.push("Номер мешка");
+    //     message.warning(
+    //       `Услуга #${
+    //         index + 1
+    //       }: Заполните все обязательные поля (${missingFields.join(", ")})`
+    //     );
+    //   }
+    // });
 
-    if (hasInvalidFields) {
-      return;
-    }
+    // if (hasInvalidFields) {
+    //   return;
+    // }
 
     const baseAmount =
       services.reduce(
