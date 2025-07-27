@@ -54,7 +54,7 @@ export const WarehouseStockGoodsReport = () => {
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState<
-    "id" | "created_at" | "sender.name" | "recipient.name"
+    "id" | "created_at" | "sender.name" | "recipient.name" | "bag_number"
   >("id");
   const [sorterVisible, setSorterVisible] = useState(false);
 
@@ -88,7 +88,7 @@ export const WarehouseStockGoodsReport = () => {
   }, [shipmentId]);
 
   const prepareExportData = () => {
-    const dataSource = selectedCity ? (data || []).filter((item: any) => item.destination?.id === selectedCity) : (data || []);
+    const dataSource = selectedCity ? sortedData.filter((item: any) => item.destination?.id === selectedCity) : sortedData;
     const exportData: any[] = [];
     let totalSum = 0;
     let totalBagSum = 0;
@@ -383,6 +383,10 @@ export const WarehouseStockGoodsReport = () => {
           aValue = a.recipient?.name || "";
           bValue = b.recipient?.name || "";
           break;
+        case "bag_number":
+          aValue = a.services?.map((item: any) => item.bag_number_numeric).join(", ") || "";
+          bValue = b.services?.map((item: any) => item.bag_number_numeric).join(", ") || "";
+          break;
         case "id":
         default:
           aValue = a.id || 0;
@@ -469,6 +473,19 @@ export const WarehouseStockGoodsReport = () => {
         >
           По фио получателя{" "}
           {sortField === "recipient.name" &&
+            (sortDirection === "ASC" ? "↑" : "↓")}
+        </Button>
+
+        <Button
+          type="text"
+          style={{
+            textAlign: "left",
+            fontWeight: sortField === "bag_number" ? "bold" : "normal",
+          }}
+          onClick={() => handleSort("bag_number")}
+        >
+          По номеру мешка{" "}
+          {sortField === "bag_number" &&
             (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
       </div>
