@@ -9,6 +9,7 @@ import {
   Modal,
   Dropdown,
   Card,
+  Select,
 } from "antd";
 import {
   FileOutlined,
@@ -20,6 +21,7 @@ import {
 } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { useDocumentTitle } from "@refinedev/react-router";
+import { useSelect } from "@refinedev/antd";
 import { API_URL } from "../../../App";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
@@ -48,12 +50,20 @@ export const WarehouseStockGoodsReport = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [shipmentId, setShipmentId] = useState<number | null>(null);
   const [showBags, setShowBags] = useState(false);
+  const [selectedCity, setSelectedCity] = useState<number | null>(null);
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState<
     "id" | "created_at" | "sender.name" | "recipient.name"
   >("id");
   const [sorterVisible, setSorterVisible] = useState(false);
+
+  // Загрузка данных городов
+  const { selectProps: branchSelectProps } = useSelect({
+    resource: "branch",
+    optionLabel: "name",
+    optionValue: "id",
+  });
 
   useEffect(() => {
     setTitle("Все товары");
@@ -62,9 +72,9 @@ export const WarehouseStockGoodsReport = () => {
   const [downloadLoading, setDownloadLoading] = useState(false);
 
   const getShipmentData = async () => {
-    const response = await fetch(
-      `${API_URL}/report/reportGoodInFlight?shipment_id=${shipmentId}`
-    );
+    let url = `${API_URL}/report/reportGoodInFlight?shipment_id=${shipmentId}`;
+    
+    const response = await fetch(url);
     const data = await response.json();
     return data;
   };
@@ -78,7 +88,7 @@ export const WarehouseStockGoodsReport = () => {
   }, [shipmentId]);
 
   const prepareExportData = () => {
-    const dataSource = data || [];
+    const dataSource = selectedCity ? (data || []).filter((item: any) => item.destination?.id === selectedCity) : (data || []);
     const exportData: any[] = [];
     let totalSum = 0;
     let totalBagSum = 0;
@@ -475,6 +485,7 @@ export const WarehouseStockGoodsReport = () => {
         open={modalVisible}
         onCancel={() => {
           setModalVisible(false);
+          setSelectedCity(null);
         }}
         footer={null}
         width={1800}
@@ -503,6 +514,18 @@ export const WarehouseStockGoodsReport = () => {
               }
             ></Button>
           </Dropdown>
+          <Col>
+            <Select
+              placeholder="Выберите город"
+              allowClear
+              style={{ width: 200 }}
+              value={selectedCity}
+              onChange={(value) => setSelectedCity(value as number)}
+              onClear={() => setSelectedCity(null)}
+              options={branchSelectProps.options}
+              loading={branchSelectProps.loading}
+            />
+          </Col>
           <Col>
             <Checkbox
               checked={showBags}
@@ -544,11 +567,11 @@ export const WarehouseStockGoodsReport = () => {
             </Button>
           </Col>
         </Row>
-        <Table
-          size="small"
-          dataSource={sortedData}
-          pagination={false}
-          rowKey="id"
+                  <Table
+            size="small"
+            dataSource={selectedCity ? sortedData.filter((item: any) => item.destination?.id === selectedCity) : sortedData}
+            pagination={false}
+            rowKey="id"
           scroll={{ x: 1000 }}
           expandable={
             showBags
