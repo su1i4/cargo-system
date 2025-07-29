@@ -231,6 +231,9 @@ export const GoodsCreate = () => {
                 `${API_URL}/service/checking-service-number?destination_id=${values.destination_id}&bag_number=${service.bag_number_numeric}`,
                 {
                   method: "GET",
+                  headers: {
+                    Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+                  },
                 }
               );
 
@@ -1377,6 +1380,9 @@ export const GoodsCreate = () => {
                         `${API_URL}/service/checking-service-number?destination_id=${values?.destination_id}&bag_number=${e.target.value}`,
                         {
                           method: "GET",
+                          headers: {
+                            Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+                          },
                         }
                       );
 
