@@ -478,7 +478,7 @@ export const TrackList = () => {
                       }}
                     >
                       {item.history && item.history.length > 0
-                        ? item.history[item.history.length - 1]?.message ||
+                        ? item.history[0]?.message ||
                           "Нет сообщений"
                         : "Нет сообщений"}
                     </Typography.Text>
