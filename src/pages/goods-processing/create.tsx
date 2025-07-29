@@ -128,6 +128,7 @@ export const GoodsCreate = () => {
 
   const [counterpartiesWithDiscounts, setCounterpartiesWithDiscounts] =
     useState<any[]>([]);
+  const [selectedDiscountOption, setSelectedDiscountOption] = useState<DiscountOrCashBackItem | null>(null);
 
   const values: any = Form.useWatch([], form);
 
@@ -473,14 +474,13 @@ export const GoodsCreate = () => {
 
               // Проверяем индивидуальную скидку при выборе типа продукта
               if (field === "type_id" && values?.destination_id) {
-                const senderOrReceiverId =
-                  values?.sender_id || values?.recipient_id;
-                if (senderOrReceiverId) {
+                const counterpartyId = selectedDiscountOption?.counterpartyId;
+                if (counterpartyId) {
                   console.log('Проверяем скидку для мешка при изменении type_id');
                   const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
                     values.destination_id,
                     value,
-                    senderOrReceiverId
+                    counterpartyId
                   );
                   newItem.individual_discount = individualDiscount;
                   newItem.discount_id = discountId;
@@ -558,18 +558,8 @@ export const GoodsCreate = () => {
   // Пересчитываем индивидуальные скидки при изменении города назначения или контрагентов
   useEffect(() => {
     const updateIndividualDiscounts = async () => {
-      console.log('useEffect сработал для пересчета скидок');
-      console.log('Параметры:', { 
-        destination_id: values?.destination_id, 
-        sender_id: values?.sender_id, 
-        recipient_id: values?.recipient_id,
-        services_length: services.length 
-      });
-
-      if (values?.destination_id && (values?.sender_id || values?.recipient_id) && services.length > 0) {
-        const senderOrReceiverId = values?.sender_id || values?.recipient_id;
-        
-        console.log('Начинаем пересчет скидок для всех мешков');
+      if (values?.destination_id && selectedDiscountOption?.counterpartyId && services.length > 0) {
+        const counterpartyId = selectedDiscountOption.counterpartyId;
         
         const updatedServices = await Promise.all(
           services.map(async (item, index) => {
@@ -578,14 +568,13 @@ export const GoodsCreate = () => {
               const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
                 values.destination_id,
                 Number(item.type_id),
-                senderOrReceiverId
+                counterpartyId
               );
               
               const newItem = { ...item };
               newItem.individual_discount = individualDiscount;
               newItem.discount_id = discountId;
 
-              // Пересчитываем цену с учетом новой скидки
               const selectedType = tariffTableProps?.dataSource?.find(
                 (type: any) =>
                   type.branch_id === values?.destination_id &&
@@ -616,7 +605,7 @@ export const GoodsCreate = () => {
     };
 
     updateIndividualDiscounts();
-  }, [values?.destination_id, values?.sender_id, values?.recipient_id]);
+  }, [values?.destination_id, selectedDiscountOption]);
 
   const isProductAvailableForBranch = (product: ProductItem): boolean => {
     if (branchProducts?.length) {
@@ -1044,6 +1033,7 @@ export const GoodsCreate = () => {
       );
 
       if (cashBackOption) {
+        setSelectedDiscountOption(cashBackOption);
         const cashBackTarget =
           cashBackOption.counterpartyId === values?.sender_id
             ? "sender"
@@ -1059,6 +1049,7 @@ export const GoodsCreate = () => {
         );
 
         if (discountOption) {
+          setSelectedDiscountOption(discountOption);
           formProps.form?.setFieldsValue({
             discount_cashback_id: discountOption.id,
             cash_back_target: null,
@@ -1067,6 +1058,7 @@ export const GoodsCreate = () => {
         }
       }
     } else if (discountCashBackOptions.length === 0) {
+      setSelectedDiscountOption(null);
       formProps.form?.setFieldsValue({
         discount_cashback_id: null,
         cash_back_target: null,
@@ -1194,6 +1186,9 @@ export const GoodsCreate = () => {
                   const selectedOption = discountCashBackOptions.find(
                     (opt) => opt.id === value
                   );
+                  
+                  setSelectedDiscountOption(selectedOption || null);
+                  
                   if (selectedOption) {
                     if (selectedOption.type === "discount") {
                       formProps.form?.setFieldsValue({

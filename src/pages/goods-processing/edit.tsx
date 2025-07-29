@@ -152,6 +152,7 @@ export const GoodsEdit = () => {
   >(null);
   const [counterpartiesWithDiscounts, setCounterpartiesWithDiscounts] =
     useState<any[]>([]);
+  const [selectedDiscountOption, setSelectedDiscountOption] = useState<DiscountOrCashBackItem | null>(null);
 
   // Добавляем состояние для доступных продуктов филиала
   const [branchNomenclature, setBranchNomenclature] = useState<any>(null);
@@ -301,6 +302,7 @@ export const GoodsEdit = () => {
 
       if (cashBackOption) {
         setSelectedDiscountType(cashBackOption.type);
+        setSelectedDiscountOption(cashBackOption);
         const cashBackTarget =
           cashBackOption.counterpartyId === values?.sender_id
             ? "sender"
@@ -317,6 +319,7 @@ export const GoodsEdit = () => {
 
         if (discountOption) {
           setSelectedDiscountType(discountOption.type);
+          setSelectedDiscountOption(discountOption);
           formProps.form?.setFieldsValue({
             discount_cashback_id: discountOption.id,
             cash_back_target: null,
@@ -327,6 +330,7 @@ export const GoodsEdit = () => {
     } else if (discountCashBackOptions.length === 0) {
       // Если нет ни скидок, ни кешбеков - очищаем поля
       setSelectedDiscountType(null);
+      setSelectedDiscountOption(null);
       formProps.form?.setFieldsValue({
         discount_cashback_id: null,
         cash_back_target: null,
@@ -602,14 +606,13 @@ export const GoodsEdit = () => {
 
               // Проверяем индивидуальную скидку при выборе типа продукта
               if (field === "type_id" && values?.destination_id) {
-                const senderOrReceiverId =
-                  values?.sender_id || values?.recipient_id;
-                if (senderOrReceiverId) {
+                const counterpartyId = selectedDiscountOption?.counterpartyId;
+                if (counterpartyId) {
                   console.log('Проверяем скидку для мешка при изменении type_id');
                   const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
                     values.destination_id,
                     value,
-                    senderOrReceiverId
+                    counterpartyId
                   );
                   newItem.individual_discount = individualDiscount;
                   newItem.discount_id = discountId;
@@ -699,13 +702,12 @@ export const GoodsEdit = () => {
       console.log('useEffect сработал для пересчета скидок в edit');
       console.log('Параметры:', { 
         destination_id: values?.destination_id, 
-        sender_id: values?.sender_id, 
-        recipient_id: values?.recipient_id,
+        selectedDiscountOption: selectedDiscountOption,
         services_length: services.length 
       });
 
-      if (values?.destination_id && (values?.sender_id || values?.recipient_id) && services.length > 0) {
-        const senderOrReceiverId = values?.sender_id || values?.recipient_id;
+      if (values?.destination_id && selectedDiscountOption?.counterpartyId && services.length > 0) {
+        const counterpartyId = selectedDiscountOption.counterpartyId;
         
         console.log('Начинаем пересчет скидок для всех мешков в edit');
         
@@ -716,7 +718,7 @@ export const GoodsEdit = () => {
               const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
                 values.destination_id,
                 Number(item.type_id),
-                senderOrReceiverId
+                counterpartyId
               );
               
               const newItem = { ...item, updated: true };
@@ -754,7 +756,7 @@ export const GoodsEdit = () => {
     };
 
     updateIndividualDiscounts();
-  }, [values?.destination_id, values?.sender_id, values?.recipient_id]);
+  }, [values?.destination_id, selectedDiscountOption]);
 
   const updateProductField = (
     id: string | number,
@@ -1248,6 +1250,9 @@ export const GoodsEdit = () => {
                   const selectedOption = discountCashBackOptions.find(
                     (opt) => opt.id === value
                   );
+                  
+                  setSelectedDiscountOption(selectedOption || null);
+                  
                   if (selectedOption) {
                     setSelectedDiscountType(selectedOption.type);
 
