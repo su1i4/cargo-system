@@ -620,18 +620,17 @@ export const GoodsEdit = () => {
                 }
               }
 
-              if (!item.is_price_editable && item.is_created) {
+              if (!item.is_price_editable) {
                 const discountToApply = newItem.individual_discount || 0;
                 newItem.price = Number(selectedType.tariff) - discountToApply;
-                console.log('Новая цена после скидки (созданный мешок):', newItem.price, 'тариф:', selectedType.tariff, 'скидка:', discountToApply);
+                console.log('Новая цена после скидки:', newItem.price, 'тариф:', selectedType.tariff, 'скидка:', discountToApply);
               }
 
               if (newItem.weight) {
                 const discountToApply = newItem.individual_discount || 0;
-                const priceToUse =
-                  item.is_price_editable || !item.is_created
-                    ? newItem.price
-                    : Number(selectedType.tariff) - discountToApply;
+                const priceToUse = item.is_price_editable
+                  ? newItem.price
+                  : Number(selectedType.tariff) - discountToApply;
                 newItem.sum = calculateSum(newItem.weight, priceToUse);
                 console.log('Новая сумма:', newItem.sum, 'вес:', newItem.weight, 'цена:', priceToUse);
               }
@@ -668,17 +667,17 @@ export const GoodsEdit = () => {
                 const newItem = { ...item, updated: true };
                 newItem.tariff = tariffValue;
 
-                // Применяем существующую скидку или базовую цену
-                if (!item.is_price_editable && item.is_created) {
+                // Обновляем цену для всех мешков, которые не имеют редактируемой цены
+                if (!item.is_price_editable) {
                   const discountToApply = newItem.individual_discount || 0;
                   newItem.price = tariffValue - discountToApply;
                 }
 
+                // Пересчитываем сумму для всех мешков с весом
                 if (newItem.weight) {
-                  const priceToUse =
-                    item.is_price_editable || !item.is_created
-                      ? newItem.price
-                      : newItem.price || tariffValue;
+                  const priceToUse = item.is_price_editable 
+                    ? (newItem.price || item.price || tariffValue)
+                    : newItem.price;
                   newItem.sum = calculateSum(newItem.weight, priceToUse);
                 }
 
@@ -732,7 +731,7 @@ export const GoodsEdit = () => {
                   type.product_type_id === Number(item.type_id)
               );
 
-              if (selectedType && !item.is_price_editable && item.is_created) {
+              if (selectedType && !item.is_price_editable) {
                 const discountToApply = individualDiscount || 0;
                 newItem.price = Number(selectedType.tariff) - discountToApply;
                 console.log(`Мешок ${index + 1}: новая цена ${newItem.price} (тариф: ${selectedType.tariff}, скидка: ${discountToApply})`);
