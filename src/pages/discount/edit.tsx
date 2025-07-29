@@ -3,6 +3,7 @@ import {
   useTable,
   useForm,
   Edit,
+  useSelect,
 } from "@refinedev/antd";
 import { Form, Input, Select } from "antd";
 
@@ -27,10 +28,8 @@ export const DiscountEdit: React.FC = () => {
     },
   });
   
-  // Use useEffect to set the form values after the record data is available
   useEffect(() => {
     if (record && form) {
-      // Set the counter_party_id with the correct format
       form.setFieldsValue({
         counter_party_id: record.counter_party_id,
         discount: record.discount,
@@ -38,7 +37,6 @@ export const DiscountEdit: React.FC = () => {
     }
   }, [record, form]);
   
-  // Create options for the Select component
   const counterpartyOptions = tableProps.dataSource
     ?.filter((item) => item.discount === null || item.id === record?.counter_party_id)
     .map((item) => ({
@@ -46,6 +44,18 @@ export const DiscountEdit: React.FC = () => {
       value: item.id,
     }));
   
+  const { selectProps: destinationSelectProps } = useSelect({
+    resource: "branch",
+    optionLabel: "name",
+    optionValue: "id",
+  });
+
+  const { selectProps: productTypeSelectProps } = useSelect({
+    resource: "type-product",
+    optionLabel: "name",
+    optionValue: "id",
+  });
+
   return (
     <Edit headerButtons={() => false} saveButtonProps={saveButtonProps}>
       <Form {...formProps} layout="vertical">
@@ -60,6 +70,21 @@ export const DiscountEdit: React.FC = () => {
             }
             options={counterpartyOptions}
             loading={!tableProps.dataSource}
+          />
+        </Form.Item>
+        <Form.Item
+          name="destination_id"
+          label="Пункт назначения"
+          rules={[{ required: true, message: "Введите Пункт назначения" }]}
+        >
+          <Select {...destinationSelectProps} />
+        </Form.Item>
+        <Form.Item
+          name="product_type_id"
+          label="Тип продукта"
+        >
+          <Select
+            {...productTypeSelectProps}
           />
         </Form.Item>
         <Form.Item

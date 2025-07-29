@@ -1,16 +1,21 @@
 import React, { useState } from "react";
 import { List, useTable } from "@refinedev/antd";
-import { Space, Table, Button, Row, Col } from "antd";
-import { BaseRecord, useNavigation } from "@refinedev/core";
+import { Space, Table, Button, Row, Col, Popconfirm, message } from "antd";
+import { BaseRecord } from "@refinedev/core";
 import { MyCreateModal } from "./modal/create-modal";
-import { FileAddOutlined } from "@ant-design/icons";
-import { MyEditModal } from "./modal/edit-modal";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  FileAddOutlined,
+} from "@ant-design/icons";
+import { CounterpartyEditModal } from "./modal/edit-modal";
 import { SearchFilter } from "../../shared/search-input";
 import { SortContent } from "../../shared/sort-content";
 import { CustomTooltip } from "../../shared/custom-tooltip";
+import { API_URL } from "../../App";
 
 export const CounterpartyList: React.FC = () => {
-  const { tableProps, setFilters, setSorters, sorters } = useTable({
+  const { tableProps, setFilters, setSorters, sorters, tableQuery } = useTable({
     resource: "counterparty",
     syncWithLocation: false,
     pagination: {
@@ -32,7 +37,7 @@ export const CounterpartyList: React.FC = () => {
   const [openEdit, setOpenEdit] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
 
-  const { show } = useNavigation();
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const sortFields = [
     { label: "Дате создания", field: "id" },
@@ -40,13 +45,43 @@ export const CounterpartyList: React.FC = () => {
     { label: "Коду клиента", field: "clientCode" },
   ];
 
+  const handleDelete = async () => {
+    try {
+      const res = await fetch(`${API_URL}/counterparty/${deleteId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+        },
+      });
+      if (res.status === 200) {
+        message.success("Контрагент успешно удален");
+        tableQuery.refetch();
+      } else {
+        message.error("Ошибка при удалении контрагента");
+      }
+    } catch (error: any) {
+      message.error(error?.message || "Ошибка при удалении контрагента");
+    }
+  };
+
   return (
     <List headerButtons={() => null}>
-      <MyCreateModal open={open} onClose={() => setOpen(false)} />
-      <MyEditModal
-        id={editId}
+      <MyCreateModal
+        open={open}
+        onClose={() => setOpen(false)}
+        onSuccess={() => {
+          setOpen(false);
+          tableQuery.refetch();
+        }}
+      />
+      <CounterpartyEditModal
+        counterpartyId={editId?.toString() || ""}
         open={openEdit}
         onClose={() => setOpenEdit(false)}
+        onSuccess={() => {
+          setOpenEdit(false);
+          tableQuery.refetch();
+        }}
       />
       <Row gutter={[16, 16]} align="middle" style={{ marginBottom: 16 }}>
         <Col>
@@ -85,15 +120,7 @@ export const CounterpartyList: React.FC = () => {
         </Col>
       </Row>
 
-      <Table
-        onRow={(record) => ({
-          onDoubleClick: () => {
-            show("counterparty", record.id as number);
-          },
-        })}
-        {...tableProps}
-        rowKey="id"
-      >
+      <Table {...tableProps} rowKey="id">
         <Table.Column
           title="№"
           render={(_: any, __: any, index: number) => {
@@ -135,6 +162,34 @@ export const CounterpartyList: React.FC = () => {
               </CustomTooltip>
             ) : (
               "-"
+            );
+          }}
+        />
+        <Table.Column
+          dataIndex="action"
+          title="Действие"
+          render={(_, record: BaseRecord) => {
+            return (
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<EditOutlined />}
+                  onClick={() => {
+                    setEditId(record.id as number);
+                    setOpenEdit(true);
+                  }}
+                />
+                <Popconfirm
+                  title="Вы уверены, что хотите удалить этого контрагента?"
+                  onConfirm={handleDelete}
+                >
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => setDeleteId(record.id as number)}
+                  />
+                </Popconfirm>
+              </Space>
             );
           }}
         />

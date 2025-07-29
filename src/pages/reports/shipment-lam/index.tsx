@@ -28,6 +28,13 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import * as XLSX from "xlsx";
 
+export interface Shipment {
+  id: number;
+  truck_number: string;
+  driver: string;
+  destination: string;
+}
+
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -48,10 +55,10 @@ export const WarehouseStockGoodsReport = () => {
   const [data, setData] = useState<any[]>([]);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [shipmentId, setShipmentId] = useState<number | null>(null);
+  const [shipmentData, setShipmentData] = useState<Shipment | null>(null);
   const [showBags, setShowBags] = useState(false);
   const [selectedCity, setSelectedCity] = useState<number | null>(null);
-
+  const [driverName, setDriverName] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState<
     "id" | "created_at" | "sender.name" | "recipient.name" | "bag_number"
@@ -72,23 +79,25 @@ export const WarehouseStockGoodsReport = () => {
   const [downloadLoading, setDownloadLoading] = useState(false);
 
   const getShipmentData = async () => {
-    let url = `${API_URL}/report/reportGoodInFlight?shipment_id=${shipmentId}`;
-    
+    let url = `${API_URL}/report/reportGoodInFlight?shipment_id=${shipmentData?.id}`;
+
     const response = await fetch(url);
     const data = await response.json();
     return data;
   };
 
   useEffect(() => {
-    if (shipmentId) {
+    if (shipmentData) {
       getShipmentData().then((data) => {
         setData(data);
       });
     }
-  }, [shipmentId]);
+  }, [shipmentData]);
 
   const prepareExportData = () => {
-    const dataSource = selectedCity ? sortedData.filter((item: any) => item.destination?.id === selectedCity) : sortedData;
+    const dataSource = selectedCity
+      ? sortedData.filter((item: any) => item.destination?.id === selectedCity)
+      : sortedData;
     const exportData: any[] = [];
     let totalSum = 0;
     let totalBagSum = 0;
@@ -99,10 +108,6 @@ export const WarehouseStockGoodsReport = () => {
     dataSource.forEach((record: any, index: number) => {
       const mainRow = {
         "№": index + 1,
-        "Дата отправки": record.created_at
-          ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
-          : "",
-        "№ накладной": record.invoice_number || "",
         "Фио отправителя": record.sender?.name || "",
         "Фио получателя": record.recipient?.name || "",
         Город: record.destination?.name || "",
@@ -138,8 +143,6 @@ export const WarehouseStockGoodsReport = () => {
         record.services.forEach((service: any, serviceIndex: number) => {
           const serviceRow = {
             "№": "",
-            "Дата отправки": "",
-            "№ накладной": "",
             "Фио отправителя": "",
             "Фио получателя": "",
             Город: "",
@@ -165,8 +168,6 @@ export const WarehouseStockGoodsReport = () => {
 
     const totalRow = {
       "№": "",
-      "Дата отправки": "",
-      "№ накладной": "",
       "Фио отправителя": "",
       "Фио получателя": "",
       Город: "",
@@ -183,10 +184,6 @@ export const WarehouseStockGoodsReport = () => {
 
     const totalRow2 = {
       "№": "",
-      "Дата отправки": tableShipmentProps.dataSource?.find((item: any) => {
-        return item.id === shipmentId;
-      })?.truck_number || "",
-      "№ накладной": "",
       "Фио отправителя": "",
       "Фио получателя": "",
       Город: "",
@@ -203,8 +200,6 @@ export const WarehouseStockGoodsReport = () => {
 
     const totalRow3 = {
       "№": "",
-      "Дата отправки": "Общий вес",
-      "№ накладной": "Общий долг",
       "Фио отправителя": "",
       "Фио получателя": "",
       Город: "",
@@ -221,8 +216,6 @@ export const WarehouseStockGoodsReport = () => {
 
     const totalRow4 = {
       "№": "",
-      "Дата отправки": totalWeight,
-      "№ накладной": totalDebt,
       "Фио отправителя": "",
       "Фио получателя": "",
       Город: "",
@@ -261,7 +254,7 @@ export const WarehouseStockGoodsReport = () => {
       // Автоматическая ширина колонок
       const colWidths: any[] = [];
       const headers = Object.keys(exportData[0] || {});
-      
+
       headers.forEach((header, colIndex) => {
         let maxLength = header.length;
         exportData.forEach((row) => {
@@ -282,10 +275,10 @@ export const WarehouseStockGoodsReport = () => {
           for (let C = range.s.c; C <= range.e.c; ++C) {
             const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
             if (!worksheet[cellAddress]) continue;
-            
+
             // Базовое форматирование текста
-            if (typeof worksheet[cellAddress].v === 'number') {
-              worksheet[cellAddress].z = '#,##0.00';
+            if (typeof worksheet[cellAddress].v === "number") {
+              worksheet[cellAddress].z = "#,##0.00";
             }
           }
         }
@@ -297,11 +290,14 @@ export const WarehouseStockGoodsReport = () => {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
 
-      const truckNumber = tableShipmentProps.dataSource?.find((item: any) => {
-        return item.id === shipmentId;
-      })?.truck_number || "report";
+      const truckNumber =
+        tableShipmentProps.dataSource?.find((item: any) => {
+          return item.id === shipmentData?.id;
+        })?.truck_number || "report";
 
-      const fileName = `Отчет_${truckNumber}_${dayjs().format("DD-MM-YYYY_HH-mm")}.xlsx`;
+      const fileName = `${truckNumber}_${
+        shipmentData?.destination
+      }_${driverName}_${dayjs().format("DD-MM-YYYY_HH-mm")}.xlsx`;
 
       // Write file to disk
       XLSX.writeFile(workbook, fileName);
@@ -344,13 +340,16 @@ export const WarehouseStockGoodsReport = () => {
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
 
-      const truckNumber = tableShipmentProps.dataSource?.find((item: any) => {
-        return item.id === shipmentId;
-      })?.truck_number || "report";
+      const truckNumber =
+        tableShipmentProps.dataSource?.find((item: any) => {
+          return item.id === shipmentData?.id;
+        })?.truck_number || "report";
 
       link.setAttribute(
         "download",
-        `Отчет_${truckNumber}_${dayjs().format("DD-MM-YYYY_HH-mm")}.csv`
+        `${truckNumber}_${
+          shipmentData?.destination
+        }_${driverName}_${dayjs().format("DD-MM-YYYY_HH-mm")}.csv`
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -384,8 +383,14 @@ export const WarehouseStockGoodsReport = () => {
           bValue = b.recipient?.name || "";
           break;
         case "bag_number":
-          aValue = a.services?.map((item: any) => item.bag_number_numeric).join(", ") || "";
-          bValue = b.services?.map((item: any) => item.bag_number_numeric).join(", ") || "";
+          aValue =
+            a.services
+              ?.map((item: any) => item.bag_number_numeric)
+              .join(", ") || "";
+          bValue =
+            b.services
+              ?.map((item: any) => item.bag_number_numeric)
+              .join(", ") || "";
           break;
         case "id":
         default:
@@ -485,8 +490,7 @@ export const WarehouseStockGoodsReport = () => {
           onClick={() => handleSort("bag_number")}
         >
           По номеру мешка{" "}
-          {sortField === "bag_number" &&
-            (sortDirection === "ASC" ? "↑" : "↓")}
+          {sortField === "bag_number" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
       </div>
     </Card>
@@ -584,11 +588,17 @@ export const WarehouseStockGoodsReport = () => {
             </Button>
           </Col>
         </Row>
-                  <Table
-            size="small"
-            dataSource={selectedCity ? sortedData.filter((item: any) => item.destination?.id === selectedCity) : sortedData}
-            pagination={false}
-            rowKey="id"
+        <Table
+          size="small"
+          dataSource={
+            selectedCity
+              ? sortedData.filter(
+                  (item: any) => item.destination?.id === selectedCity
+                )
+              : sortedData
+          }
+          pagination={false}
+          rowKey="id"
           scroll={{ x: 1000 }}
           expandable={
             showBags
@@ -670,14 +680,6 @@ export const WarehouseStockGoodsReport = () => {
             render={(value, record, index) => index + 1}
           />
           <Table.Column
-            dataIndex="created_at"
-            title="Дата приемки"
-            render={(value) =>
-              value ? dayjs(value).utc().format("DD.MM.YYYY HH:mm") : ""
-            }
-          />
-          <Table.Column dataIndex="invoice_number" title="№ накладной" />
-          <Table.Column
             dataIndex="sender"
             title="Фио отправителя"
             render={(value) => value?.name}
@@ -747,7 +749,13 @@ export const WarehouseStockGoodsReport = () => {
         onRow={(record) => {
           return {
             onDoubleClick: () => {
-              setShipmentId(record.id as number);
+              setShipmentData({
+                id: record.id as number,
+                truck_number: record.truck_number as string,
+                driver: record.driver as string,
+                destination: record.branch?.name as string,
+              });
+              setDriverName(record.driver);
               setModalVisible(true);
             },
           };

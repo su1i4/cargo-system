@@ -93,9 +93,19 @@ export const DiscountList: React.FC = () => {
           title="Фио клиента"
           render={(_, record: BaseRecord) => {
             return record.counter_party.name;
-          }}
+          }}  
         />
         <Table.Column dataIndex="discount" title="Скидка" />
+        <Table.Column
+          dataIndex="destination"
+          title="Пункт назначения"
+          render={(value) => value?.name || ""}
+        />
+        <Table.Column
+          dataIndex="product_type"
+          title="Тип продукта"
+          render={(value) => value?.name || ""}
+        />
         <Table.Column
           dataIndex="is_active"
           title="Активен"

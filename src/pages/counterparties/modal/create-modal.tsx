@@ -1,83 +1,66 @@
-import React, { useState } from "react";
-import { useModalForm } from "@refinedev/antd";
-import { Flex, Form, Input, Modal, Select } from "antd";
-import { useSelect } from "@refinedev/antd";
+import React from "react";
+import { Form, Input, message, Modal, Select, Flex } from "antd";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import { API_URL } from "../../../App";
 
 export const MyCreateModal: React.FC<{
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }> = ({ open, onClose, onSuccess }) => {
-  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
-
-  const { modalProps, formProps, submit } = useModalForm({
-    resource: "counterparty",
-    action: "create",
-    onMutationSuccess: () => {
-      onClose();
-      if (onSuccess) {
-        onSuccess();
-      }
-    },
-  });
-
-  const { selectProps: branchSelectProps } = useSelect({
-    resource: "branch",
-    optionLabel: "name",
-    onSearch: (value) => {
-      return [
-        {
-          field: "name",
-          operator: "contains",
-          value,
-        },
-      ];
-    },
-  });
-
-  const { selectProps: underBranchSelectProps } = useSelect({
-    resource: "under-branch",
-    optionLabel: "address",
-    filters: [
-      {
-        field: "branch_id",
-        operator: "eq",
-        value: selectedBranchId,
-      },
-    ],
-    queryOptions: {
-      enabled: !!selectedBranchId,
-    },
-  });
-
-  const handleBranchChange = (value: any) => {
-    setSelectedBranchId(value);
-    formProps.form?.setFieldValue("under_branch_id", undefined);
-  };
+  const [form] = Form.useForm();
 
   const typeCounterparty = [
-    {
-      label: "Отправитель",
-      value: "sender",
-    },
-    {
-      label: "Получатель",
-      value: "receiver",
-    },
+    { label: "Отправитель", value: "sender" },
+    { label: "Получатель", value: "receiver" },
   ];
+
+  const saveCounterparty = async () => {
+    try {
+      const data = await form.validateFields();
+
+      const response = await fetch(`${API_URL}/counterparty`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (response.status === 201) {
+        message.success("Контрагент успешно создан");
+        form.resetFields();
+        onClose();
+        onSuccess?.();
+      } else {
+        message.error(result.message || "Ошибка при создании");
+      }
+    } catch (error: any) {
+      console.error("Ошибка:", error);
+      message.error(error?.message || "Не удалось создать контрагента");
+    }
+  };
 
   return (
     <Modal
-      {...modalProps}
       title="Создать контрагента"
-      onOk={submit}
-      open={open} // Управляем открытием через props
-      onCancel={onClose} // Закрываем модалку
+      open={open}
+      onCancel={() => {
+        form.resetFields();
+        onClose();
+      }}
+      onOk={saveCounterparty}
       okText="Добавить"
+      width={800}
     >
-      <Form {...formProps} layout="vertical">
+      <Form
+        form={form}
+        layout="vertical"
+      >
         <Flex style={{ width: "100%" }} gap={10}>
           <Form.Item
             style={{ width: "100%" }}

@@ -38,12 +38,6 @@ import {
 } from "./pages/branch";
 import { UserCreate, UserEdit, UserList, UserShow } from "./pages/user";
 import { List, Create, Show, Edit } from "./pages/shipments";
-import {
-  CounterpartyCreate,
-  CounterpartyEdit,
-  CounterpartyList,
-  CounterpartyShow,
-} from "./pages/counterparties";
 import ReceivingList from "./pages/receiving/ReceivingList";
 import ReceivingCreate from "./pages/receiving/ReceivingCreate";
 import ReceivingShow from "./pages/receiving/ReceivingShow";
@@ -112,7 +106,7 @@ import { CashDeskReport } from "./pages/reports/cash-desk";
 import { CashDeskIncomeReport } from "./pages/reports/cash-desk-income";
 import { CashDeskOutcomeReport } from "./pages/reports/cash-desk-outcome";
 import { WarehouseStockReport } from "./pages/reports/warehouse-stock";
-import { GoodsProcessingCreate } from "./pages/goods-processing/create/index";
+import { CounterpartyList } from "./pages/counterparties/list";
 import { WarehouseStockGoodsReport } from "./pages/reports/shipment-lam";
 
 import "./styles/global.css";
@@ -324,9 +318,6 @@ function App() {
 
                   <Route path="/counterparty">
                     <Route index element={<CounterpartyList />} />
-                    <Route path="create" element={<CounterpartyCreate />} />
-                    <Route path="show/:id" element={<CounterpartyShow />} />
-                    <Route path="edit/:id" element={<CounterpartyEdit />} />
                   </Route>
 
                   <Route path="/receiving">

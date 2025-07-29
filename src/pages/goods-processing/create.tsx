@@ -46,6 +46,8 @@ interface GoodItem {
   barcode: string;
   bag_number_numeric?: string;
   is_price_editable?: boolean;
+  individual_discount?: number;
+  discount_id?: number | null;
 }
 
 interface ProductItem {
@@ -111,7 +113,6 @@ export const GoodsCreate = () => {
 
   const [services, setServices] = useState<GoodItem[]>([]);
   const [nextId, setNextId] = useState(1);
-  const [discount, setDiscount] = useState(0);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [tariffs, setTariffs] = useState<TariffItem[]>([]);
@@ -220,9 +221,9 @@ export const GoodsCreate = () => {
     const checkBagNumbers = async () => {
       if (values?.destination_id && services.length > 0) {
         setHasBagNumber([]);
-        
+
         const checkPromises = services
-          .filter(service => service.bag_number_numeric)
+          .filter((service) => service.bag_number_numeric)
           .map(async (service) => {
             try {
               const response = await fetch(
@@ -247,8 +248,8 @@ export const GoodsCreate = () => {
           });
 
         const results = await Promise.all(checkPromises);
-        const invalidBags = results.filter(result => result !== null);
-        
+        const invalidBags = results.filter((result) => result !== null);
+
         if (invalidBags.length > 0) {
           setHasBagNumber(invalidBags);
         }
@@ -403,14 +404,59 @@ export const GoodsCreate = () => {
     return weight * tariff;
   };
 
-  const updateItemField = (
+  const checkIndividualDiscount = async (
+    destinationId: number,
+    productTypeId: number,
+    counterpartyId: number
+  ): Promise<{ discount: number; discountId: number | null }> => {
+    try {
+      const filters = {
+        $and: [
+          { destination_id: { $eq: destinationId } },
+          { product_type_id: { $eq: productTypeId } },
+          { counter_party_id: { $eq: counterpartyId } },
+        ],
+      };
+
+      const encodedFilters = encodeURIComponent(JSON.stringify(filters));
+
+      console.log('Проверяем скидку для:', { destinationId, productTypeId, counterpartyId });
+
+      const response = await fetch(`${apiUrl}/discount?s=${encodedFilters}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const discountData = data[0];
+        console.log('Ответ API скидки:', discountData);
+        
+        const discountValue = discountData?.discount ? Number(discountData.discount) : 0;
+        console.log('Применяем скидку:', discountValue);
+        
+        return {
+          discount: discountValue,
+          discountId: discountData?.id || null,
+        };
+      }
+      return { discount: 0, discountId: null };
+    } catch (error) {
+      console.error("Ошибка при проверке индивидуальной скидки:", error);
+      return { discount: 0, discountId: null };
+    }
+  };
+
+  const updateItemField = async (
     id: number,
     field: string,
     value: any,
     index?: number
   ) => {
-    setServices(
-      services.map((item) => {
+    const updatedServices = await Promise.all(
+      services.map(async (item) => {
         if (item.id === id) {
           const newItem = { ...item, [field]: value };
 
@@ -421,20 +467,40 @@ export const GoodsCreate = () => {
                 type.product_type_id ===
                   (field === "weight" ? Number(item.type_id) : value)
             );
-            
 
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
 
+              // Проверяем индивидуальную скидку при выборе типа продукта
+              if (field === "type_id" && values?.destination_id) {
+                const senderOrReceiverId =
+                  values?.sender_id || values?.recipient_id;
+                if (senderOrReceiverId) {
+                  console.log('Проверяем скидку для мешка при изменении type_id');
+                  const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
+                    values.destination_id,
+                    value,
+                    senderOrReceiverId
+                  );
+                  newItem.individual_discount = individualDiscount;
+                  newItem.discount_id = discountId;
+                  console.log('Установлена скидка для мешка:', individualDiscount);
+                }
+              }
+
               if (!item.is_price_editable) {
-                newItem.price = Number(selectedType.tariff) - discount;
+                const discountToApply = newItem.individual_discount || 0;
+                newItem.price = Number(selectedType.tariff) - discountToApply;
+                console.log('Новая цена после скидки:', newItem.price, 'тариф:', selectedType.tariff, 'скидка:', discountToApply);
               }
 
               if (newItem.weight) {
+                const discountToApply = newItem.individual_discount || 0;
                 const priceToUse = item.is_price_editable
                   ? newItem.price
-                  : Number(selectedType.tariff) - discount;
+                  : Number(selectedType.tariff) - discountToApply;
                 newItem.sum = calculateSum(newItem.weight, priceToUse);
+                console.log('Новая сумма:', newItem.sum, 'вес:', newItem.weight, 'цена:', priceToUse);
               }
             }
           }
@@ -448,35 +514,109 @@ export const GoodsCreate = () => {
         return item;
       })
     );
+
+    setServices(updatedServices);
   };
 
   useEffect(() => {
-    if (values?.destination_id && services.length > 0) {
-      const branchId = Number(values.destination_id);
+    const updateServicesWithTariffs = async () => {
+      if (values?.destination_id && services.length > 0) {
+        const branchId = Number(values.destination_id);
 
-      setServices(
-        services.map((item) => {
-          if (item.type_id) {
-            const productTypeId = Number(item.type_id);
-            const tariffValue = findTariff(branchId, productTypeId);
+        const updatedServices = await Promise.all(
+          services.map(async (item) => {
+            if (item.type_id) {
+              const productTypeId = Number(item.type_id);
+              const tariffValue = findTariff(branchId, productTypeId);
 
-            if (tariffValue > 0) {
+              if (tariffValue > 0) {
+                const newItem = { ...item };
+                newItem.tariff = tariffValue;
+                
+                // Применяем существующую скидку или базовую цену
+                const discountToApply = newItem.individual_discount || 0;
+                newItem.price = tariffValue - discountToApply;
+
+                if (newItem.weight) {
+                  newItem.sum = calculateSum(newItem.weight, newItem.price);
+                }
+
+                return newItem;
+              }
+            }
+            return item;
+          })
+        );
+
+        setServices(updatedServices);
+      }
+    };
+
+    updateServicesWithTariffs();
+  }, [values?.destination_id, tariffs]);
+
+  // Пересчитываем индивидуальные скидки при изменении города назначения или контрагентов
+  useEffect(() => {
+    const updateIndividualDiscounts = async () => {
+      console.log('useEffect сработал для пересчета скидок');
+      console.log('Параметры:', { 
+        destination_id: values?.destination_id, 
+        sender_id: values?.sender_id, 
+        recipient_id: values?.recipient_id,
+        services_length: services.length 
+      });
+
+      if (values?.destination_id && (values?.sender_id || values?.recipient_id) && services.length > 0) {
+        const senderOrReceiverId = values?.sender_id || values?.recipient_id;
+        
+        console.log('Начинаем пересчет скидок для всех мешков');
+        
+        const updatedServices = await Promise.all(
+          services.map(async (item, index) => {
+            if (item.type_id) {
+              console.log(`Проверяем скидку для мешка ${index + 1}`);
+              const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
+                values.destination_id,
+                Number(item.type_id),
+                senderOrReceiverId
+              );
+              
               const newItem = { ...item };
-              newItem.tariff = tariffValue;
-              newItem.price = tariffValue;
+              newItem.individual_discount = individualDiscount;
+              newItem.discount_id = discountId;
 
-              if (newItem.weight) {
-                newItem.sum = calculateSum(newItem.weight, tariffValue);
+              // Пересчитываем цену с учетом новой скидки
+              const selectedType = tariffTableProps?.dataSource?.find(
+                (type: any) =>
+                  type.branch_id === values?.destination_id &&
+                  type.product_type_id === Number(item.type_id)
+              );
+
+              if (selectedType && !item.is_price_editable) {
+                const discountToApply = individualDiscount || 0;
+                newItem.price = Number(selectedType.tariff) - discountToApply;
+                console.log(`Мешок ${index + 1}: новая цена ${newItem.price} (тариф: ${selectedType.tariff}, скидка: ${discountToApply})`);
+                
+                // Пересчитываем сумму
+                if (newItem.weight) {
+                  newItem.sum = calculateSum(newItem.weight, newItem.price);
+                  console.log(`Мешок ${index + 1}: новая сумма ${newItem.sum}`);
+                }
               }
 
               return newItem;
             }
-          }
-          return item;
-        })
-      );
-    }
-  }, [values?.destination_id, tariffs]);
+            return item;
+          })
+        );
+
+        console.log('Обновляем состояние мешков');
+        setServices(updatedServices);
+      }
+    };
+
+    updateIndividualDiscounts();
+  }, [values?.destination_id, values?.sender_id, values?.recipient_id]);
 
   const isProductAvailableForBranch = (product: ProductItem): boolean => {
     if (branchProducts?.length) {
@@ -724,10 +864,10 @@ export const GoodsCreate = () => {
         {
           field: "destination_id",
           operator: "eq",
-          value: values?.destination_id ?? 16 ,
+          value: values?.destination_id ?? 16,
         },
       ],
-    }
+    },
   });
 
   const branchProducts = useMemo(() => {
@@ -736,7 +876,7 @@ export const GoodsCreate = () => {
     const allProductTypes = branchNomenclatureTableProps.dataSource.flatMap(
       (item: any) => item?.product_types || []
     );
-    return allProductTypes
+    return allProductTypes;
   }, [branchNomenclatureTableProps?.dataSource]);
 
   useEffect(() => {
@@ -904,7 +1044,6 @@ export const GoodsCreate = () => {
       );
 
       if (cashBackOption) {
-        setDiscount(0);
         const cashBackTarget =
           cashBackOption.counterpartyId === values?.sender_id
             ? "sender"
@@ -920,7 +1059,6 @@ export const GoodsCreate = () => {
         );
 
         if (discountOption) {
-          setDiscount(discountOption.value);
           formProps.form?.setFieldsValue({
             discount_cashback_id: discountOption.id,
             cash_back_target: null,
@@ -929,7 +1067,6 @@ export const GoodsCreate = () => {
         }
       }
     } else if (discountCashBackOptions.length === 0) {
-      setDiscount(0);
       formProps.form?.setFieldsValue({
         discount_cashback_id: null,
         cash_back_target: null,
@@ -937,35 +1074,6 @@ export const GoodsCreate = () => {
       });
     }
   }, [discountCashBackOptions, values?.sender_id, values?.recipient_id]);
-
-  useEffect(() => {
-    if (services?.length > 0) {
-      const newServices = services.map((item) => {
-        const selectedType = tariffTableProps?.dataSource?.find(
-          (type: any) =>
-            type.branch_id === values?.destination_id &&
-            type.product_type_id === Number(item.type_id)
-        );
-
-        const newItem = { ...item };
-
-        if (!item.is_price_editable && selectedType?.tariff) {
-          newItem.price = Number(selectedType.tariff) - discount;
-        }
-
-        if (newItem.weight && selectedType?.tariff) {
-          const priceToUse = item.is_price_editable
-            ? newItem.price
-            : Number(selectedType.tariff) - discount;
-          newItem.sum = calculateSum(Number(newItem.weight), priceToUse);
-        }
-
-        return newItem;
-      });
-      setServices(newServices);
-    }
-    setProducts([]);
-  }, [discount, values?.destination_id]);
 
   const lastGoods = [
     {
@@ -1088,13 +1196,11 @@ export const GoodsCreate = () => {
                   );
                   if (selectedOption) {
                     if (selectedOption.type === "discount") {
-                      setDiscount(selectedOption.value);
                       formProps.form?.setFieldsValue({
                         cash_back_target: null,
                         discount_id: selectedOption.originalData.id,
                       });
                     } else if (selectedOption.type === "cashback") {
-                      setDiscount(0);
                       const cashBackTarget =
                         selectedOption.counterpartyId === values?.sender_id
                           ? "sender"
@@ -1105,7 +1211,6 @@ export const GoodsCreate = () => {
                       });
                     }
                   } else {
-                    setDiscount(0);
                     formProps.form?.setFieldsValue({
                       cash_back_target: null,
                       discount_id: null,

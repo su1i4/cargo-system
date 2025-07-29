@@ -270,6 +270,12 @@ export const DiscountShow: React.FC = () => {
       <Title level={5}>Скидка</Title>
       <TextField value={record?.discount} />
 
+      <Title level={5}>Пункт назначения</Title>
+      <TextField value={record?.destination?.name} />
+
+      <Title level={5}>Тип продукта</Title>
+      <TextField value={record?.product_type?.name} />
+
       <Title level={4} style={{ marginTop: 32 }}>
         Спецификации
       </Title>

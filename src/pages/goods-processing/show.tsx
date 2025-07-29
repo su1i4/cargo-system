@@ -320,7 +320,7 @@ export const GoodsShow: React.FC = () => {
 
       if (service.bag_number_numeric) {
         acc[key].bag_number_numeric = acc[key].bag_number_numeric
-          ? acc[key].bag_number_numeric + ", " + service.bag_number_numeric
+          ? acc[key].bag_number_numeric + "," + service.bag_number_numeric
           : service.bag_number_numeric;
       }
 
@@ -568,7 +568,7 @@ export const GoodsShow: React.FC = () => {
             >
               <Col
                 style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
-                span={6}
+                span={4}
               >
                 <Text className="table-text">№ Мешка, Коробки</Text>
               </Col>
@@ -653,13 +653,18 @@ export const GoodsShow: React.FC = () => {
               </Col>
               <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={2}>
                 <Text className="table-text" style={{ fontWeight: 600 }}>
+                  Цена
+                </Text>
+              </Col>
+              <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={2}>
+                <Text className="table-text" style={{ fontWeight: 600 }}>
                   Сумма
                 </Text>
               </Col>
 
               {grouped?.map((service: any, index: number) => (
                 <React.Fragment key={index}>
-                  <Col style={colStyle} span={6}>
+                  <Col style={colStyle} span={4}>
                     <Text className="table-text">{service.bag_number_numeric}</Text>
                   </Col>
                   <Col style={colStyle} span={5}>
@@ -687,12 +692,17 @@ export const GoodsShow: React.FC = () => {
                   </Col>
                   <Col style={colStyle} span={2}>
                     <Text className="table-text">
+                      {Number(service.price || 0).toFixed(2)}
+                    </Text>
+                  </Col>
+                  <Col style={colStyle} span={2}>
+                    <Text className="table-text">
                       {Number(service.sum || 0).toFixed(2)}
                     </Text>
                   </Col>
                 </React.Fragment>
               ))}
-              <Col style={{ ...colStyle, borderBottom: "none" }} span={16}>
+              <Col style={{ ...colStyle, borderBottom: "none" }} span={14}>
                 <Text
                   className="table-text"
                   style={{ textAlign: "end", fontWeight: "bold" }}
@@ -713,6 +723,11 @@ export const GoodsShow: React.FC = () => {
               <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
                 <Text className="table-text" style={{ fontWeight: "bold" }}>
                   {String(Number(totalWeight || 0).toFixed(2)).replace(".", ",") || 0}
+                </Text>
+              </Col>
+              <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
+                <Text className="table-text" style={{ fontWeight: "bold" }}>
+                  {/* {Number(totalSum || 0).toFixed(2)} */}
                 </Text>
               </Col>
               <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
