@@ -253,9 +253,6 @@ export const GoodsShow: React.FC = () => {
 
   const { tableProps: currencyTableProps } = useTable({
     resource: "currency",
-    queryOptions: {
-      enabled: !!record?.services?.length,
-    },
     pagination: {
       mode: "off",
     },
