@@ -55,7 +55,7 @@ export const GoogsProcessingList = () => {
   >("id");
   const [searchFilters, setSearchFilters] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  
+
   // Состояние для хранения отдельных фильтров
   const [destinationFilter, setDestinationFilter] = useState<any>(null);
   const [paymentFilter, setPaymentFilter] = useState<any>(null);
@@ -75,9 +75,15 @@ export const GoogsProcessingList = () => {
       searchFilter,
       dateFilter,
     ].filter(Boolean);
-    
+
     setSearchFilters(allFilters);
-  }, [destinationFilter, paymentFilter, statusFilter, searchFilter, dateFilter]);
+  }, [
+    destinationFilter,
+    paymentFilter,
+    statusFilter,
+    searchFilter,
+    dateFilter,
+  ]);
 
   const buildQueryParams = () => {
     return {
@@ -226,24 +232,6 @@ export const GoogsProcessingList = () => {
         }}
         style={{ width: "100%" }}
       />
-
-      {/* <Select
-        title="Выберите тип тов"
-        placeholder="Выберите пункт назначения"
-        options={branch?.data?.map((branch: any) => ({
-          label: branch.name,
-          value: branch.id,
-        }))}
-        allowClear
-        mode="multiple"
-        onChange={(value) => {
-          setFilters(
-            value.map((item: any) => ({ destination_id: { $eq: item } })),
-            "replace"
-          );
-        }}
-        style={{ width: "100%" }}
-      /> */}
     </Card>
   );
 
@@ -656,7 +644,9 @@ export const GoogsProcessingList = () => {
           dataIndex="services"
           title="Номер мешка"
           render={(value) => {
-            return value?.map((item: any) => item.bag_number_numeric).join(", ");
+            return value
+              ?.map((item: any) => item.bag_number_numeric)
+              .join(", ");
           }}
         />
         <Table.Column

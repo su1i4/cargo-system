@@ -10,17 +10,19 @@ import {
   Dropdown,
   Menu,
   Input,
+  message,
 } from "antd";
 import { useParams } from "react-router";
 import { translateStatus } from "../../lib/utils";
 import { useState } from "react";
 import dayjs from "dayjs";
-import { SearchOutlined } from "@ant-design/icons";
+import { SearchOutlined, SendOutlined } from "@ant-design/icons";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { ArrowUpOutlined } from "@ant-design/icons";
 
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import { API_URL } from "../../App";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -189,8 +191,39 @@ const ReceivingShow = () => {
     }
   };
 
+  const handleSend = async () => {
+    const response: any = await fetch(
+      `${API_URL}/goods-processing/send-notification-wa`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          good_id: record?.id,
+        }),
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (response.ok) {
+      message.success("Сообщение отправлено");
+      // refetch();
+    } else {
+      const data = await response.json();
+      message.error(data?.message);
+    }
+  };
+
   return (
-    <Show headerButtons={() => null} isLoading={isLoading}>
+    <Show headerButtons={() => (
+      <>
+        {!record?.send_notification && (
+            <Button icon={<SendOutlined />} onClick={handleSend}>
+              Отправить уведомление
+            </Button>
+          )}
+      </>
+    )} isLoading={isLoading}>
       <Row gutter={[16, 16]}>
         <Col xs={24} md={6}>
           <Title level={5}>Номер рейса</Title>

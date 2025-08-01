@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import {
-  useTable,
   useForm,
   Edit,
   useSelect,
@@ -12,22 +11,6 @@ export const DiscountEdit: React.FC = () => {
   
   const record = queryResult?.data?.data;
   
-  const { tableProps } = useTable({
-    resource: "counterparty",
-    filters: {
-      initial: [
-        {
-          field: "discount",
-          operator: "null",
-          value: null,
-        },
-      ],
-    },
-    pagination: {
-      mode: "off",
-    },
-  });
-  
   useEffect(() => {
     if (record && form) {
       form.setFieldsValue({
@@ -37,12 +20,11 @@ export const DiscountEdit: React.FC = () => {
     }
   }, [record, form]);
   
-  const counterpartyOptions = tableProps.dataSource
-    ?.filter((item) => item.discount === null || item.id === record?.counter_party_id)
-    .map((item) => ({
-      label: `${item.name} - ${item.clientPrefix}-${String(item.clientCode).padStart(4, "0")}`,
-      value: item.id,
-    }));
+  const { selectProps: counterpartySelectProps } = useSelect({
+    resource: "counterparty",
+    optionLabel: "name",
+    optionValue: "id",
+  });
   
   const { selectProps: destinationSelectProps } = useSelect({
     resource: "branch",
@@ -65,11 +47,7 @@ export const DiscountEdit: React.FC = () => {
         >
           <Select
             showSearch
-            filterOption={(input, option) =>
-              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-            }
-            options={counterpartyOptions}
-            loading={!tableProps.dataSource}
+            {...counterpartySelectProps}
           />
         </Form.Item>
         <Form.Item

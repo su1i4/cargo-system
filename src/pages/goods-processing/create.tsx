@@ -129,6 +129,8 @@ export const GoodsCreate = () => {
   const [counterpartiesWithDiscounts, setCounterpartiesWithDiscounts] =
     useState<any[]>([]);
   const [selectedDiscountOption, setSelectedDiscountOption] = useState<DiscountOrCashBackItem | null>(null);
+  const [checkTimeouts, setCheckTimeouts] = useState<{ [key: number]: NodeJS.Timeout }>({});
+  const [isCheckingBagNumbers, setIsCheckingBagNumbers] = useState(false);
 
   const values: any = Form.useWatch([], form);
 
@@ -170,26 +172,32 @@ export const GoodsCreate = () => {
     method: "get",
     queryOptions: {
       onSuccess: (data: any) => {
-        const withDiscounts = (data?.data || []).filter(
-          (item: any) => item.discount && item.discount.discount > 0
-        );
-        setCounterpartiesWithDiscounts(withDiscounts);
+        setCounterpartiesWithDiscounts(data?.data || []);
       },
-      enabled: true,
+      enabled: false,
     },
   });
 
   useEffect(() => {
     refetchTariffs();
     refetchSentCity();
-    refetchCashBacks();
     refetchCounterpartiesWithDiscounts();
   }, []);
 
+  useEffect(() => { 
+    return () => {
+      Object.values(checkTimeouts).forEach(timeout => {
+        if (timeout) clearTimeout(timeout);
+      });
+    };
+  }, [checkTimeouts]);
+
   useEffect(() => {
+    if (values?.sender_id || values?.recipient_id) {
+      refetchCounterpartiesWithDiscounts();
+    }
     if (values?.sender_id && values?.recipient_id) {
       refetchCashBacks();
-      refetchCounterpartiesWithDiscounts();
     }
   }, [values?.sender_id, values?.recipient_id]);
 
@@ -289,15 +297,181 @@ export const GoodsCreate = () => {
     return `${prefix}${timestamp}${random}`;
   };
 
+  const getNextBagNumber = (): string => {
+    const existingNumbers = services
+      .map(item => item.bag_number_numeric)
+      .filter(num => num && !isNaN(Number(num)))
+      .map(num => Number(num))
+      .sort((a, b) => a - b);
+    
+    if (existingNumbers.length === 0) {
+      return "1";
+    }
+    
+    const maxNumber = Math.max(...existingNumbers);
+    return (maxNumber + 1).toString();
+  };
+
+  const generateConsecutiveBagNumbers = (count: number): string[] => {
+    const existingNumbers = services
+      .map(item => item.bag_number_numeric)
+      .filter(num => num && !isNaN(Number(num)))
+      .map(num => Number(num))
+      .sort((a, b) => a - b);
+    
+    let startNumber = 1;
+    if (existingNumbers.length > 0) {
+      startNumber = Math.max(...existingNumbers) + 1;
+    }
+    
+    return Array.from({ length: count }, (_, i) => (startNumber + i).toString());
+  };
+
+  const checkBagNumberAsync = async (bagNumber: string, recordId: number) => {
+    if (!values?.destination_id || !bagNumber) return;
+    
+    try {
+      const response = await fetch(
+        `${API_URL}/service/checking-service-number?destination_id=${values.destination_id}&bag_number=${bagNumber}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (data) {
+        message.error(
+          `Номер мешка ${bagNumber} уже существует`
+        );
+
+        setHasBagNumber((prevState) => {
+          const exists = prevState.some((item) => item.id === recordId);
+          if (!exists) {
+            return [...prevState, { id: recordId, has: true }];
+          }
+          return prevState;
+        });
+      } else {
+        setHasBagNumber((prevState) =>
+          prevState.filter((item) => item.id !== recordId)
+        );
+      }
+    } catch (error) {
+      console.error("Ошибка при проверке номера мешка:", error);
+    }
+  };
+
+  const checkBagNumberWithDebounce = (bagNumber: string, recordId: number) => { 
+    if (checkTimeouts[recordId]) {
+      clearTimeout(checkTimeouts[recordId]);
+    }
+
+    const timeoutId = setTimeout(() => {
+      checkBagNumberAsync(bagNumber, recordId);
+      setCheckTimeouts(prev => {
+        const newTimeouts = { ...prev };
+        delete newTimeouts[recordId];
+        return newTimeouts;
+      });
+    }, 500); 
+
+    setCheckTimeouts(prev => ({
+      ...prev,
+      [recordId]: timeoutId
+    }));
+  };
+
+  const checkMultipleBagNumbersAsync = async (bagNumbersData: { bagNumber: string; recordId: number }[]) => {
+    if (!values?.destination_id || bagNumbersData.length === 0) return;
+    
+    setIsCheckingBagNumbers(true);
+    
+    try {
+      const batchSize = 5;
+      const batches = [];
+      
+      for (let i = 0; i < bagNumbersData.length; i += batchSize) {
+        const batch = bagNumbersData.slice(i, i + batchSize);
+        batches.push(batch);
+      }
+
+      for (const batch of batches) {
+        const promises = batch.map(async ({ bagNumber, recordId }) => {
+          try {
+            const response = await fetch(
+              `${API_URL}/service/checking-service-number?destination_id=${values.destination_id}&bag_number=${bagNumber}`,
+              {
+                method: "GET",
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+                },
+              }
+            );
+
+            const data = await response.json();
+            return { recordId, bagNumber, exists: !!data };
+          } catch (error) {
+            console.error(`Ошибка при проверке номера мешка ${bagNumber}:`, error);
+            return { recordId, bagNumber, exists: false };
+          }
+        });
+
+        const results = await Promise.all(promises);
+        
+        const duplicates = results.filter(result => result.exists);
+        const valid = results.filter(result => !result.exists);
+
+        if (duplicates.length > 0) {
+          duplicates.forEach(({ bagNumber }) => {
+            message.error(`Номер мешка ${bagNumber} уже существует`);
+          });
+
+          setHasBagNumber(prevState => {
+            const newState = [...prevState];
+            duplicates.forEach(({ recordId }) => {
+              const exists = newState.some(item => item.id === recordId);
+              if (!exists) {
+                newState.push({ id: recordId, has: true });
+              }
+            });
+            return newState;
+          });
+        }
+
+        if (valid.length > 0) {
+          setHasBagNumber(prevState => 
+            prevState.filter(item => !valid.some(v => v.recordId === item.id))
+          );
+        }
+
+        if (batches.indexOf(batch) < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+             }
+     } finally {
+       setIsCheckingBagNumbers(false);
+       if (bagNumbersData.length > 1) {
+         message.success(`Проверка номеров мешков завершена (${bagNumbersData.length} номеров)`);
+       }
+     }
+  };
+
   const addNewItem = () => {
     const newItem: GoodItem = {
       id: nextId,
       barcode: generateBarcode(),
-      bag_number_numeric: "",
+      bag_number_numeric: getNextBagNumber(),
       is_price_editable: false,
     };
     setServices([...services, newItem]);
     setNextId(nextId + 1);
+
+    if (newItem.bag_number_numeric) {
+      checkBagNumberWithDebounce(newItem.bag_number_numeric, newItem.id);
+    }
   };
 
   const copySelectedItems = () => {
@@ -309,18 +483,30 @@ export const GoodsCreate = () => {
     const selectedItems = services.filter((item) =>
       selectedRowKeys.includes(item.id)
     );
-    const newItems = selectedItems.map((item) => {
-      const newId = nextId + selectedItems.indexOf(item);
+    
+    const newBagNumbers = generateConsecutiveBagNumbers(selectedItems.length);
+    
+    const newItems = selectedItems.map((item, index) => {
+      const newId = nextId + index;
       return {
         ...item,
         id: newId,
         barcode: generateBarcode(),
+        bag_number_numeric: newBagNumbers[index],
       };
     });
 
     setServices([...services, ...newItems]);
     setNextId(nextId + selectedItems.length);
     setSelectedRowKeys([]);
+
+    const bagNumbersToCheck = newItems
+      .filter(item => item.bag_number_numeric)
+      .map(item => ({ bagNumber: item.bag_number_numeric!, recordId: item.id }));
+      
+    if (bagNumbersToCheck.length > 0) {
+      checkMultipleBagNumbersAsync(bagNumbersToCheck);
+    }
 
     message.success(`Скопировано ${selectedItems.length} товаров`);
   };
@@ -339,6 +525,10 @@ export const GoodsCreate = () => {
         selectedRowKeys.includes(item.id)
       );
 
+      const totalItemsToCreate = count * selectedItems.length;
+      const newBagNumbers = generateConsecutiveBagNumbers(totalItemsToCreate);
+      let bagNumberIndex = 0;
+
       for (let i = 0; i < count; i++) {
         const itemsToAdd = selectedItems.map((item, index) => {
           const newId = nextId + i * selectedItems.length + index;
@@ -346,6 +536,7 @@ export const GoodsCreate = () => {
             ...item,
             id: newId,
             barcode: generateBarcode(),
+            bag_number_numeric: newBagNumbers[bagNumberIndex++],
             is_price_editable: item.is_price_editable || false,
           };
         });
@@ -354,12 +545,14 @@ export const GoodsCreate = () => {
 
       setNextId(nextId + count * selectedItems.length);
     } else {
+      const newBagNumbers = generateConsecutiveBagNumbers(count);
+      
       newItems = Array.from({ length: count }, (_, i) => {
         const newId = nextId + i;
         return {
           id: newId,
           barcode: generateBarcode(),
-          bag_number_numeric: "",
+          bag_number_numeric: newBagNumbers[i],
           is_price_editable: false,
         };
       });
@@ -369,21 +562,37 @@ export const GoodsCreate = () => {
 
     setServices([...services, ...newItems]);
     setSelectedRowKeys([]);
+
+    // Батчинг проверки новых номеров мешков
+    const bagNumbersToCheck = newItems
+      .filter(item => item.bag_number_numeric)
+      .map(item => ({ bagNumber: item.bag_number_numeric!, recordId: item.id }));
+      
+    if (bagNumbersToCheck.length > 0) {
+      checkMultipleBagNumbersAsync(bagNumbersToCheck);
+    }
   };
 
   const copyWhileCount = () => {
     const count = Number(copyCount || 0);
     const hasSelectedItems = selectedRowKeys.length > 0;
 
-    createItemsByCount();
-
-    if (hasSelectedItems) {
-      message.success(
-        `Скопировано ${selectedRowKeys.length} товаров ${count} раз(а)`
-      );
-    } else {
-      message.success(`Создано ${count} новых товаров`);
+    if (count <= 0) {
+      message.warning("Укажите корректное количество для создания");
+      return;
     }
+
+    requestAnimationFrame(() => {
+      createItemsByCount();
+
+      if (hasSelectedItems) {
+        message.success(
+          `Скопировано ${selectedRowKeys.length} товаров ${count} раз(а)`
+        );
+      } else {
+        message.success(`Создано ${count} новых товаров`);
+      }
+    });
   };
 
   const removeSelectedItems = () => {
@@ -414,6 +623,12 @@ export const GoodsCreate = () => {
     counterpartyId: number
   ): Promise<{ discount: number; discountId: number | null }> => {
     try {
+      console.log('Проверка индивидуальной скидки:', {
+        destinationId,
+        productTypeId,
+        counterpartyId
+      });
+
       const filters = {
         $and: [
           { destination_id: { $eq: destinationId } },
@@ -423,10 +638,11 @@ export const GoodsCreate = () => {
       };
 
       const encodedFilters = encodeURIComponent(JSON.stringify(filters));
+      const url = `${apiUrl}/discount?s=${encodedFilters}`;
+      
+      console.log('URL запроса скидки:', url);
 
-      console.log('Проверяем скидку для:', { destinationId, productTypeId, counterpartyId });
-
-      const response = await fetch(`${apiUrl}/discount?s=${encodedFilters}`, {
+      const response = await fetch(url, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
@@ -436,16 +652,17 @@ export const GoodsCreate = () => {
       if (response.ok) {
         const data = await response.json();
         const discountData = data[0];
-        console.log('Ответ API скидки:', discountData);
+        
+        console.log('Ответ API для индивидуальной скидки:', data);
         
         const discountValue = discountData?.discount ? Number(discountData.discount) : 0;
-        console.log('Применяем скидку:', discountValue);
         
         return {
           discount: discountValue,
           discountId: discountData?.id || null,
         };
       }
+      console.log('Ошибка ответа API:', response.status, response.statusText);
       return { discount: 0, discountId: null };
     } catch (error) {
       console.error("Ошибка при проверке индивидуальной скидки:", error);
@@ -475,11 +692,9 @@ export const GoodsCreate = () => {
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
 
-              // Проверяем индивидуальную скидку при выборе типа продукта
               if (field === "type_id" && values?.destination_id) {
                 const counterpartyId = selectedDiscountOption?.counterpartyId;
                 if (counterpartyId) {
-                  console.log('Проверяем скидку для мешка при изменении type_id');
                   const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
                     values.destination_id,
                     value,
@@ -487,14 +702,12 @@ export const GoodsCreate = () => {
                   );
                   newItem.individual_discount = individualDiscount;
                   newItem.discount_id = discountId;
-                  console.log('Установлена скидка для мешка:', individualDiscount);
                 }
               }
 
               if (!item.is_price_editable) {
                 const discountToApply = newItem.individual_discount || 0;
                 newItem.price = Number(selectedType.tariff) - discountToApply;
-                console.log('Новая цена после скидки:', newItem.price, 'тариф:', selectedType.tariff, 'скидка:', discountToApply);
               }
 
               if (newItem.weight) {
@@ -503,7 +716,6 @@ export const GoodsCreate = () => {
                   ? newItem.price
                   : Number(selectedType.tariff) - discountToApply;
                 newItem.sum = calculateSum(newItem.weight, priceToUse);
-                console.log('Новая сумма:', newItem.sum, 'вес:', newItem.weight, 'цена:', priceToUse);
               }
             }
           }
@@ -536,7 +748,6 @@ export const GoodsCreate = () => {
                 const newItem = { ...item };
                 newItem.tariff = tariffValue;
                 
-                // Применяем существующую скидку или базовую цену
                 const discountToApply = newItem.individual_discount || 0;
                 newItem.price = tariffValue - discountToApply;
 
@@ -558,7 +769,6 @@ export const GoodsCreate = () => {
     updateServicesWithTariffs();
   }, [values?.destination_id, tariffs]);
 
-  // Пересчитываем индивидуальные скидки при изменении города назначения или контрагентов
   useEffect(() => {
     const updateIndividualDiscounts = async () => {
       if (values?.destination_id && selectedDiscountOption?.counterpartyId && services.length > 0) {
@@ -567,7 +777,6 @@ export const GoodsCreate = () => {
         const updatedServices = await Promise.all(
           services.map(async (item, index) => {
             if (item.type_id) {
-              console.log(`Проверяем скидку для мешка ${index + 1}`);
               const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
                 values.destination_id,
                 Number(item.type_id),
@@ -587,12 +796,8 @@ export const GoodsCreate = () => {
               if (selectedType && !item.is_price_editable) {
                 const discountToApply = individualDiscount || 0;
                 newItem.price = Number(selectedType.tariff) - discountToApply;
-                console.log(`Мешок ${index + 1}: новая цена ${newItem.price} (тариф: ${selectedType.tariff}, скидка: ${discountToApply})`);
-                
-                // Пересчитываем сумму
                 if (newItem.weight) {
                   newItem.sum = calculateSum(newItem.weight, newItem.price);
-                  console.log(`Мешок ${index + 1}: новая сумма ${newItem.sum}`);
                 }
               }
 
@@ -602,7 +807,6 @@ export const GoodsCreate = () => {
           })
         );
 
-        console.log('Обновляем состояние мешков');
         setServices(updatedServices);
       }
     };
@@ -674,41 +878,62 @@ export const GoodsCreate = () => {
     }),
   };
 
-  const handleFormSubmit = (values: any) => {
+  const handleFormSubmit = async (values: any) => {
+    
     if (services.length === 0) {
       message.warning("Выберите услуги");
       return;
     }
 
-    // if (hasBagNumber.length > 0) {
-    //   message.error("Обнаружены дублированные номера мешков. Исправьте перед отправкой.");
-    //   return;
-    // }
+    if (hasBagNumber.length > 0) {
+      message.error("Обнаружены дублированные номера мешков. Исправьте перед отправкой.");
+      return;
+    }
+    
+    let hasInvalidFields = false;
+    services.forEach((service, index) => {
+      if (
+        !service.type_id ||
+        !service.weight ||
+        service.weight <= 0
+      ) {
+        hasInvalidFields = true;
+        let missingFields = [];
+        if (!service.type_id) missingFields.push("Тип товара");
+        if (!service.weight || service.weight <= 0) missingFields.push("Вес");
+        message.warning(
+          `Услуга #${
+            index + 1
+          }: Заполните все обязательные поля (${missingFields.join(", ")})`
+        );
+      }
+    });
 
-    // let hasInvalidFields = false;
-    // services.forEach((service, index) => {
-    //   if (
-    //     !service.type_id ||
-    //     !service.weight ||
-    //     service.weight <= 0 ||
-    //     !service.bag_number_numeric
-    //   ) {
-    //     hasInvalidFields = true;
-    //     let missingFields = [];
-    //     if (!service.type_id) missingFields.push("Тип товара");
-    //     if (!service.weight || service.weight <= 0) missingFields.push("Вес");
-    //     if (!service.bag_number_numeric) missingFields.push("Номер мешка");
-    //     message.warning(
-    //       `Услуга #${
-    //         index + 1
-    //       }: Заполните все обязательные поля (${missingFields.join(", ")})`
-    //     );
-    //   }
-    // });
+    if (hasInvalidFields) {
+      return;
+    }
 
-    // if (hasInvalidFields) {
-    //   return;
-    // }
+    if (isCheckingBagNumbers) {
+      message.warning("Дождитесь завершения проверки номеров мешков");
+      return;
+    }
+
+    if (!values.destination_id) {
+      message.error("Выберите город назначения");
+      return;
+    }
+    if (!values.sender_id) {
+      message.error("Выберите отправителя");
+      return;
+    }
+    if (!values.recipient_id) {
+      message.error("Выберите получателя");
+      return;
+    }
+    if (!values.payment_method) {
+      message.error("Выберите способ оплаты");
+      return;
+    }
 
     const baseAmount =
       services.reduce(
@@ -725,9 +950,26 @@ export const GoodsCreate = () => {
 
     const submitValues = {
       ...values,
-      services: services,
-      products: products.filter((product) => Number(product.quantity) > 0),
-      amount: finalAmount,
+      services: services.map(service => ({
+        ...service,
+        type_id: service.type_id || null,
+        weight: service.weight || 0,
+        price: service.price || 0,
+        sum: service.sum || 0,
+        quantity: service.quantity || 1,
+        bag_number_numeric: service.bag_number_numeric || null,
+        individual_discount: service.individual_discount || 0,
+        discount_id: service.discount_id || null,
+      })),
+      products: products
+        .filter((product) => Number(product.quantity) > 0)
+        .map(product => ({
+          ...product,
+          quantity: Number(product.quantity),
+          price: Number(product.price),
+          sum: Number(product.sum),
+        })),
+      amount: Number(finalAmount.toFixed(2)),
       sent_back_id:
         sentCityData.find((item: any) => item.id === values.sent_back_id)
           ?.sent_city_id || null,
@@ -754,8 +996,33 @@ export const GoodsCreate = () => {
       };
     }
 
-    if (formProps.onFinish) {
-      formProps.onFinish(submitValues);
+
+    const loadingMessage = message.loading('Сохранение документа...', 0);
+
+    try {
+      if (formProps.onFinish) {
+        await formProps.onFinish(submitValues);
+        loadingMessage();
+        message.success("Документ успешно создан!");
+        
+        setServices([]);
+        setProducts([]);
+        setSelectedRowKeys([]);
+        setHasBagNumber([]);
+      }
+    } catch (error) {
+      loadingMessage();
+      
+      const errorObj = error as any;
+      if (errorObj?.response?.data?.message) {
+        message.error(`Ошибка: ${errorObj.response.data.message}`);
+      } else if (errorObj?.response?.status) {
+        message.error(`Ошибка сервера: ${errorObj.response.status}`);
+      } else if (errorObj?.message) {
+        message.error(`Ошибка: ${errorObj.message}`);
+      } else {
+        message.error("Произошла ошибка при сохранении документа");
+      }
     }
   };
 
@@ -986,20 +1253,42 @@ export const GoodsCreate = () => {
   useEffect(() => {
     const options: DiscountOrCashBackItem[] = [];
 
-    counterpartiesWithDiscounts.forEach((record: any) => {
-      if (
-        record?.discount?.discount > 0 &&
-        (record.id === values?.sender_id || record.id === values?.recipient_id)
-      ) {
-        options.push({
-          id: `discount-${record.id}`,
-          type: "discount",
-          label: `Скидка: ${record?.clientPrefix}-${record?.clientCode}, ${record?.name}, '${record?.discount?.discount}' руб`,
-          value: record.discount.discount,
-          counterpartyId: record.id,
-          originalData: record,
-        });
-      }
+    console.log('Создание опций скидок и кешбека:', {
+      counterpartiesWithDiscounts,
+      cashBacks,
+      sender_id: values?.sender_id,
+      recipient_id: values?.recipient_id
+    });
+
+    // Фильтруем контрагентов со скидками по выбранным отправителю и получателю
+    const relevantCounterparties = counterpartiesWithDiscounts.filter((record: any) => {
+      const hasDiscount = record?.discount?.discount > 0;
+      const isSelectedParty = record.id === values?.sender_id || record.id === values?.recipient_id;
+      
+      console.log('Проверка контрагента:', {
+        id: record.id,
+        name: record.name,
+        hasDiscount,
+        discountAmount: record?.discount?.discount,
+        isSelectedParty,
+        sender_id: values?.sender_id,
+        recipient_id: values?.recipient_id
+      });
+      
+      return hasDiscount && isSelectedParty;
+    });
+
+    console.log('Найдено релевантных контрагентов со скидками:', relevantCounterparties);
+
+    relevantCounterparties.forEach((record: any) => {
+      options.push({
+        id: `discount-${record.id}`,
+        type: "discount",
+        label: `Скидка: ${record?.clientPrefix}-${record?.clientCode}, ${record?.name}, '${record?.discount?.discount}' руб`,
+        value: record.discount.discount,
+        counterpartyId: record.id,
+        originalData: record,
+      });
     });
 
     cashBacks.forEach((cashBack) => {
@@ -1018,6 +1307,7 @@ export const GoodsCreate = () => {
       }
     });
 
+    console.log('Итоговые опции скидок и кешбека:', options);
     setDiscountCashBackOptions(options);
   }, [
     counterpartiesWithDiscounts,
@@ -1093,7 +1383,13 @@ export const GoodsCreate = () => {
   ];
 
   return (
-    <Create saveButtonProps={saveButtonProps}>
+    <Create 
+      saveButtonProps={{
+        ...saveButtonProps,
+        disabled: isCheckingBagNumbers || saveButtonProps.disabled,
+        loading: isCheckingBagNumbers || saveButtonProps.loading,
+      }}
+    >
       <Form {...formProps} layout="vertical" onFinish={handleFormSubmit}>
         <Title level={5}>Реквизиты</Title>
         <Row gutter={16}>
@@ -1232,7 +1528,14 @@ export const GoodsCreate = () => {
           <Input />
         </Form.Item>
 
-        <Title level={5}>Услуги</Title>
+        <Title level={5}>
+          Услуги
+          {isCheckingBagNumbers && (
+            <span style={{ marginLeft: 10, fontSize: '12px', color: '#1890ff' }}>
+              (Идет проверка номеров мешков...)
+            </span>
+          )}
+        </Title>
         <Row gutter={[16, 8]} style={{ marginBottom: 10 }}>
           <Col xs={24} sm={12} md={8} lg={6}>
             <Tooltip
@@ -1240,11 +1543,14 @@ export const GoodsCreate = () => {
               title={
                 !values?.destination_id
                   ? "Сначала выберите город назначения"
+                  : isCheckingBagNumbers
+                  ? "Идет проверка номеров мешков..."
                   : ""
               }
             >
               <Button
-                disabled={!values?.destination_id}
+                disabled={!values?.destination_id || isCheckingBagNumbers}
+                loading={isCheckingBagNumbers}
                 onClick={addNewItem}
                 icon={<FileAddOutlined />}
                 style={{ width: "100%" }}
@@ -1273,7 +1579,8 @@ export const GoodsCreate = () => {
               }
             >
               <Button
-                disabled={Number(copyCount || 0) === 0}
+                disabled={Number(copyCount || 0) === 0 || isCheckingBagNumbers}
+                loading={isCheckingBagNumbers}
                 onClick={copyWhileCount}
                 icon={<CopyOutlined />}
                 style={{ width: "100%" }}
@@ -1287,7 +1594,8 @@ export const GoodsCreate = () => {
             <Button
               onClick={copySelectedItems}
               icon={<CopyOutlined />}
-              disabled={selectedRowKeys.length === 0}
+              disabled={selectedRowKeys.length === 0 || isCheckingBagNumbers}
+              loading={isCheckingBagNumbers}
               style={{ width: "100%" }}
             >
               Копировать ({selectedRowKeys.length})
@@ -1362,13 +1670,16 @@ export const GoodsCreate = () => {
               return (
                 index < services.length && (
                   <Input
-                    onChange={async (e) => {
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      
+                      // Обновляем состояние немедленно
                       setServices(
                         services.map((item: any, serviceIndex: number) => {
                           if (serviceIndex === index) {
                             return {
                               ...item,
-                              bag_number_numeric: e.target.value,
+                              bag_number_numeric: newValue,
                             };
                           } else {
                             return item;
@@ -1376,36 +1687,8 @@ export const GoodsCreate = () => {
                         })
                       );
 
-                      const response = await fetch(
-                        `${API_URL}/service/checking-service-number?destination_id=${values?.destination_id}&bag_number=${e.target.value}`,
-                        {
-                          method: "GET",
-                          headers: {
-                            Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
-                          },
-                        }
-                      );
-
-                      const data = await response.json();
-                      if (data) {
-                        message.error(
-                          `Номер мешка ${e.target.value} уже существует`
-                        );
-
-                        setHasBagNumber((prevState) => {
-                          const exists = prevState.some(
-                            (item) => item.id === record.id
-                          );
-                          if (!exists) {
-                            return [...prevState, { id: record.id, has: true }];
-                          }
-                          return prevState;
-                        });
-                      } else {
-                        setHasBagNumber((prevState) =>
-                          prevState.filter((item) => item.id !== record.id)
-                        );
-                      }
+                      // Асинхронная проверка с задержкой без блокировки UI
+                      checkBagNumberWithDebounce(newValue, record.id);
                     }}
                     style={{
                       width: 120,

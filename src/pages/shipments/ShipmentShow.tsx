@@ -19,6 +19,7 @@ import {
   Menu,
   Select,
   Card,
+  message,
 } from "antd";
 import { useParams } from "react-router";
 import { translateStatus } from "../../lib/utils";
@@ -28,12 +29,14 @@ import {
   ArrowDownOutlined,
   SearchOutlined,
   FilterOutlined,
+  SendOutlined,
 } from "@ant-design/icons";
 import { useState, useEffect } from "react";
 import { CustomTooltip } from "../../shared/custom-tooltip";
 
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import { API_URL } from "../../App";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -79,8 +82,12 @@ const ShipmentShow = () => {
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [searchValue, setSearchValue] = useState("");
   const [sortField, setSortField] = useState("created_at");
-  const [selectedProductType, setSelectedProductType] = useState<string | null>(null);
-  const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
+  const [selectedProductType, setSelectedProductType] = useState<string | null>(
+    null
+  );
+  const [selectedDestination, setSelectedDestination] = useState<string | null>(
+    null
+  );
   const [filterVisible, setFilterVisible] = useState(false);
 
   // Состояния для отдельных фильтров
@@ -96,7 +103,7 @@ const ShipmentShow = () => {
 
   const { selectProps: destinationSelectProps } = useSelect({
     resource: "branch",
-    optionLabel: "name", 
+    optionLabel: "name",
     optionValue: "id",
   });
 
@@ -149,7 +156,7 @@ const ShipmentShow = () => {
       destinationFilter,
       searchFilter,
     ].filter(Boolean);
-    
+
     if (allFilters.length > 0) {
       setFilters(
         [
@@ -167,7 +174,7 @@ const ShipmentShow = () => {
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
-    
+
     if (value.trim() === "") {
       setSearchFilter(null);
     } else {
@@ -196,7 +203,7 @@ const ShipmentShow = () => {
 
   const handleProductTypeChange = (value: string | null) => {
     setSelectedProductType(value);
-    
+
     if (!value) {
       setProductTypeFilter(null);
     } else {
@@ -210,7 +217,7 @@ const ShipmentShow = () => {
 
   const handleDestinationChange = (value: string | null) => {
     setSelectedDestination(value);
-    
+
     if (!value) {
       setDestinationFilter(null);
     } else {
@@ -394,7 +401,9 @@ const ShipmentShow = () => {
           title="Пункт назначения"
           dataIndex="good"
           render={(value, record) =>
-            `${value?.destination?.name}, ${record?.good?.sent_back?.name || ""}`
+            `${value?.destination?.name}, ${
+              record?.good?.sent_back?.name || ""
+            }`
           }
         />
         <Table.Column title="Штрихкод" dataIndex="barcode" />

@@ -1,14 +1,14 @@
 import React from "react";
-import { useTable, Create, useForm, useSelect } from "@refinedev/antd";
+import { Create, useForm, useSelect } from "@refinedev/antd";
 import { Form, Input, Select } from "antd";
 
 export const DiscountCreate: React.FC = () => {
   const { formProps, saveButtonProps } = useForm();
-  const { tableProps } = useTable({
+  
+  const { selectProps: counterpartySelectProps } = useSelect({
     resource: "counterparty",
-    pagination: {
-      mode: "off",
-    },
+    optionLabel: "name",
+    optionValue: "id",
   });
 
   const { selectProps: destinationSelectProps } = useSelect({
@@ -33,17 +33,7 @@ export const DiscountCreate: React.FC = () => {
         >
           <Select
             showSearch
-            filterOption={(input, option) =>
-              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-            }
-            options={tableProps.dataSource
-              ?.filter((item: any) => item.discount === null)
-              .map((item: any) => ({
-                label: `${item.name} - ${item.clientPrefix}-${String(
-                  item.clientCode
-                ).padStart(4, "0")}`,
-                value: item.id,
-              }))}
+            {...counterpartySelectProps}
           />
         </Form.Item>
         <Form.Item

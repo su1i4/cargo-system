@@ -21,7 +21,7 @@ import {
   Select,
   Input,
 } from "antd";
-import { PrinterOutlined, SendOutlined } from "@ant-design/icons";
+import { PrinterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import QRCode from "react-qr-code";
 
@@ -35,9 +35,6 @@ dayjs.extend(timezone);
 
 dayjs.tz.setDefault("Asia/Bishkek");
 
-// Функция для получения исторического курса валюты на конкретную дату
-
-
 const { Title, Text } = Typography;
 
 const paymentTypes = [
@@ -45,13 +42,6 @@ const paymentTypes = [
   "Оплата переводом",
   "Оплата перечислением",
   "Оплата балансом",
-];
-
-const incomeTypes = [
-  "Извне",
-  "Контрагент оптом",
-  "Контрагент частично",
-  "Контрагент частично с баланса",
 ];
 
 export const GoodsShow: React.FC = () => {
@@ -929,33 +919,6 @@ export const GoodsShow: React.FC = () => {
     );
   };
 
-  const handleSend = async () => {
-    const response: any = await fetch(
-      `${API_URL}/goods-processing/send-notification-wa`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          good_id: record?.id,
-        }),
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    if (response.ok) {
-      message.success("Сообщение отправлено");
-      // refetch();
-    } else {
-      const data = await response.json();
-      message.error(data?.message);
-    }
-  };
-
-  const handleSaveCashDesk = () => {
-    form.submit();
-  };
-
   return (
     <Show
       headerButtons={({ deleteButtonProps, editButtonProps }) => (
@@ -975,7 +938,6 @@ export const GoodsShow: React.FC = () => {
                   {...formProps}
                   layout="vertical"
                   onFinish={(values: any) => {
-                    // Рассчитываем общую сумму услуг и товаров
                     const totalServiceAmount = record?.services?.reduce(
                       (acc: number, service: any) => acc + Number(service.sum || 0),
                       0
@@ -986,17 +948,14 @@ export const GoodsShow: React.FC = () => {
                     ) || 0;
                     const totalGoodAmount = totalServiceAmount + totalProductAmount;
 
-                    // Получаем курс валюты для конвертации
                     const selectedCurrency = currencyTableProps?.dataSource?.find(
                       (item: any) => item.name === values.type_currency
                     );
                     const historicalRate = getHistoricalRate(selectedCurrency, record?.created_at);
                     
-                    // Конвертируем в выбранную валюту
                     const convertedAmount = historicalRate > 0 ? historicalRate * totalGoodAmount : totalGoodAmount;
                     const remainingToPay = convertedAmount - (record?.paid_sum || 0);
 
-                    // Проверяем что сумма не превышает остаток к доплате
                     if (values.amount > remainingToPay) {
                       message.error("Сумма к оплате не может превышать оставшуюся сумму к доплате");
                       return;
@@ -1008,7 +967,7 @@ export const GoodsShow: React.FC = () => {
                       type_operation: "Контрагент частично",
                       counterparty_id: record?.sender?.id,
                       good_id: record?.id,
-                      paid_sum: remainingToPay, // Общая сумма к доплате
+                        paid_sum: remainingToPay,
                       date: dayjs(),
                     };
 
@@ -1107,12 +1066,7 @@ export const GoodsShow: React.FC = () => {
             }
           >
             <Button>Оплатить частично</Button>
-          </Dropdown>
-          {!record?.send_notification && (
-            <Button icon={<SendOutlined />} onClick={handleSend}>
-              Отправить смс
-            </Button>
-          )}
+          </Dropdown> 
           <Button
             type="primary"
             icon={<PrinterOutlined />}
