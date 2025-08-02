@@ -378,7 +378,7 @@ export const GoodsShow: React.FC = () => {
               style={{ marginBottom: "2px" }}
             >
               <Text style={{ fontSize: "15px" }}>
-                Call-center: +996 509 003 003
+                Call-center: +996 990 10 50 03
               </Text>
             </Flex>
             <Text style={{ fontSize: "15px", color: "#010801", margin: 0 }}>
