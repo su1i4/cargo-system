@@ -17,6 +17,9 @@ import {
 export const SentTheCityList = () => {
   const { tableProps } = useTable({
     resource: "sent-the-city",
+    pagination: {
+      mode: "off",
+    },
   });
 
   const {
