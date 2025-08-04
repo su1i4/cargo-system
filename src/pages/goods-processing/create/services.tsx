@@ -12,7 +12,6 @@ import {
   Space,
   Checkbox,
   message,
-  Form,
 } from "antd";
 import Title from "antd/es/typography/Title";
 import {
@@ -60,7 +59,6 @@ interface GoodsProcessingCreateServicesProps {
   discounts: any[];
 }
 
-// Мемоизированные конфигурации для useSelect
 const nomenclatureSelectConfig = {
   resource: "nomenclature",
   optionLabel: (record: any) => record?.name || "",
@@ -105,7 +103,6 @@ export const GoodsProcessingCreateServices = React.memo(
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
     const [copyCount, setCopyCount] = useState(0);
 
-    // Мемоизированные useSelect хуки
     const { selectProps: nomenclatureSelectProps } = useSelect(
       nomenclatureSelectConfig
     );
@@ -113,7 +110,6 @@ export const GoodsProcessingCreateServices = React.memo(
       typeProductSelectConfig
     );
 
-    // Мемоизированная функция поиска тарифа
     const findTariff = useCallback(
       (branchId: number, productTypeId: number): number => {
         const foundTariff = tariffs.find(
@@ -121,13 +117,11 @@ export const GoodsProcessingCreateServices = React.memo(
             tariff.branch_id === branchId &&
             tariff.product_type_id === productTypeId
         );
-
         return foundTariff ? parseFloat(foundTariff.tariff) : 0;
       },
       [tariffs]
     );
 
-    // Мемоизированные вспомогательные функции
     const calculateSum = useCallback(
       (weight: number = 0, tariff: number = 0): number => {
         return weight * tariff;
@@ -144,7 +138,6 @@ export const GoodsProcessingCreateServices = React.memo(
       return `${prefix}${timestamp}${random}`;
     }, []);
 
-    // Мемоизированная функция получения следующего номера мешка
     const getNextBagNumber = useCallback((): string => {
       const existingNumbers = services
         .map((item) => item.bag_number_numeric)
@@ -180,7 +173,6 @@ export const GoodsProcessingCreateServices = React.memo(
       [services]
     );
 
-    // Оптимизированная асинхронная проверка номера мешка
     const checkBagNumberAsync = useCallback(
       async (bagNumber: string, recordId: number) => {
         if (!values?.destination_id || !bagNumber) return;
@@ -252,7 +244,6 @@ export const GoodsProcessingCreateServices = React.memo(
       [checkTimeouts, checkBagNumberAsync, setCheckTimeouts]
     );
 
-    // Оптимизированная пакетная проверка номеров мешков
     const checkMultipleBagNumbersAsync = useCallback(
       async (bagNumbersData: { bagNumber: string; recordId: number }[]) => {
         if (!values?.destination_id || bagNumbersData.length === 0) return;
@@ -354,14 +345,13 @@ export const GoodsProcessingCreateServices = React.memo(
         counterpartyId: number
       ): { discount: number; discountId: number | null } => {
         try {
-                  const discountData = discounts.find(
-          (discount) =>
-            discount.destination_id === destinationId &&
-            discount.product_type_id === productTypeId &&
-            discount.counter_party_id === counterpartyId &&
-            discount.is_active
-        );
-
+          const discountData = discounts.find(
+            (discount) =>
+              discount.destination_id === destinationId &&
+              discount.product_type_id === productTypeId &&
+              discount.counter_party_id === counterpartyId &&
+              discount.is_active
+          );
           if (discountData) {
             const discountValue = discountData.discount
               ? Number(discountData.discount)
@@ -372,13 +362,58 @@ export const GoodsProcessingCreateServices = React.memo(
             };
           }
 
-          return { discount: 0, discountId: null };
+          return { discount: 0, discountId: discountData.id };
         } catch (error) {
           console.error("Ошибка при поиске индивидуальной скидки:", error);
           return { discount: 0, discountId: null };
         }
       },
       [discounts]
+    );
+
+    const updateItemTariffAndPrice = useCallback(
+      (item: GoodItem, branchId: number): GoodItem => {
+        if (!item.type_id) return item;
+
+        const productTypeId = Number(item.type_id);
+        const selectedType = tariffTableProps?.dataSource?.find(
+          (type: any) =>
+            type.branch_id === branchId &&
+            type.product_type_id === productTypeId
+        );
+
+        if (!selectedType) return item;
+
+        const newItem = { ...item };
+        const tariffValue = Number(selectedType.tariff);
+        newItem.tariff = tariffValue;
+
+        const { discount: individualDiscount, discountId } =
+          checkIndividualDiscount(
+            branchId,
+            productTypeId,
+            values?.discount_id || 0
+          );
+
+        newItem.individual_discount = individualDiscount;
+        newItem.discount_id = discountId;
+
+        const discountToApply = newItem.individual_discount || 0;
+        newItem.price = tariffValue - discountToApply;
+
+        if (newItem.weight) {
+          newItem.sum = calculateSum(newItem.weight, newItem.price);
+        }
+
+        console.log("newItem", newItem);
+        return newItem;
+      },
+      [
+        tariffTableProps?.dataSource,
+        values?.discount_id,
+        checkIndividualDiscount,
+        calculateSum,
+      ]
     );
 
     const updateItemField = useCallback(
@@ -388,43 +423,7 @@ export const GoodsProcessingCreateServices = React.memo(
             const newItem = { ...item, [field]: value };
 
             if (field === "type_id" || field === "weight") {
-              const selectedType = tariffTableProps?.dataSource?.find(
-                (type: any) =>
-                  type.branch_id === values?.destination_id &&
-                  type.product_type_id ===
-                    (field === "weight" ? Number(item.type_id) : value)
-              );
-
-              if (selectedType) {
-                newItem.tariff = selectedType.tariff;
-
-                if (field === "type_id" && values?.destination_id) {
-                  const counterpartyId = values?.discount_id;
-                  if (counterpartyId) {
-                    const { discount: individualDiscount, discountId } =
-                      checkIndividualDiscount(
-                        values.destination_id,
-                        value,
-                        counterpartyId
-                      );
-                    newItem.individual_discount = individualDiscount;
-                    newItem.discount_id = discountId;
-                  }
-                }
-
-                // if (!item.is_price_editable) {
-                const discountToApply = newItem.individual_discount || 0;
-                newItem.price = Number(selectedType.tariff) - discountToApply;
-                // }
-
-                if (newItem.weight) {
-                  const discountToApply = newItem.individual_discount || 0;
-                  const priceToUse = item.is_price_editable
-                    ? newItem.price
-                    : Number(selectedType.tariff) - discountToApply;
-                  newItem.sum = calculateSum(newItem.weight, priceToUse);
-                }
-              }
+              return updateItemTariffAndPrice(newItem, values?.destination_id);
             }
 
             if (field === "price" && item.is_price_editable && newItem.weight) {
@@ -438,15 +437,7 @@ export const GoodsProcessingCreateServices = React.memo(
 
         setServices(updatedServices);
       },
-              [
-          services,
-          values?.destination_id,
-          values?.sender_id,
-          values?.receiver_id,
-          tariffTableProps,
-          checkIndividualDiscount,
-          calculateSum,
-        ]
+      [services, values?.destination_id, updateItemTariffAndPrice, calculateSum]
     );
 
     const addNewItem = useCallback(() => {
@@ -471,11 +462,6 @@ export const GoodsProcessingCreateServices = React.memo(
     ]);
 
     const copySelectedItems = useCallback(() => {
-      if (selectedRowKeys.length === 0) {
-        message.warning("Выберите товары для копирования");
-        return;
-      }
-
       const selectedItems = services.filter((item) =>
         selectedRowKeys.includes(item.id)
       );
@@ -489,6 +475,7 @@ export const GoodsProcessingCreateServices = React.memo(
           id: newId,
           barcode: generateBarcode(),
           bag_number_numeric: newBagNumbers[index],
+          is_price_editable: item.is_price_editable || false,
         };
       });
 
@@ -510,6 +497,7 @@ export const GoodsProcessingCreateServices = React.memo(
       message.success(`Скопировано ${selectedItems.length} товаров`);
     }, [
       services,
+      selectedRowKeys,
       nextId,
       generateBarcode,
       generateConsecutiveBagNumbers,
@@ -624,7 +612,7 @@ export const GoodsProcessingCreateServices = React.memo(
 
     const removeItem = useCallback(
       (id: number) => {
-        setServices(services.filter((item) => item.id !== id)), [services];
+        setServices(services.filter((item) => item.id !== id));
       },
       [services]
     );
@@ -638,23 +626,11 @@ export const GoodsProcessingCreateServices = React.memo(
         getCheckboxProps: (
           record:
             | GoodItem
-            | { weight: number; price: number; quantity: number; sum: number }
+            | { id: string; weight: number; price: number; quantity: number; sum: number }
         ) => ({
-          disabled:
-            "weight" in record &&
-            "price" in record &&
-            "quantity" in record &&
-            "sum" in record &&
-            !("id" in record),
+          disabled: record.id === "summary", // Отключаем чекбокс для строки итогов
           style: {
-            display:
-              "weight" in record &&
-              "price" in record &&
-              "quantity" in record &&
-              "sum" in record &&
-              !("id" in record)
-                ? "none"
-                : "",
+            display: record.id === "summary" ? "none" : "", // Скрываем чекбокс для строки итогов
           },
         }),
       }),
@@ -664,6 +640,7 @@ export const GoodsProcessingCreateServices = React.memo(
     const lastGoods = useMemo(
       () => [
         {
+          id: "summary", // Добавляем уникальный id для строки итогов
           weight: services.reduce(
             (acc, item) => acc + Number(item.weight || 0),
             0
@@ -679,33 +656,14 @@ export const GoodsProcessingCreateServices = React.memo(
       [services]
     );
 
-    // Обновляем тарифы при изменении destination_id
     useEffect(() => {
-      const updateServicesWithTariffs = async () => {
+      const updateServicesWithTariffsAndDiscounts = async () => {
         if (values?.destination_id && services.length > 0) {
           const branchId = Number(values.destination_id);
 
           const updatedServices = await Promise.all(
             services.map(async (item) => {
-              if (item.type_id) {
-                const productTypeId = Number(item.type_id);
-                const tariffValue = findTariff(branchId, productTypeId);
-
-                if (tariffValue > 0) {
-                  const newItem = { ...item };
-                  newItem.tariff = tariffValue;
-
-                  const discountToApply = newItem.individual_discount || 0;
-                  newItem.price = tariffValue - discountToApply;
-
-                  if (newItem.weight) {
-                    newItem.sum = calculateSum(newItem.weight, newItem.price);
-                  }
-
-                  return newItem;
-                }
-              }
-              return item;
+              return updateItemTariffAndPrice(item, branchId);
             })
           );
 
@@ -713,58 +671,13 @@ export const GoodsProcessingCreateServices = React.memo(
         }
       };
 
-      updateServicesWithTariffs();
-    }, [values?.destination_id, tariffs]); // Убрал services из зависимостей для предотвращения цикла
-
-    // Обновляем индивидуальные скидки
-    useEffect(() => {
-      const updateIndividualDiscounts = () => {
-        if (
-          values?.destination_id &&
-          (values?.sender_id || values?.receiver_id) &&
-          services.length > 0
-        ) {
-          // Используем отправителя или получателя из формы
-          const counterpartyId = values?.sender_id || values?.receiver_id;
-
-          const updatedServices = services.map((item, index) => {
-            if (item.type_id) {
-              const { discount: individualDiscount, discountId } =
-                checkIndividualDiscount(
-                  values.destination_id,
-                  Number(item.type_id),
-                  counterpartyId
-                );
-
-              const newItem = { ...item };
-              newItem.individual_discount = individualDiscount;
-              newItem.discount_id = discountId;
-
-              const selectedType = tariffTableProps?.dataSource?.find(
-                (type: any) =>
-                  type.branch_id === values?.destination_id &&
-                  type.product_type_id === Number(item.type_id)
-              );
-
-              if (selectedType && !item.is_price_editable) {
-                const discountToApply = individualDiscount || 0;
-                newItem.price = Number(selectedType.tariff) - discountToApply;
-                if (newItem.weight) {
-                  newItem.sum = calculateSum(newItem.weight, newItem.price);
-                }
-              }
-
-              return newItem;
-            }
-            return item;
-          });
-
-          setServices(updatedServices);
-        }
-      };
-
-      updateIndividualDiscounts();
-    }, [values?.destination_id, values?.sender_id, values?.receiver_id]); // Убрал services из зависимостей для предотвращения цикла
+      updateServicesWithTariffsAndDiscounts();
+    }, [
+      values?.destination_id,
+      values?.discount_id,
+      tariffs,
+      updateItemTariffAndPrice,
+    ]);
 
     return (
       <>
@@ -901,7 +814,6 @@ export const GoodsProcessingCreateServices = React.memo(
                   onChange={(val) => {
                     updateItemField(record.id, "type_id", val, index);
                   }}
-                  allowClear
                 />
               )
             }
@@ -915,8 +827,6 @@ export const GoodsProcessingCreateServices = React.memo(
                   <Input
                     onChange={(e) => {
                       const newValue = e.target.value;
-
-                      // Обновляем состояние немедленно
                       setServices(
                         services.map((item: any, serviceIndex: number) => {
                           if (serviceIndex === index) {

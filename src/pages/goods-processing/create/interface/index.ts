@@ -14,6 +14,8 @@ export interface GoodItem {
     is_price_editable?: boolean;
     individual_discount?: number;
     discount_id?: number | null;
+    updated?: boolean;
+    is_created?: boolean;
   }
   
   export interface ProductItem {
@@ -24,6 +26,8 @@ export interface GoodItem {
     sum?: number;
     edit?: boolean;
     isSelected?: boolean;
+    updated?: boolean;
+    is_created?: boolean;
   }
   
   export interface TariffItem {

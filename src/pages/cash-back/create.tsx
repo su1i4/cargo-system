@@ -9,7 +9,25 @@ export const CashBackCreate: React.FC = () => {
 
   const { selectProps: counterpartySelectProps } = useSelect({
     resource: "counterparty",
-    optionLabel: (item) => `${item.name}`, 
+    optionLabel: (item) =>
+      `${item.clientCode}-${item.clientPrefix} ${item.name}`,
+    onSearch: (value) => [
+      {
+        operator: "or" as const,
+        value: [
+          {
+            field: "name",
+            operator: "contains" as const,
+            value,
+          },
+          {
+            field: "clientCode",
+            operator: "contains" as const,
+            value,
+          },
+        ],
+      },
+    ],
   });
 
   return (

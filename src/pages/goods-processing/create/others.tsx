@@ -1,12 +1,6 @@
 import React, { useEffect, useCallback } from "react";
 import { useSelect } from "@refinedev/antd";
-import {
-  Col,
-  Row,
-  Select,
-  InputNumber,
-  Form,
-} from "antd";
+import { Col, Row, Select, InputNumber, Form } from "antd";
 import Title from "antd/es/typography/Title";
 
 interface GoodsProcessingCreateOthersProps {
@@ -14,7 +8,6 @@ interface GoodsProcessingCreateOthersProps {
   form?: any;
 }
 
-// Конфигурации для useSelect
 const packerSelectConfig = {
   resource: "packers",
   optionLabel: (record: any) => `${record?.first_name || ''} ${record?.last_name || ''}`.trim(),
@@ -61,11 +54,9 @@ const visitingGroupSelectConfig = {
 
 export const GoodsProcessingCreateOthers = React.memo(
   ({ values, form }: GoodsProcessingCreateOthersProps) => {
-    // useSelect хуки
     const { selectProps: packerSelectProps } = useSelect(packerSelectConfig);
     const { selectProps: visitingGroupSelectProps } = useSelect(visitingGroupSelectConfig);
 
-    // Функция расчета комиссии
     const calculateCommissionAmount = useCallback((
       declaredValue: number,
       commissionPercent: number
@@ -73,7 +64,6 @@ export const GoodsProcessingCreateOthers = React.memo(
       return (declaredValue * commissionPercent) / 100;
     }, []);
 
-    // Эффект для расчета комиссии
     useEffect(() => {
       if (values?.declared_value && values?.commission && form) {
         const declaredValue = Number(values.declared_value);
@@ -84,7 +74,6 @@ export const GoodsProcessingCreateOthers = React.memo(
             declaredValue,
             commissionPercent
           );
-          // Устанавливаем значение через form
           form.setFieldValue("amount_commission", commissionAmount);
         }
       }

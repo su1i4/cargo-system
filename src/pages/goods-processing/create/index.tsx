@@ -4,15 +4,10 @@ import { Form, message } from "antd";
 import { GoodsProcessingCreateRequisites } from "./requisites";
 import { GoodsProcessingCreateServices } from "./services";
 import { GoodsProcessingCreateProducts } from "./products";
-
+import { GoodsProcessingCreateOthers } from "./others";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.tz.setDefault("Asia/Bishkek");
-
 import {
   GoodItem,
   ProductItem,
@@ -20,13 +15,14 @@ import {
   CashBackItem,
   DiscountOrCashBackItem,
 } from "./interface";
-import { GoodsProcessingCreateOthers } from "./others";
 
-// Мемоизированный компонент для предотвращения лишних ре-рендеров
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Bishkek");
+
 export const GoodsProcessingCreate = memo(() => {
   const { formProps, saveButtonProps, form } = useForm();
 
-  // Консолидированное состояние для уменьшения количества ре-рендеров
   const [state, setState] = useState({
     services: [] as GoodItem[],
     products: [] as ProductItem[],
@@ -40,62 +36,39 @@ export const GoodsProcessingCreate = memo(() => {
     isCheckingBagNumbers: false,
   });
 
-  // Оптимизированные сеттеры с useCallback
   const updateState = useCallback(
     <K extends keyof typeof state>(
       key: K,
-      value:
-        | (typeof state)[K]
-        | ((prev: (typeof state)[K]) => (typeof state)[K])
+      value: (typeof state)[K] | ((prev: (typeof state)[K]) => (typeof state)[K])
     ) => {
       setState((prev) => ({
         ...prev,
-        [key]:
-          typeof value === "function" ? (value as Function)(prev[key]) : value,
+        [key]: typeof value === "function" ? (value as Function)(prev[key]) : value,
       }));
     },
     []
   );
 
-  // Оптимизированная конфигурация таблицы тарифов с мемоизацией
-  const tariffTableConfig = useMemo(
-    () => ({
-      resource: "tariff",
-      pagination: { mode: "off" as const },
-    }),
-    []
-  );
+  const { tableProps: tariffTableProps } = useTable({
+    resource: "tariff",
+    pagination: { mode: "off" as const },
+  });
 
-  const sentCityQueryConfig = useMemo(
-    () => ({
-      resource: "sent-the-city",
-      pagination: { mode: "off" as const },
-    }),
-    []
-  );
+  const { tableProps: sentCityTableProps } = useTable({
+    resource: "sent-the-city",
+    pagination: { mode: "off" as const },
+  });
 
-  const cashBacksQueryConfig = useMemo(
-    () => ({
-      resource: "cash-back",
-      pagination: { mode: "off" as const },
-    }),
-    []
-  );
+  const { tableProps: cashBacksTableProps } = useTable({
+    resource: "cash-back",
+    pagination: { mode: "off" as const },
+  });
 
-  const discountsQueryConfig = useMemo(
-    () => ({
-      resource: "discount",
-      pagination: { mode: "off" as const },
-    }),
-    []
-  );
-  
-  const { tableProps: tariffTableProps } = useTable(tariffTableConfig);
-  const { tableProps: sentCityTableProps } = useTable(sentCityQueryConfig);
-  const { tableProps: cashBacksTableProps } = useTable(cashBacksQueryConfig);
-  const { tableProps: discountsTableProps } = useTable(discountsQueryConfig);
+  const { tableProps: discountsTableProps } = useTable({
+    resource: "discount",
+    pagination: { mode: "off" as const },
+  });
 
-  // Обновление состояния на основе полученных данных
   useEffect(() => {
     if (tariffTableProps.dataSource) {
       updateState("tariffs", [...tariffTableProps.dataSource] as TariffItem[]);
@@ -135,13 +108,7 @@ export const GoodsProcessingCreate = memo(() => {
   );
 
   const setHasBagNumber = useCallback(
-    (
-      hasBagNumber:
-        | { id: number; has: boolean }[]
-        | ((
-            prev: { id: number; has: boolean }[]
-          ) => { id: number; has: boolean }[])
-    ) => {
+    (hasBagNumber: { id: number; has: boolean }[] | ((prev: { id: number; has: boolean }[]) => { id: number; has: boolean }[])) => {
       updateState("hasBagNumber", hasBagNumber);
     },
     [updateState]
@@ -155,13 +122,7 @@ export const GoodsProcessingCreate = memo(() => {
   );
 
   const setCheckTimeouts = useCallback(
-    (
-      timeouts:
-        | { [key: number]: NodeJS.Timeout }
-        | ((prev: { [key: number]: NodeJS.Timeout }) => {
-            [key: number]: NodeJS.Timeout;
-          })
-    ) => {
+    (timeouts: { [key: number]: NodeJS.Timeout } | ((prev: { [key: number]: NodeJS.Timeout }) => { [key: number]: NodeJS.Timeout })) => {
       updateState("checkTimeouts", timeouts);
     },
     [updateState]
@@ -191,42 +152,32 @@ export const GoodsProcessingCreate = memo(() => {
   ]);
   
   const values = useMemo(() => rawValues, [rawValues]);
-
   const currentDateDayjs = useMemo(() => dayjs().utc().tz("Asia/Bishkek"), []);
 
-  const branchNomenclatureConfig = useMemo(
-    () => ({
-      resource: "branch-nomenclature",
-      pagination: { mode: "off" as const },
-      filters: {
-        permanent: [
-          {
-            field: "destination_id",
-            operator: "eq" as const,
-            value: stableValues.destination_id ?? 16,
-          },
-        ],
-      },
-      queryOptions: {
-        enabled: !!stableValues.destination_id,
-      },
-    }),
-    [stableValues.destination_id]
-  );
+  const { tableProps: branchNomenclatureTableProps, tableQuery } = useTable({
+    resource: "branch-nomenclature",
+    pagination: { mode: "off" as const },
+    filters: {
+      permanent: [
+        {
+          field: "destination_id",
+          operator: "eq" as const,
+          value: stableValues.destination_id ?? 16,
+        },
+      ],
+    },
+    queryOptions: {
+      enabled: !!stableValues.destination_id,
+    },
+  });
 
-  const { tableProps: branchNomenclatureTableProps, tableQuery } = useTable(
-    branchNomenclatureConfig
-  );
-
-  // Оптимизированное мемоизированное вычисление продуктов филиала
   const branchProducts = useMemo(() => {
     if (!branchNomenclatureTableProps?.dataSource || tableQuery.isLoading) {
       return [];
     }
-
     return branchNomenclatureTableProps.dataSource
       .flatMap((item: any) => item?.product_types || [])
-      .filter(Boolean); // Удаляем undefined/null значения
+      .filter(Boolean);
   }, [branchNomenclatureTableProps?.dataSource, tableQuery.isLoading]);
 
   useEffect(() => {
@@ -256,34 +207,28 @@ export const GoodsProcessingCreate = memo(() => {
 
   const handleFormSubmit = useCallback(
     async (values: any) => {
-      // Валидация услуг
       if (state.services.length === 0) {
         message.warning("Выберите услуги");
         return;
       }
 
       if (state.hasBagNumber.length > 0) {
-        message.error(
-          "Обнаружены дублированные номера мешков. Исправьте перед отправкой."
-        );
+        message.error("Обнаружены дублированные номера мешков. Исправьте перед отправкой.");
         return;
       }
 
-      // Валидация обязательных полей услуг
-      const invalidServices = state.services.filter((service, index) => {
+      const invalidServices = state.services.filter((service) => {
         return !service.type_id || !service.weight || service.weight <= 0;
       });
 
       if (invalidServices.length > 0) {
-        invalidServices.forEach((service, index) => {
+        invalidServices.forEach((service) => {
           const serviceIndex = state.services.indexOf(service);
           const missingFields = [];
           if (!service.type_id) missingFields.push("Тип товара");
           if (!service.weight || service.weight <= 0) missingFields.push("Вес");
           message.warning(
-            `Услуга #${
-              serviceIndex + 1
-            }: Заполните все обязательные поля (${missingFields.join(", ")})`
+            `Услуга #${serviceIndex + 1}: Заполните все обязательные поля (${missingFields.join(", ")})`
           );
         });
         return;
@@ -294,7 +239,6 @@ export const GoodsProcessingCreate = memo(() => {
         return;
       }
 
-      // Валидация основных полей
       const requiredFields = [
         { field: "destination_id", message: "Выберите город назначения" },
         { field: "sender_id", message: "Выберите отправителя" },
@@ -309,7 +253,6 @@ export const GoodsProcessingCreate = memo(() => {
         }
       }
 
-      // Вычисление финальной суммы
       const baseAmount =
         state.services.reduce((acc, curr) => acc + Number(curr.sum || 0), 0) +
         state.products.reduce((acc, curr) => acc + Number(curr.sum || 0), 0);
@@ -317,7 +260,6 @@ export const GoodsProcessingCreate = memo(() => {
       const markup = Number(values.markup) || 0;
       const finalAmount = baseAmount + (baseAmount * markup) / 100;
 
-      // Подготовка данных для отправки
       const submitValues = {
         ...values,
         services: state.services.map((service) => ({
@@ -339,26 +281,21 @@ export const GoodsProcessingCreate = memo(() => {
             price: Number(product.price),
             sum: Number(product.sum),
           })),
-        amount: Math.round(finalAmount * 100) / 100, // Более точное округление
+        amount: Math.round(finalAmount * 100) / 100,
         sent_back_id:
-          state.sentCityData.find(
-            (item: any) => item.id === values.sent_back_id
-          )?.sent_city_id || null,
+          state.sentCityData.find((item: any) => item.id === values.sent_back_id)?.sent_city_id || null,
       };
 
-      // Обработка даты
       if (submitValues.created_at) {
         if (typeof submitValues.created_at === "object") {
           if (submitValues.created_at.$d) {
-            submitValues.created_at =
-              submitValues.created_at.format("YYYY-MM-DDTHH:mm:ss") + ".100Z";
+            submitValues.created_at = submitValues.created_at.format("YYYY-MM-DDTHH:mm:ss") + ".100Z";
           } else if (submitValues.created_at instanceof Date) {
             submitValues.created_at = submitValues.created_at.toISOString();
           }
         }
       }
 
-      // Обработка фото
       if (submitValues.photo?.file?.response?.filePath) {
         submitValues.photo = {
           file: {
@@ -374,9 +311,8 @@ export const GoodsProcessingCreate = memo(() => {
       }
     },
     [state, formProps.onFinish]
-  ); // Упростил зависимости
+  );
 
-  // Мемоизированные общие пропсы
   const sharedProps = useMemo(
     () => ({
       values,
@@ -431,11 +367,10 @@ export const GoodsProcessingCreate = memo(() => {
           branchProducts={branchProducts}
           {...sharedProps}
         />
-        {/* <GoodsProcessingCreateOthers values={values} form={formProps.form} /> */}
+        <GoodsProcessingCreateOthers values={values} form={formProps.form} />
       </Form>
     </Create>
   );
 });
 
-// Добавляем displayName для лучшей отладки
 GoodsProcessingCreate.displayName = "GoodsProcessingCreate";

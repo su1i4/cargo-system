@@ -26,7 +26,6 @@ export const GoodsProcessingCreateProducts = React.memo(({
   values,
 }: GoodsProcessingCreateProductsProps) => {
   
-  // Мемоизированная функция проверки доступности продукта для филиала
   const isProductAvailableForBranch = useCallback((product: ProductItem): boolean => {
     if (!branchProducts?.length) {
       return false;
@@ -39,7 +38,6 @@ export const GoodsProcessingCreateProducts = React.memo(({
     );
   }, [branchProducts]);
 
-  // Мемоизированная функция обновления поля продукта
   const updateProductField = useCallback((
     id: string | number,
     field: string,
@@ -63,7 +61,6 @@ export const GoodsProcessingCreateProducts = React.memo(({
     );
   }, [products, setProducts]);
 
-  // Мемоизированное вычисление итогов
   const lastProducts = useMemo(() => [
     {
       id: 'total',
@@ -75,10 +72,8 @@ export const GoodsProcessingCreateProducts = React.memo(({
     },
   ], [products]);
 
-  // Мемоизированные данные таблицы
   const tableData = useMemo(() => [...products, ...lastProducts], [products, lastProducts]);
 
-  // Мемоизированные колонки таблицы
   const columns = useMemo(() => [
     {
       title: "№",
@@ -160,6 +155,3 @@ export const GoodsProcessingCreateProducts = React.memo(({
     </div>
   );
 });
-
-// Добавляем displayName для лучшей отладки
-GoodsProcessingCreateProducts.displayName = 'GoodsProcessingCreateProducts';

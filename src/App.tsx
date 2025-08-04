@@ -25,14 +25,12 @@ import { BrowserRouter, Outlet, Route, Routes } from "react-router";
 import { Header } from "./components/header";
 import { CustomSider } from "./components/sider";
 import { ColorModeContextProvider } from "./contexts/color-mode";
+import { GoodsEdit } from "./pages/goods-processing/edit";
 
-// Ленивые импорты для goods-processing компонентов (оптимизированные)
 const GoodsProcessingCreate = lazy(() => import("./pages/goods-processing").then(m => ({ default: m.GoodsProcessingCreate })));
 const GoogsProcessingList = lazy(() => import("./pages/goods-processing").then(m => ({ default: m.GoogsProcessingList })));
-const GoodsProcessingEdit = lazy(() => import("./pages/goods-processing").then(m => ({ default: m.GoodsProcessingEdit })));
 const GoodsShow = lazy(() => import("./pages/goods-processing").then(m => ({ default: m.GoodsShow })));
 
-// Lazy imports для всех остальных страниц
 const BranchCreate = lazy(() => import("./pages/branch").then(m => ({ default: m.BranchCreate })));
 const BranchEdit = lazy(() => import("./pages/branch").then(m => ({ default: m.BranchEdit })));
 const BranchList = lazy(() => import("./pages/branch").then(m => ({ default: m.BranchList })));
@@ -106,6 +104,7 @@ const ProductsList = lazy(() => import("./pages/products/list").then(m => ({ def
 const PackersList = lazy(() => import("./pages/packers/list").then(m => ({ default: m.PackersList })));
 const OutGroupList = lazy(() => import("./pages/out-group/list").then(m => ({ default: m.OutGroupList })));
 const TariffList = lazy(() => import("./pages/tarif/list").then(m => ({ default: m.TariffList })));
+const EndpointList = lazy(() => import("./pages/endpoints").then(m => ({ default: m.EndpointList })));
 
 const TrackingPage = lazy(() => import("./pages/track/tracking").then(m => ({ default: m.TrackingPage })));
 const SentTheCityList = lazy(() => import("./pages/sent-the-city").then(m => ({ default: m.SentTheCityList })));
@@ -312,7 +311,7 @@ function App() {
                   <Route path="/goods-processing">
                     <Route index element={<Suspense fallback={<PageLoadingFallback />}><GoogsProcessingList /></Suspense>} />
                     <Route path="create" element={<Suspense fallback={<PageLoadingFallback />}><GoodsProcessingCreate /></Suspense>} />
-                    <Route path="edit/:id" element={<Suspense fallback={<PageLoadingFallback />}><GoodsProcessingEdit /></Suspense>} />
+                    <Route path="edit/:id" element={<Suspense fallback={<PageLoadingFallback />}><GoodsEdit /></Suspense>} />
                     <Route path="show/:id" element={<Suspense fallback={<PageLoadingFallback />}><GoodsShow /></Suspense>} />
                   </Route>
 
@@ -503,6 +502,10 @@ function App() {
 
                   <Route path="/tariff">
                     <Route index element={<Suspense fallback={<PageLoadingFallback />}><TariffList /></Suspense>} />
+                  </Route>
+
+                  <Route path="/endpoint">
+                    <Route index element={<Suspense fallback={<PageLoadingFallback />}><EndpointList /></Suspense>} />
                   </Route>
 
                   <Route path="/sent-the-city">

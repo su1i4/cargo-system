@@ -13,6 +13,7 @@ import {
   Space,
   Spin,
   Select,
+  Flex,
 } from "antd";
 import { SearchOutlined, InboxOutlined } from "@ant-design/icons";
 import { useState, useEffect, useMemo, useCallback, memo } from "react";
@@ -438,7 +439,6 @@ const TrackingResults = memo<TrackingResultsProps>(
                     <span style={{ fontSize: "16px", fontWeight: "bold" }}>
                       Номер накладной: {invoiceNumber}
                     </span>
-                    <Tag color="blue">Общее кол-во мешков: {totalBags}</Tag>
                   </Space>
                 </Col>
                 <Col>
@@ -460,6 +460,7 @@ const TrackingResults = memo<TrackingResultsProps>(
                     style={{ width: "100%" }}
                     size="small"
                   >
+                    <Text strong>Общее кол-во мешков: {totalBags}</Text>
                     <div>
                       <Text strong>Общий вес:</Text> {group.good?.weight} кг
                     </div>
@@ -492,7 +493,7 @@ const TrackingResults = memo<TrackingResultsProps>(
                     </div>
                     <div>
                       <Text strong>Дата создания:</Text>{" "}
-                      {dayjs(group.good?.created_at).format("DD.MM.YYYY HH:mm")}
+                      {dayjs(group.good?.created_at).utc().format("DD.MM.YYYY HH:mm")}
                     </div>
                   </Space>
                 </Card>
@@ -565,6 +566,20 @@ const TrackingResults = memo<TrackingResultsProps>(
                                 >
                                   Кол-во мешков: {shipmentBags}
                                 </Tag>
+                                <Flex vertical gap={0}>
+                                  <span
+                                    style={{ fontSize: "11px", color: "#999" }}
+                                  >
+                                    Дата отправки:{" "}
+                                  </span>
+                                  <span
+                                    style={{ fontSize: "11px", color: "#999" }}
+                                  >
+                                    {dayjs(
+                                      shipmentGroup.shipment?.created_at
+                                    ).utc().format("DD.MM.YYYY HH:mm")}
+                                  </span>
+                                </Flex>
                               </Space>
                             }
                           >
@@ -616,60 +631,94 @@ const TrackingResults = memo<TrackingResultsProps>(
                                     </div>
                                   </Col>
                                 </Row>
-                                
-                                {shipmentGroup.shipment.history && 
-                                 shipmentGroup.shipment.history.length > 0 && (
-                                  <div style={{ marginTop: 8 }}>
-                                    <Text
-                                      type="secondary"
-                                      style={{ fontSize: "11px", marginBottom: 4, display: "block" }}
-                                    >
-                                      📋 История рейса:
-                                    </Text>
-                                    <div
-                                      style={{
-                                        backgroundColor: "#ffffff",
-                                        border: "1px solid #e8e8e8",
-                                        borderRadius: "3px",
-                                        padding: "4px",
-                                      }}
-                                    >
-                                      {shipmentGroup.shipment.history
-                                        .sort((a: any, b: any) => 
-                                          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                                        )
-                                        .map((historyItem: any, historyIndex: number) => (
-                                          <div
-                                            key={historyItem.id}
-                                            style={{
-                                              padding: "3px 6px",
-                                              marginBottom: historyIndex < shipmentGroup.shipment.history.length - 1 ? 2 : 0,
-                                              backgroundColor: historyIndex % 2 === 0 ? "#fafafa" : "#ffffff",
-                                              borderRadius: "2px",
-                                              fontSize: "10px",
-                                              lineHeight: "1.2",
-                                            }}
-                                          >
-                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                              <Text style={{ fontSize: "10px", flex: 1 }}>
-                                                {historyItem.message}
-                                              </Text>
-                                              <Text 
-                                                type="secondary" 
-                                                style={{ 
-                                                  fontSize: "9px", 
-                                                  marginLeft: 6,
-                                                  whiteSpace: "nowrap"
+
+                                {shipmentGroup.shipment.history &&
+                                  shipmentGroup.shipment.history.length > 0 && (
+                                    <div style={{ marginTop: 8 }}>
+                                      <Text
+                                        type="secondary"
+                                        style={{
+                                          fontSize: "11px",
+                                          marginBottom: 4,
+                                          display: "block",
+                                        }}
+                                      >
+                                        📋 История рейса:
+                                      </Text>
+                                      <div
+                                        style={{
+                                          backgroundColor: "#ffffff",
+                                          border: "1px solid #e8e8e8",
+                                          borderRadius: "3px",
+                                          padding: "4px",
+                                        }}
+                                      >
+                                        {shipmentGroup.shipment.history
+                                          .sort(
+                                            (a: any, b: any) =>
+                                              new Date(b.created_at).getTime() -
+                                              new Date(a.created_at).getTime()
+                                          )
+                                          .map(
+                                            (
+                                              historyItem: any,
+                                              historyIndex: number
+                                            ) => (
+                                              <div
+                                                key={historyItem.id}
+                                                style={{
+                                                  padding: "3px 6px",
+                                                  marginBottom:
+                                                    historyIndex <
+                                                    shipmentGroup.shipment
+                                                      .history.length -
+                                                      1
+                                                      ? 2
+                                                      : 0,
+                                                  backgroundColor:
+                                                    historyIndex % 2 === 0
+                                                      ? "#fafafa"
+                                                      : "#ffffff",
+                                                  borderRadius: "2px",
+                                                  fontSize: "10px",
+                                                  lineHeight: "1.2",
                                                 }}
                                               >
-                                                {dayjs(historyItem.created_at).format("DD.MM HH:mm")}
-                                              </Text>
-                                            </div>
-                                          </div>
-                                        ))}
+                                                <div
+                                                  style={{
+                                                    display: "flex",
+                                                    justifyContent:
+                                                      "space-between",
+                                                    alignItems: "flex-start",
+                                                  }}
+                                                >
+                                                  <Text
+                                                    style={{
+                                                      fontSize: "10px",
+                                                      flex: 1,
+                                                    }}
+                                                  >
+                                                    {historyItem.message}
+                                                  </Text>
+                                                  <Text
+                                                    type="secondary"
+                                                    style={{
+                                                      fontSize: "9px",
+                                                      marginLeft: 6,
+                                                      whiteSpace: "nowrap",
+                                                    }}
+                                                  >
+                                                    {dayjs(
+                                                      historyItem.created_at
+                                                    ).format("DD.MM HH:mm")}
+                                                  </Text>
+                                                </div>
+                                              </div>
+                                            )
+                                          )}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
                               </div>
                             )}
 
@@ -715,8 +764,7 @@ const TrackingResults = memo<TrackingResultsProps>(
                                                 whiteSpace: "nowrap",
                                               }}
                                             >
-                                              Номер мешка:{" "}
-                                            <br />
+                                              Номер мешка: <br />
                                               <span
                                                 style={{ color: "#1890ff" }}
                                               >

@@ -15,6 +15,7 @@ import {
   Flex,
   Dropdown,
   Menu,
+  Modal,
 } from "antd";
 import { useParams } from "react-router";
 import {
@@ -23,10 +24,12 @@ import {
   SearchOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  DisconnectOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import { API_URL } from "../../App";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -40,6 +43,7 @@ const ShipmentEdit = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState("created_at");
+  const [isRemoving, setIsRemoving] = useState(false);
 
   const { tableProps, setFilters, setSorters } = useTable({
     resource: "service",
@@ -76,6 +80,61 @@ const ShipmentEdit = () => {
   const { mutate: updateServices } = useUpdateMany({
     resource: "service",
   });
+
+  const removeServicesFromShipment = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.error("Выберите сервисы для отвязки");
+      return;
+    }
+
+    setIsRemoving(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/service/shipment-remove-relation-services`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+          },
+          body: JSON.stringify({
+            shipment_id: Number(id),
+            serviceIds: selectedRowKeys,
+          }),
+        }
+      );
+
+      if (response?.ok) {
+        message.success("Сервисы успешно отвязаны от отгрузки");
+        setSelectedRowKeys([]);
+        list("shipments");
+      } else {
+        message.error("Ошибка при отвязке сервисов");
+      }
+    } catch (error: any) {
+      message.error(
+        error?.message || "Ошибка при отвязке сервисов"
+      );
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
+  const handleRemoveServices = () => {
+    if (selectedRowKeys.length === 0) {
+      message.error("Выберите сервисы для отвязки");
+      return;
+    }
+
+    Modal.confirm({
+      title: "Отвязать сервисы?",
+      content: `Вы уверены, что хотите отвязать ${selectedRowKeys.length} сервис(ов) от этой отгрузки? Статус сервисов изменится на "На складе".`,
+      okText: "Отвязать",
+      cancelText: "Отмена",
+      okType: "danger",
+      onOk: removeServicesFromShipment,
+    });
+  };
 
   const { selectProps: employeeSelectProps } = useSelect({
     resource: "users",
@@ -213,7 +272,7 @@ const ShipmentEdit = () => {
         message.error("Проверьте заполнение полей формы");
       }
     },
-    disabled: formLoading || !!tableProps.loading,
+    disabled: formLoading || !!tableProps.loading || isRemoving,
   };
 
   useEffect(() => {
@@ -252,6 +311,7 @@ const ShipmentEdit = () => {
     selectedRowKeys,
     preserveSelectedRowKeys: true,
     onChange: (keys: React.Key[]) => {
+      if (isRemoving) return;
       setSelectedRowKeys(keys as number[]);
     },
   };
@@ -361,7 +421,7 @@ const ShipmentEdit = () => {
       headerButtons={() => null}
       isLoading={formLoading || isLoadingShipment}
     >
-      <Form {...formProps} form={form} layout="vertical">
+      <Form {...formProps} form={form} layout="vertical" disabled={isRemoving}>
         <Row gutter={[16, 0]}>
           <Col span={6}>
             <Form.Item label="Номер рейса" name="truck_number">
@@ -405,9 +465,20 @@ const ShipmentEdit = () => {
                 style={{ width: 40 }}
               />
             </Tooltip>
+            <Tooltip title="Отвязать выбранные сервисы">
+              <Button
+                icon={<DisconnectOutlined />}
+                onClick={handleRemoveServices}
+                loading={isRemoving}
+                disabled={isRemoving || selectedRowKeys.length === 0}
+                danger
+                style={{ width: 40 }}
+              />
+            </Tooltip>
             <Dropdown overlay={sortMenu} trigger={["click"]}>
               <Button
                 style={{ width: 40 }}
+                disabled={isRemoving}
                 icon={
                   sortDirection === "ASC" ? (
                     <ArrowUpOutlined />
@@ -422,6 +493,7 @@ const ShipmentEdit = () => {
               placeholder="Поиск по номеру мешка, отправителю, получателю"
               onChange={(e) => handleSearch(e.target.value)}
               allowClear
+              disabled={isRemoving}
             />
             <Dropdown
               overlay={datePickerContent}
@@ -431,6 +503,7 @@ const ShipmentEdit = () => {
               <Button
                 icon={<CalendarOutlined />}
                 className="date-picker-button"
+                disabled={isRemoving}
               >
                 Дата
               </Button>
@@ -441,8 +514,10 @@ const ShipmentEdit = () => {
           {...tableProps}
           rowKey="id"
           rowSelection={rowSelection}
+          loading={tableProps.loading || isRemoving}
           onRow={(record) => ({
             onClick: () => {
+              if (isRemoving) return;
               const id = record.id;
               const numId = Number(id);
               if (!numId || isNaN(numId)) return;

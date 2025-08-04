@@ -12,6 +12,7 @@ export const UserShow = () => {
 
   return (
     <Show
+      title="Просмотр Сотрудника"
       headerButtons={({ deleteButtonProps, editButtonProps }) => (
         <>
           {editButtonProps && (

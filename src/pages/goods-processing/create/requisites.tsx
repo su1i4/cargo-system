@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useSelect } from "@refinedev/antd";
 import { Col, Form, Input, Row, Select } from "antd";
 import Title from "antd/es/typography/Title";
@@ -149,21 +149,41 @@ export const GoodsProcessingCreateRequisites = React.memo(
       [cashBacks, values?.sender_id, values?.recipient_id]
     );
 
+    useEffect(() => {
+      if (values?.discount_id) {
+        if (
+          values.sender_id !== values.discount_id &&
+          values.recipient_id !== values.discount_id
+        ) {
+          form.setFieldsValue({
+            discount_id: null,
+          });
+        }
+      }
+    }, [values?.sender_id, values?.recipient_id]);
+
     const discountOptions = useMemo(
       () =>
         discounts
           .filter(
             (item: any) =>
               item.counter_party_id === values.sender_id ||
-              item.counter_party_id === values.recipient_id && item.destination_id === values.destination_id && Boolean(item?.product_type_id)
+              (item.counter_party_id === values.recipient_id &&
+                item.destination_id === values.destination_id &&
+                Boolean(item?.product_type_id))
           )
           .map((item: any) => ({
             label: `${item.counter_party?.clientPrefix || ""}-${
               item.counter_party?.clientCode || ""
-            }, ${item.counter_party?.name}. Сумма: ${item.discount}`,
+            }, ${item.counter_party?.name}. Скидка: ${item.discount}`,
             value: item.counter_party_id,
           })),
-      [discounts, values?.sender_id, values?.recipient_id, values?.destination_id]
+      [
+        discounts,
+        values?.sender_id,
+        values?.recipient_id,
+        values?.destination_id,
+      ]
     );
 
     return (
@@ -172,7 +192,7 @@ export const GoodsProcessingCreateRequisites = React.memo(
           Реквизиты
         </Title>
 
-        <Row gutter={16} style={{ marginTop: 5}}>
+        <Row gutter={16} style={{ marginTop: 5 }}>
           <Col xs={24} sm={12} md={6} lg={6}>
             <Form.Item
               label="Город назначения"
@@ -183,7 +203,6 @@ export const GoodsProcessingCreateRequisites = React.memo(
                 {...branchSelectProps}
                 placeholder="Выберите город"
                 showSearch
-                allowClear
               />
             </Form.Item>
           </Col>
@@ -300,5 +319,3 @@ export const GoodsProcessingCreateRequisites = React.memo(
     );
   }
 );
-
-GoodsProcessingCreateRequisites.displayName = "GoodsProcessingCreateRequisites";

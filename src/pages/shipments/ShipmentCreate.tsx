@@ -37,6 +37,7 @@ const ShipmentCreate = () => {
     redirect: "list",
   });
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
   const { list } = useNavigation();
 
   const { tableProps, setFilters, setSorters, filters } = useTable({
@@ -100,11 +101,49 @@ const ShipmentCreate = () => {
 
   const { mutate: createShipment } = useCreate();
 
+  const createService = async (shipmentId: number) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/service/shipment-relation-services`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+          },
+          body: JSON.stringify({
+            shipment_id: shipmentId,
+            servicesIds: selectedRowKeys,
+          }),
+        }
+      );
+
+      if (response?.ok) {
+        message.success("Сервисы успешно связаны с отгрузкой");
+        list("shipments");
+      } else {
+        message.error("Ошибка при связывании сервисов с отгрузкой");
+      }
+    } catch (error: any) {
+      message.error(
+        error?.message || "Ошибка при связывании сервисов с отгрузкой"
+      );
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const handleFinish = (values: any) => {
     if (selectedRowKeys.length === 0) {
       message.error("Выберите хотя бы один сервис");
       return;
     }
+
+    if (isCreating) {
+      return;
+    }
+
+    setIsCreating(true);
 
     createShipment(
       {
@@ -113,29 +152,17 @@ const ShipmentCreate = () => {
       },
       {
         onSuccess: (data) => {
-          const shipmentId = data.data.id;
-
-          updateServices(
-            {
-              resource: "service",
-              ids: selectedRowKeys as number[],
-              values: {
-                shipment_id: shipmentId,
-                status: "В пути",
-              },
-            },
-            {
-              onSuccess: () => {
-                list("shipments");
-              },
-              onError: (error) => {
-                message.error("Ошибка при обновлении сервисов: " + error);
-              },
-            }
-          );
+          const shipmentId = data?.data?.id;
+          if (!shipmentId) {
+            message.error("Ошибка при создании отгрузки");
+            setIsCreating(false);
+            return;
+          }
+          createService(shipmentId as number);
         },
         onError: (error) => {
           message.error("Ошибка при создании отгрузки: " + error);
+          setIsCreating(false);
         },
       }
     );
@@ -145,6 +172,7 @@ const ShipmentCreate = () => {
     selectedRowKeys,
     preserveSelectedRowKeys: true,
     onChange: (keys: React.Key[]) => {
+      if (isCreating) return;
       setSelectedRowKeys(keys);
     },
   };
@@ -265,6 +293,8 @@ const ShipmentCreate = () => {
     <Create
       saveButtonProps={{
         ...saveButtonProps,
+        loading: isCreating,
+        disabled: isCreating,
         onClick: () => {
           form.submit();
         },
@@ -275,6 +305,7 @@ const ShipmentCreate = () => {
         form={form}
         layout="vertical"
         onFinish={handleFinish}
+        disabled={isCreating}
       >
         <Row gutter={[16, 0]}>
           <Col span={6}>
@@ -310,6 +341,7 @@ const ShipmentCreate = () => {
           <Dropdown overlay={sortMenu} trigger={["click"]}>
             <Button
               style={{ width: 30, minWidth: 30 }}
+              disabled={isCreating}
               icon={
                 sortDirection === "ASC" ? (
                   <ArrowUpOutlined />
@@ -326,6 +358,7 @@ const ShipmentCreate = () => {
               value: branch.id,
             }))}
             style={{ width: "100%" }}
+            disabled={isCreating}
             onChange={(value) => {
               if (value.length === 0) {
                 setFilters([
@@ -356,6 +389,7 @@ const ShipmentCreate = () => {
               value: branch.id,
             }))}
             allowClear
+            disabled={isCreating}
             onChange={(value) => {
               if (value.length === 0) {
                 setFilters([
@@ -383,14 +417,17 @@ const ShipmentCreate = () => {
             placeholder="Поиск по номеру мешка, отправителю, получателю, весу, количеству"
             onChange={(e) => handleSearch(e.target.value)}
             allowClear
+            disabled={isCreating}
           />
         </Flex>
         <Table
           {...tableProps}
           rowKey="id"
           rowSelection={rowSelection}
+          loading={isCreating}
           onRow={(record) => ({
             onClick: () => {
+              if (isCreating) return;
               const id = record.id;
               if (id === undefined || id === null) return;
               setSelectedRowKeys((prev) => {
