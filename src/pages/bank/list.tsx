@@ -13,7 +13,10 @@ interface IBank extends BaseRecord {
 
 export const BankList = () => {
   const { tableProps } = useTable<IBank>({
-    syncWithLocation: true,
+    syncWithLocation: false,
+    pagination: {
+      pageSize: 50,
+    },
   });
 
   const { dataSource } = tableProps;

@@ -10,7 +10,7 @@ export const UserList = () => {
   const { show } = useNavigation();
 
   return (
-    <List>
+    <List title="Сотрудники">
       <Table
         onRow={(record) => ({
           onDoubleClick: () => {

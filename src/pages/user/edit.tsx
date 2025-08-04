@@ -39,6 +39,7 @@ export const UserEdit = () => {
 
   return (
     <Edit
+      title="Редактирование Сотрудника"
       headerButtons={({ deleteButtonProps }: any) => (
         <>
           {deleteButtonProps && (

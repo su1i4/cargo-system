@@ -1,5 +1,5 @@
 import { Show, TextField, useTable } from "@refinedev/antd";
-import { useShow, useUpdateMany } from "@refinedev/core";
+import { useShow, useInvalidate } from "@refinedev/core";
 import {
   Typography,
   Row,
@@ -61,7 +61,7 @@ const ReceivingShow = () => {
       ],
     },
     pagination: {
-      pageSize: 100,
+      pageSize: 200,
     },
   });
 
@@ -98,17 +98,38 @@ const ReceivingShow = () => {
     },
   };
 
-  const { mutate: updateServices } = useUpdateMany({
-    resource: "service",
-  });
+  const invalidate = useInvalidate();
 
-  const handleReceive = () => {
-    updateServices({
-      ids: selectedRowKeys as number[],
-      values: {
-        status: "Готов к выдаче",
-      },
-    });
+  const handleReceive = async () => {
+    try {
+      const response = await fetch(
+        `${API_URL}/service/change-status-service-ready-for-pickup`,
+        {
+          method: "POST",
+          body: JSON.stringify(selectedRowKeys),
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      
+      if (response.ok) {
+        message.success("Статус товаров успешно изменен");
+        setSelectedRowKeys([]);
+        setSelectedRows([]);
+        // Обновляем данные таблицы
+        invalidate({
+          resource: "service",
+          invalidates: ["list"],
+        });
+      } else {
+        const data = await response.json();
+        message.error(data?.message || "Ошибка при изменении статуса");
+      }
+    } catch (error) {
+      message.error("Ошибка сети");
+    }
   };
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");

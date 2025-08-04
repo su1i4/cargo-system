@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Edit, useForm, useSelect, useTable } from "@refinedev/antd";
 import { useApiUrl, useCustom, useNavigation } from "@refinedev/core";
 import {
@@ -37,14 +37,14 @@ interface GoodItem {
   country?: string;
   type_id?: string;
   type_name?: string;
-  tariff?: number; // Тариф (цена за кг)
+  tariff?: number;
   quantity?: number;
   weight?: number;
-  price?: number; // Цена за кг (из тарифа)
-  sum?: number; // Общая сумма (вес * цена)
+  price?: number;
+  sum?: number;
   barcode: string;
-  updated?: boolean; // Флаг, указывающий, что услуга была изменена
-  is_created?: boolean; // Флаг, указывающий, что услуга была создана
+  updated?: boolean;
+  is_created?: boolean;
   bag_number_numeric?: string;
   is_price_editable?: boolean;
   individual_discount?: number;
@@ -60,13 +60,13 @@ interface TypeProduct {
 interface ProductItem {
   id: string | number;
   name: string;
-  price: number; // Цена приходит с бэкенда
+  price: number;
   quantity?: number;
   sum?: number;
-  edit?: boolean; // Флаг разрешения редактирования товара
-  isSelected?: boolean; // Флаг для отслеживания выбранных товаров
-  updated?: boolean; // Флаг, указывающий, что товар был изменен
-  is_created?: boolean; // Флаг, указывающий, что товар был создан
+  edit?: boolean;
+  isSelected?: boolean;
+  updated?: boolean;
+  is_created?: boolean;
 }
 
 interface TariffItem {
@@ -100,14 +100,7 @@ interface CashBackItem {
   };
 }
 
-interface DiscountOrCashBackItem {
-  id: string;
-  type: "discount" | "cashback";
-  label: string;
-  value: number;
-  counterpartyId?: number;
-  originalData: any;
-}
+
 
 export const GoodsEdit = () => {
   const { goBack } = useNavigation();
@@ -144,17 +137,8 @@ export const GoodsEdit = () => {
   const [sentCityData, setSentCityData] = useState<any[]>([]);
 
   const [cashBacks, setCashBacks] = useState<CashBackItem[]>([]);
-  const [discountCashBackOptions, setDiscountCashBackOptions] = useState<
-    DiscountOrCashBackItem[]
-  >([]);
-  const [selectedDiscountType, setSelectedDiscountType] = useState<
-    "discount" | "cashback" | null
-  >(null);
-  const [counterpartiesWithDiscounts, setCounterpartiesWithDiscounts] =
-    useState<any[]>([]);
-  const [selectedDiscountOption, setSelectedDiscountOption] = useState<DiscountOrCashBackItem | null>(null);
+  const [discounts, setDiscounts] = useState<any[]>([]);
 
-  // Добавляем состояние для доступных продуктов филиала
   const [branchNomenclature, setBranchNomenclature] = useState<any>(null);
 
   const values: any = Form.useWatch([], form);
@@ -162,7 +146,6 @@ export const GoodsEdit = () => {
 
   const currentDateDayjs = dayjs().tz("Asia/Bishkek");
 
-  // Загрузка тарифов
   const { refetch: refetchTariffs } = useCustom({
     url: `${apiUrl}/tariff`,
     method: "get",
@@ -194,27 +177,22 @@ export const GoodsEdit = () => {
     },
   });
 
-  const { refetch: refetchCounterpartiesWithDiscounts } = useCustom({
-    url: `${apiUrl}/counterparty`,
+  const { refetch: refetchDiscounts } = useCustom({
+    url: `${apiUrl}/discount`,
     method: "get",
     queryOptions: {
       onSuccess: (data: any) => {
-        const withDiscounts = (data?.data || []).filter(
-          (item: any) => item.discount && item.discount.discount > 0
-        );
-        setCounterpartiesWithDiscounts(withDiscounts);
+        setDiscounts(data?.data || []);
       },
       enabled: true,
     },
   });
 
-  // Добавляем запрос к branch-nomenclature
   const { refetch: refetchBranchNomenclature } = useCustom({
     url: `${apiUrl}/branch-nomenclature`,
     method: "get",
     queryOptions: {
       onSuccess: (data: any) => {
-        // Находим запись для выбранного филиала назначения
         const branchRecord = (data?.data || []).find(
           (item: any) => item.destination_id === values?.destination_id
         );
@@ -228,17 +206,16 @@ export const GoodsEdit = () => {
     refetchTariffs();
     refetchSentCity();
     refetchCashBacks();
-    refetchCounterpartiesWithDiscounts();
+    refetchDiscounts();
   }, []);
 
   useEffect(() => {
     if (values?.sender_id && values?.recipient_id) {
       refetchCashBacks();
-      refetchCounterpartiesWithDiscounts();
+      refetchDiscounts();
     }
   }, [values?.sender_id, values?.recipient_id]);
 
-  // Добавляем эффект для обновления данных о номенклатуре филиала
   useEffect(() => {
     if (values?.destination_id) {
       refetchBranchNomenclature();
@@ -246,98 +223,6 @@ export const GoodsEdit = () => {
       setBranchNomenclature(null);
     }
   }, [values?.destination_id]);
-
-  useEffect(() => {
-    const options: DiscountOrCashBackItem[] = [];
-
-    counterpartiesWithDiscounts.forEach((record: any) => {
-      if (
-        record?.discount?.discount > 0 &&
-        (record.id === values?.sender_id || record.id === values?.recipient_id)
-      ) {
-        options.push({
-          id: `discount-${record.id}`,
-          type: "discount",
-          label: `Скидка: ${record?.clientPrefix}-${record?.clientCode}, ${record?.name}, '${record?.discount?.discount}' руб`,
-          value: record.discount.discount,
-          counterpartyId: record.id,
-          originalData: record,
-        });
-      }
-    });
-
-    cashBacks.forEach((cashBack) => {
-      if (
-        cashBack.counterparty_id === values?.sender_id ||
-        cashBack.counterparty_id === values?.recipient_id
-      ) {
-        options.push({
-          id: `cashback-${cashBack.id}`,
-          type: "cashback",
-          label: `Кешбек: ${cashBack.counterparty?.clientPrefix}-${cashBack.counterparty?.clientCode}, ${cashBack.counterparty?.name}, '${cashBack.amount}' руб`,
-          value: cashBack.amount,
-          counterpartyId: cashBack.counterparty_id,
-          originalData: cashBack,
-        });
-      }
-    });
-
-    setDiscountCashBackOptions(options);
-  }, [
-    counterpartiesWithDiscounts,
-    cashBacks,
-    values?.sender_id,
-    values?.recipient_id,
-  ]);
-
-  // Автоматически выбираем скидку или кешбек при изменении контрагентов
-  useEffect(() => {
-    if (
-      discountCashBackOptions.length > 0 &&
-      (values?.sender_id || values?.recipient_id)
-    ) { 
-      const cashBackOption = discountCashBackOptions.find(
-        (option) => option.type === "cashback"
-      );
-
-      if (cashBackOption) {
-        setSelectedDiscountType(cashBackOption.type);
-        setSelectedDiscountOption(cashBackOption);
-        const cashBackTarget =
-          cashBackOption.counterpartyId === values?.sender_id
-            ? "sender"
-            : "receiver";
-        formProps.form?.setFieldsValue({
-          discount_cashback_id: cashBackOption.id,
-          cash_back_target: cashBackTarget,
-          discount_id: null,
-        });
-      } else {
-        const discountOption = discountCashBackOptions.find(
-          (option) => option.type === "discount"
-        );
-
-        if (discountOption) {
-          setSelectedDiscountType(discountOption.type);
-          setSelectedDiscountOption(discountOption);
-          formProps.form?.setFieldsValue({
-            discount_cashback_id: discountOption.id,
-            cash_back_target: null,
-            discount_id: discountOption.originalData.id,
-          });
-        }
-      }
-    } else if (discountCashBackOptions.length === 0) {
-      // Если нет ни скидок, ни кешбеков - очищаем поля
-      setSelectedDiscountType(null);
-      setSelectedDiscountOption(null);
-      formProps.form?.setFieldsValue({
-        discount_cashback_id: null,
-        cash_back_target: null,
-        discount_id: null,
-      });
-    }
-  }, [discountCashBackOptions, values?.sender_id, values?.recipient_id]);
 
   const findTariff = (branchId: number, productTypeId: number): number => {
     const foundTariff = tariffs.find(
@@ -433,7 +318,6 @@ export const GoodsEdit = () => {
     }
   }, [tableProps.dataSource, record?.products]);
 
-  // Отслеживание изменений в полях объявленной ценности и комиссии
   useEffect(() => {
     if (values?.declared_value && values?.commission) {
       const declaredValue = Number(values.declared_value);
@@ -472,7 +356,6 @@ export const GoodsEdit = () => {
     setNextId(nextId + 1);
   };
 
-  // Копирование выбранных товаров
   const copySelectedItems = () => {
     if (selectedRowKeys.length === 0) {
       message.warning("Выберите товары для копирования");
@@ -532,7 +415,6 @@ export const GoodsEdit = () => {
     setServices(services.filter((item) => item.id !== record.id));
   };
 
-  // Расчет суммы на основе веса и тарифа
   const calculateSum = (weight: number = 0, tariff: number = 0): number => {
     return weight * tariff;
   };
@@ -553,8 +435,6 @@ export const GoodsEdit = () => {
 
       const encodedFilters = encodeURIComponent(JSON.stringify(filters));
 
-      console.log('Проверяем скидку для:', { destinationId, productTypeId, counterpartyId });
-
       const response = await fetch(`${apiUrl}/discount?s=${encodedFilters}`, {
         method: "GET",
         headers: {
@@ -565,10 +445,8 @@ export const GoodsEdit = () => {
       if (response.ok) {
         const data = await response.json();
         const discountData = data[0];
-        console.log('Ответ API скидки:', discountData);
         
         const discountValue = discountData?.discount ? Number(discountData.discount) : 0;
-        console.log('Применяем скидку:', discountValue);
         
         return {
           discount: discountValue,
@@ -577,7 +455,6 @@ export const GoodsEdit = () => {
       }
       return { discount: 0, discountId: null };
     } catch (error) {
-      console.error("Ошибка при проверке индивидуальной скидки:", error);
       return { discount: 0, discountId: null };
     }
   };
@@ -604,26 +481,19 @@ export const GoodsEdit = () => {
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
 
-              // Проверяем индивидуальную скидку при выборе типа продукта
-              if (field === "type_id" && values?.destination_id) {
-                const counterpartyId = selectedDiscountOption?.counterpartyId;
-                if (counterpartyId) {
-                  console.log('Проверяем скидку для мешка при изменении type_id');
-                  const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
-                    values.destination_id,
-                    value,
-                    counterpartyId
-                  );
-                  newItem.individual_discount = individualDiscount;
-                  newItem.discount_id = discountId;
-                  console.log('Установлена скидка для мешка:', individualDiscount);
-                }
+              if (field === "type_id" && values?.destination_id && values?.discount_id) {
+                const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
+                  values.destination_id,
+                  value,
+                  values.discount_id
+                );
+                newItem.individual_discount = individualDiscount;
+                newItem.discount_id = discountId;
               }
 
               if (!item.is_price_editable) {
                 const discountToApply = newItem.individual_discount || 0;
                 newItem.price = Number(selectedType.tariff) - discountToApply;
-                console.log('Новая цена после скидки:', newItem.price, 'тариф:', selectedType.tariff, 'скидка:', discountToApply);
               }
 
               if (newItem.weight) {
@@ -632,7 +502,6 @@ export const GoodsEdit = () => {
                   ? newItem.price
                   : Number(selectedType.tariff) - discountToApply;
                 newItem.sum = calculateSum(newItem.weight, priceToUse);
-                console.log('Новая сумма:', newItem.sum, 'вес:', newItem.weight, 'цена:', priceToUse);
               }
             }
           }
@@ -650,11 +519,9 @@ export const GoodsEdit = () => {
     setServices(updatedServices);
   };
 
-  // Обработка изменения филиала назначения
   useEffect(() => {
     const updateServicesWithTariffs = async () => {
       if (values?.destination_id && services.length > 0) {
-        // Обновляем тарифы для всех сервисов при изменении филиала
         const branchId = Number(values.destination_id);
 
         const updatedServices = await Promise.all(
@@ -667,13 +534,11 @@ export const GoodsEdit = () => {
                 const newItem = { ...item, updated: true };
                 newItem.tariff = tariffValue;
 
-                // Обновляем цену для всех мешков, которые не имеют редактируемой цены
                 if (!item.is_price_editable) {
                   const discountToApply = newItem.individual_discount || 0;
                   newItem.price = tariffValue - discountToApply;
                 }
 
-                // Пересчитываем сумму для всех мешков с весом
                 if (newItem.weight) {
                   const priceToUse = item.is_price_editable 
                     ? (newItem.price || item.price || tariffValue)
@@ -695,36 +560,22 @@ export const GoodsEdit = () => {
     updateServicesWithTariffs();
   }, [values?.destination_id, tariffs]);
 
-  // Пересчитываем индивидуальные скидки при изменении города назначения или контрагентов
   useEffect(() => {
     const updateIndividualDiscounts = async () => {
-      console.log('useEffect сработал для пересчета скидок в edit');
-      console.log('Параметры:', { 
-        destination_id: values?.destination_id, 
-        selectedDiscountOption: selectedDiscountOption,
-        services_length: services.length 
-      });
-
-      if (values?.destination_id && selectedDiscountOption?.counterpartyId && services.length > 0) {
-        const counterpartyId = selectedDiscountOption.counterpartyId;
-        
-        console.log('Начинаем пересчет скидок для всех мешков в edit');
-        
+      if (values?.destination_id && services.length > 0) {
         const updatedServices = await Promise.all(
           services.map(async (item, index) => {
             if (item.type_id) {
-              console.log(`Проверяем скидку для мешка ${index + 1} в edit`);
               const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
                 values.destination_id,
                 Number(item.type_id),
-                counterpartyId
+                values.discount_id
               );
               
               const newItem = { ...item, updated: true };
               newItem.individual_discount = individualDiscount;
               newItem.discount_id = discountId;
 
-              // Пересчитываем цену с учетом новой скидки только для созданных мешков
               const selectedType = tariffTableProps?.dataSource?.find(
                 (type: any) =>
                   type.branch_id === values?.destination_id &&
@@ -734,12 +585,9 @@ export const GoodsEdit = () => {
               if (selectedType && !item.is_price_editable) {
                 const discountToApply = individualDiscount || 0;
                 newItem.price = Number(selectedType.tariff) - discountToApply;
-                console.log(`Мешок ${index + 1}: новая цена ${newItem.price} (тариф: ${selectedType.tariff}, скидка: ${discountToApply})`);
                 
-                // Пересчитываем сумму
                 if (newItem.weight) {
                   newItem.sum = calculateSum(newItem.weight, newItem.price);
-                  console.log(`Мешок ${index + 1}: новая сумма ${newItem.sum}`);
                 }
               }
 
@@ -749,13 +597,12 @@ export const GoodsEdit = () => {
           })
         );
 
-        console.log('Обновляем состояние мешков в edit');
         setServices(updatedServices);
       }
     };
 
     updateIndividualDiscounts();
-  }, [values?.destination_id, selectedDiscountOption]);
+  }, [values?.destination_id, values?.discount_id]);
 
   const updateProductField = (
     id: string | number,
@@ -765,7 +612,6 @@ export const GoodsEdit = () => {
     setProducts(
       products.map((item) => {
         if (item.id === id) {
-          // Если текущее количество = 0, а новое > 0, считаем товар новым
           const wasEmpty = Number(item.quantity) === 0;
           const isNowFilled = Number(value) > 0;
           const isNewlyAdded = wasEmpty && isNowFilled;
@@ -774,12 +620,9 @@ export const GoodsEdit = () => {
             ...item,
             [field]: value,
             updated: true,
-            // Если товар только что добавили (изменили количество с 0 на > 0),
-            // отмечаем его как созданный
             is_created: isNewlyAdded || item.is_created,
           };
 
-          // Если изменяется количество или цена, пересчитываем сумму
           if (field === "quantity") {
             newItem.sum = value * item.price;
           } else if (field === "price") {
@@ -793,7 +636,6 @@ export const GoodsEdit = () => {
     );
   };
 
-  // Настройки для выбора строк в таблице услуг
   const rowSelection = {
     selectedRowKeys,
     onChange: (newSelectedRowKeys: React.Key[]) => {
@@ -804,7 +646,6 @@ export const GoodsEdit = () => {
         | GoodItem
         | { weight: number; price: number; quantity: number; sum: number }
     ) => ({
-      // Отключаем выбор для итоговой строки (которая содержит все поля итогового объекта)
       disabled:
         "weight" in record &&
         "price" in record &&
@@ -863,7 +704,6 @@ export const GoodsEdit = () => {
       ...values,
       services: [...services, ...deletedServices].map((service) => ({
         ...service,
-        // Добавляем метки для изменений
         is_updated: service.updated === true && !service.is_created,
         is_created: service.is_created === true,
       })),
@@ -933,24 +773,7 @@ export const GoodsEdit = () => {
     ],
   });
 
-  const { selectProps: discountSelectProps }: any = useSelect({
-    resource: "counterparty",
-    optionLabel: (record: any) => {
-      return `${record?.clientPrefix ?? ""}-${record?.clientCode ?? ""}, ${
-        record?.name ?? ""
-      }, '${record?.discount?.discount ?? 0}' руб`;
-    },
-    filters: [
-      {
-        field: "id",
-        operator: "in",
-        value: [values?.sender_id, values?.recipient_id].filter(Boolean),
-      },
-    ],
-    queryOptions: {
-      enabled: !!values?.sender_id && !!values?.recipient_id,
-    },
-  });
+
 
   const { selectProps: branchSelectProps } = useSelect({
     resource: "branch",
@@ -1047,7 +870,6 @@ export const GoodsEdit = () => {
     `}</style>
   );
 
-  // Добавляю селект для досыльных городов (как в create.tsx)
   const { selectProps: branchSelectPropsIsSent } = useSelect({
     resource: "sent-the-city",
     optionLabel: (record: any) => `${record?.sent_city?.name}`,
@@ -1100,7 +922,6 @@ export const GoodsEdit = () => {
 
       setNextId(nextId + count * selectedItems.length);
     } else {
-      // Если нет выделенных товаров, создаем пустые
       newItems = Array.from({ length: count }, (_, i) => {
         const newId = nextId + i;
         return {
@@ -1116,7 +937,7 @@ export const GoodsEdit = () => {
     }
 
     setServices([...services, ...newItems]);
-    setSelectedRowKeys([]); // Сбрасываем выделение
+    setSelectedRowKeys([]);
   };
 
   const copyWhileCount = () => {
@@ -1134,14 +955,11 @@ export const GoodsEdit = () => {
     }
   };
 
-  // Функция для проверки доступности продукта для филиала
   const isProductAvailableForBranch = (product: ProductItem): boolean => {
-    // Если нет данных о номенклатуре филиала, разрешаем редактирование всех продуктов
     if (!branchNomenclature || !branchNomenclature.product_types) {
       return true;
     }
 
-    // Проверяем, есть ли продукт в списке доступных для филиала
     return branchNomenclature.product_types.some(
       (availableProduct: any) =>
         availableProduct.id === product.id ||
@@ -1165,19 +983,16 @@ export const GoodsEdit = () => {
             >
               <Select
                 onChange={(val, record: any) => {
-                  // Ищем досыльную запись для выбранного города
                   const sentCityRecord = sentCityData.find(
                     (item: any) => item.city_id === val
                   );
 
                   if (sentCityRecord) {
-                    // Если у города есть досыльная привязка, автоматически выбираем её
                     formProps.form?.setFieldsValue({
                       destination_id: sentCityRecord.city_id,
                       sent_back_id: sentCityRecord.id,
                     });
                   } else {
-                    // Если досыльной привязки нет, просто устанавливаем город
                     formProps.form?.setFieldsValue({
                       destination_id: val,
                       sent_back_id: null,
@@ -1207,17 +1022,17 @@ export const GoodsEdit = () => {
               <Select {...counterpartySelectPropsReceiver} allowClear />
             </Form.Item>
           </Col>
-          <Col span={6}>
+          <Col span={4}>
             <Form.Item label="Комментарий" name="comments">
               <Input />
             </Form.Item>
           </Col>
-          <Col span={6}>
+          <Col span={4}>
             <Form.Item label="Досыльные города" name="sent_back_id">
               <Select {...branchSelectPropsIsSent} allowClear />
             </Form.Item>
           </Col>
-          <Col span={6}>
+          <Col span={4}>
             <Form.Item
               rules={[{ required: true, message: "Способ оплаты обязателен" }]}
               label="Способ оплаты"
@@ -1242,59 +1057,65 @@ export const GoodsEdit = () => {
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item label="Скидка/Кешбек" name="discount_cashback_id">
+            <Form.Item label="Скидка" name="discount_id">
               <Select
-                placeholder="Выберите скидку или кешбек"
-                onChange={(value: string) => {
-                  const selectedOption = discountCashBackOptions.find(
-                    (opt) => opt.id === value
-                  );
-                  
-                  setSelectedDiscountOption(selectedOption || null);
-                  
-                  if (selectedOption) {
-                    setSelectedDiscountType(selectedOption.type);
-
-                    if (selectedOption.type === "discount") {
-                      formProps.form?.setFieldsValue({
-                        cash_back_target: null,
-                        discount_id: selectedOption.originalData.id,
-                      });
-                    } else if (selectedOption.type === "cashback") {
-                      const cashBackTarget =
-                        selectedOption.counterpartyId === values?.sender_id
-                          ? "sender"
-                          : "receiver";
-                      formProps.form?.setFieldsValue({
-                        cash_back_target: cashBackTarget,
-                        discount_id: null,
-                      });
-                    }
-                  } else {
-                    setSelectedDiscountType(null);
+                placeholder="Выберите скидку"
+                allowClear
+                showSearch
+                onChange={(value) => {
+                  if (value) {
                     formProps.form?.setFieldsValue({
                       cash_back_target: null,
+                    });
+                  }
+                }}
+                options={discounts
+                  .filter(
+                    (item: any) =>
+                      item.counter_party_id === values.sender_id ||
+                      (item.counter_party_id === values.recipient_id &&
+                        item.destination_id === values.destination_id &&
+                        Boolean(item?.product_type_id))
+                  )
+                  .map((item: any) => ({
+                    label: `${item.counter_party?.clientPrefix || ""}-${
+                      item.counter_party?.clientCode || ""
+                    }, ${item.counter_party?.name}. Скидка: ${item.discount}`,
+                    value: item.counter_party_id,
+                  }))}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={6}>
+            <Form.Item label="Кешбек" name="cash_back_target">
+              <Select
+                placeholder="Выберите кешбек"
+                allowClear
+                onChange={(value) => {
+                  if (value) {
+                    formProps.form?.setFieldsValue({
                       discount_id: null,
                     });
                   }
                 }}
-                allowClear
-                options={discountCashBackOptions.map((option) => ({
-                  label: option.label,
-                  value: option.id,
-                }))}
+                options={cashBacks
+                  .filter(
+                    (item: any) =>
+                      item.counterparty_id === values.sender_id ||
+                      item.counterparty_id === values.recipient_id
+                  )
+                  .map((item: any) => ({
+                    label: `${item.counterparty?.clientPrefix || ""}-${
+                      item.counterparty?.clientCode || ""
+                    }, ${item.counterparty.name}. Сумма: ${item.amount}`,
+                    value: item.counterparty.type,
+                  }))}
               />
             </Form.Item>
           </Col>
         </Row>
 
-        {/* Скрытые поля для отправки данных */}
-        <Form.Item name="cash_back_target" hidden>
-          <Input />
-        </Form.Item>
-        <Form.Item name="discount_id" hidden>
-          <Input />
-        </Form.Item>
+
 
         <Title level={5}>Услуги</Title>
         <Row gutter={[16, 8]} style={{ marginBottom: 10 }}>

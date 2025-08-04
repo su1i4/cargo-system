@@ -96,15 +96,14 @@ export const CashDeskCreate: React.FC = () => {
   // Функция для создания cash-desk записей
   const { mutate: createCashDeskEntry } = useCreate();
 
-  // Функция для создания множественных cash-desk записей для каждого товара
-  const createMultipleCashDeskEntries = async (formValues: any) => {
-    let successCount = 0;
+  // Функция для создания bulk оплаты для оптовых операций
+  const createBulkIncomeEntries = async (formValues: any) => {
     const totalItems = selectedRows.length;
 
     // Показываем уведомление о начале процесса
     notification.info({
       message: "Создание оплат",
-      description: `Создается ${totalItems} записей оплаты для каждого товара...`,
+      description: `Создается bulk оплата для ${totalItems} товаров...`,
       duration: 3,
     });
 
@@ -113,7 +112,8 @@ export const CashDeskCreate: React.FC = () => {
       (item: any) => item.name === selectedCurrency
     );
 
-    for (const good of selectedRows) {
+    // Подготавливаем массив данных для bulk запроса
+    const bulkData = selectedRows.map((good: any) => {
       // Получаем исторический курс валюты на дату создания товара
       const historicalRate = getHistoricalRate(
         selectedCurrencyData,
@@ -135,79 +135,50 @@ export const CashDeskCreate: React.FC = () => {
         historicalRate > 0 ? historicalRate * totalGoodAmount : totalGoodAmount;
       const remainingToPay = transformAmount - (good?.paid_sum || 0);
 
-      // Создаем отдельную cash-desk запись для каждого товара
-      const cashDeskData = {
-        ...formValues,
+      return {
+        bank_id: formValues.bank_id,
+        type_currency: formValues.type_currency,
         amount: remainingToPay,
-        paid_sum: remainingToPay,
+        type: "income",
         good_id: good.id,
-        counterparty_id: formValues.sender_id,
+        date: formValues.date, // Добавлено поле date
+        counterparty_id: formValues.sender_id, // Добавлено поле counterparty_id
+        comment: formValues.comment || "", // Добавлено поле comment
+        method_payment: formValues.method_payment || "", // Добавлено поле method_payment
       };
+    });
 
-      try {
-        // Создаем cash-desk запись
-        await new Promise((resolve, reject) => {
-          createCashDeskEntry(
-            {
-              resource: "cash-desk",
-              values: cashDeskData,
-            },
-            {
-              onSuccess: (response: any) => {
-                // Обновляем товар с новым operation_id
-                updateManyGoods({
-                  ids: [good.id],
-                  values: {
-                    operation_id: response.data.id,
-                  },
-                });
-                successCount++;
+    try {
+      const response = await fetch(`${API_URL}/cash-desk/income-bulk`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("cargo-system-token")}`,
+        },
+        body: JSON.stringify(bulkData),
+      });
 
-                // Показываем прогресс
-                notification.info({
-                  message: "Прогресс создания",
-                  description: `Создано ${successCount} из ${totalItems} записей`,
-                  duration: 1,
-                });
-
-                resolve(response);
-              },
-              onError: (error) => {
-                notification.error({
-                  message: "Ошибка при создании оплаты",
-                  description: `Не удалось создать оплату для товара ${
-                    good.invoice_number || good.id
-                  }`,
-                  duration: 4,
-                });
-                reject(error);
-              },
-            }
-          );
-        });
-      } catch (error) {
-        console.error(
-          `Ошибка при создании cash-desk записи для товара ${good.id}:`,
-          error
-        );
+      if (!response.ok) {
+        message.error("Ошибка при создании bulk оплаты");
+        return;
       }
-    }
 
-    // После завершения всех операций показываем результат и переходим на страницу income
-    if (successCount === totalItems) {
       notification.success({
-        message: "Оплаты созданы успешно",
-        description: `Успешно создано ${successCount} записей оплаты для каждого товара`,
+        message: "Bulk оплата создана успешно",
+        description: `Успешно создана bulk оплата для ${totalItems} товаров`,
         duration: 4,
       });
+
       setTimeout(() => {
         push("/income");
       }, 1000);
-    } else {
-      notification.warning({
-        message: "Процесс завершен с ошибками",
-        description: `Создано ${successCount} из ${totalItems} записей. Проверьте остальные товары.`,
-        duration: 5,
+
+    } catch (error) {
+      console.error("Ошибка при создании bulk оплаты:", error);
+      notification.error({
+        message: "Ошибка при создании bulk оплаты",
+        description: "Не удалось создать bulk оплату. Попробуйте снова.",
+        duration: 4,
       });
     }
   };
@@ -896,9 +867,8 @@ export const CashDeskCreate: React.FC = () => {
             values.type_operation === "Контрагент оптом" &&
             selectedRows.length > 1
           ) {
-            // Для оптовой оплаты создаем отдельные записи для каждого товара
-            // и не создаем основную запись
-            createMultipleCashDeskEntries(values);
+            // Для оптовой оплаты используем bulk запрос
+            createBulkIncomeEntries(values);
             return; // Не продолжаем обычную логику создания
           }
 

@@ -4,22 +4,14 @@ import {
   EditButton,
   DeleteButton,
   useTable,
-  useSelect,
-  useForm,
 } from "@refinedev/antd";
-import { useNavigation, useShow, useUpdateMany } from "@refinedev/core";
+import { useNavigation, useShow } from "@refinedev/core";
 import {
   Typography,
   Flex,
   Row,
   Col,
   Button,
-  message,
-  Dropdown,
-  Card,
-  Form,
-  Select,
-  Input,
 } from "antd";
 import { PrinterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -28,7 +20,7 @@ import QRCode from "react-qr-code";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { useReactToPrint } from "react-to-print";
-import { API_URL } from "../../App";
+import { PartialPayment } from "./PartialPayment";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -37,56 +29,38 @@ dayjs.tz.setDefault("Asia/Bishkek");
 
 const { Title, Text } = Typography;
 
-const paymentTypes = [
-  "Оплата наличными",
-  "Оплата переводом",
-  "Оплата перечислением",
-  "Оплата балансом",
-];
+// Функция для получения исторического курса валюты на конкретную дату
+const getHistoricalRate = (currency: any, targetDate: string) => {
+  if (!currency?.currency_history || !targetDate) {
+    return currency?.rate || 1;
+  }
+
+  // Сортируем историю по дате (по убыванию)
+  const sortedHistory = [...currency.currency_history].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  const targetDateTime = new Date(targetDate).getTime();
+
+  // Ищем курс, который был актуален на дату создания товара
+  for (const historyRecord of sortedHistory) {
+    const historyDateTime = new Date(historyRecord.created_at).getTime();
+    if (historyDateTime <= targetDateTime) {
+      return historyRecord.rate;
+    }
+  }
+
+  // Если не нашли подходящий исторический курс, берем самый ранний
+  return sortedHistory[sortedHistory.length - 1]?.rate || currency?.rate || 1;
+};
 
 export const GoodsShow: React.FC = () => {
   const { queryResult } = useShow();
   const { data, isLoading, refetch } = queryResult;
   const record = data?.data;
   const printRef = useRef<HTMLDivElement>(null);
-  const token = localStorage.getItem("cargo-system-token");
-
-  const { mutate: updateManyGoods } = useUpdateMany({
-    resource: "goods-processing",
-  });
-
-  const { formProps, saveButtonProps, form, formLoading } = useForm({
-    onMutationSuccess(data: any) {
-      const id = data?.data?.id;
-      if (record?.id) {
-        updateManyGoods({
-          ids: [record?.id],
-          values: {
-            operation_id: id,
-          },
-        });
-        message.success("Частичная оплата создана успешно");
-        refetch();
-      }
-    },
-    resource: "cash-desk",
-    redirect: false,
-    //@ts-ignore
-    defaultValues: {
-      type: "income",
-      date: dayjs(),
-    },
-  });
-
-  const { selectProps: bankSelectProps } = useSelect({
-    resource: "bank",
-    optionLabel: "name",
-  });
-
-  const { selectProps: currencySelectProps } = useSelect({
-    resource: "currency",
-    optionLabel: "name",
-  });
+  
   const { push } = useNavigation();
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -137,7 +111,7 @@ export const GoodsShow: React.FC = () => {
             copy.style.setProperty("page-break-before", "auto", "important");
             copy.style.setProperty("flex", "1", "important");
             // copy.style.setProperty("font-family", "Times New Roman, serif", "important");
-            });
+          });
 
           const divider = el.querySelector(".divider");
           if (divider) {
@@ -320,29 +294,6 @@ export const GoodsShow: React.FC = () => {
     (item: any) => item.name === "Сом"
   );
 
-  // Универсальная функция для получения исторического курса валюты
-  const getHistoricalRate = (currency: any, targetDate: string) => {
-    if (!currency?.currency_history || !targetDate) {
-      return currency?.rate || 1;
-    }
-
-    const sortedHistory = [...currency.currency_history].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-
-    const targetDateTime = new Date(targetDate).getTime();
-
-    for (const historyRecord of sortedHistory) {
-      const historyDateTime = new Date(historyRecord.created_at).getTime();
-      if (historyDateTime <= targetDateTime) {
-        return historyRecord.rate;
-      }
-    }
-
-    return sortedHistory[sortedHistory.length - 1]?.rate || currency?.rate || 1;
-  };
-
   // Получаем курс сома на дату создания накладной
   const somRate = som ? getHistoricalRate(som, record?.created_at) : 1;
 
@@ -378,11 +329,12 @@ export const GoodsShow: React.FC = () => {
               style={{ marginBottom: "2px" }}
             >
               <Text style={{ fontSize: "15px" }}>
-                Call-center: +996 990 10 50 03
+                Call-center: +996 990 105 003
               </Text>
             </Flex>
             <Text style={{ fontSize: "15px", color: "#010801", margin: 0 }}>
-              Фактический конечный город, услуги грузчиков и адресная доставка оплачивается отдельно
+              Фактический конечный город, услуги грузчиков и адресная доставка
+              оплачивается отдельно
             </Text>
             <Text style={{ fontSize: "15px", color: "#010101", margin: 0 }}>
               Адрес склада:{" "}
@@ -433,44 +385,47 @@ export const GoodsShow: React.FC = () => {
           </Flex>
         </Flex>
 
-        <Flex gap="5px">
-          {/* Левая часть - информация об отправителе и получателе (30%) */}
+        <Flex style={{ marginBottom: "5px" }} gap="5px">
           <div style={{ width: "30%" }}>
             <Row
               gutter={[2, 0]}
               style={{
                 border: "1px solid black",
-                borderRadius: "4px",
                 overflow: "hidden",
               }}
             >
               <Col
-                style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600, borderRight: "none" }}
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  fontWeight: 600,
+                  borderRight: "none",
+                }}
                 span={24}
               >
                 <Text className="table-text">Отправитель</Text>
               </Col>
-              
+
               <Col style={colStyle} span={8}>
                 <Text className="table-text">Код</Text>
               </Col>
-              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
                 <Text className="table-text">{`${
                   record?.sender?.clientPrefix || ""
                 }-${record?.sender?.clientCode || ""}`}</Text>
               </Col>
-              
+
               <Col style={colStyle} span={8}>
                 <Text className="table-text">Ф.И.О</Text>
               </Col>
-              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
                 <Text className="table-text">{record?.sender?.name || ""}</Text>
               </Col>
 
               <Col style={colStyle} span={8}>
                 <Text className="table-text">Контакты</Text>
               </Col>
-              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
                 <Text className="table-text">
                   {record?.sender?.phoneNumber
                     ? `+${record?.sender?.phoneNumber}`
@@ -481,36 +436,46 @@ export const GoodsShow: React.FC = () => {
               <Col style={colStyle} span={8}>
                 <Text className="table-text">Адрес склада</Text>
               </Col>
-              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
                 <Text className="table-text">{`${
                   record?.employee?.branch?.name || ""
                 } ${record?.employee?.under_branch?.address || ""}`}</Text>
               </Col>
 
-              <Col style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600, borderRight: "none" }} span={24}>
+              <Col
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  fontWeight: 600,
+                  borderRight: "none",
+                }}
+                span={24}
+              >
                 <Text className="table-text">Получатель</Text>
               </Col>
-              
+
               <Col style={colStyle} span={8}>
                 <Text className="table-text">Код</Text>
               </Col>
-              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
                 <Text className="table-text">{`${
                   record?.recipient?.clientPrefix || ""
                 }-${record?.recipient?.clientCode || ""}`}</Text>
               </Col>
-              
+
               <Col style={colStyle} span={8}>
                 <Text className="table-text">Ф.И.О</Text>
               </Col>
-              <Col style={{...colStyle, borderRight: "none"}} span={16}>
-                <Text className="table-text">{record?.recipient?.name || ""}</Text>
+              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
+                <Text className="table-text">
+                  {record?.recipient?.name || ""}
+                </Text>
               </Col>
 
               <Col style={colStyle} span={8}>
                 <Text className="table-text">Контакты</Text>
               </Col>
-              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
                 <Text className="table-text">
                   {record?.recipient?.phoneNumber
                     ? `+${record?.recipient?.phoneNumber}`
@@ -521,7 +486,7 @@ export const GoodsShow: React.FC = () => {
               <Col style={colStyle} span={8}>
                 <Text className="table-text">Город назначения</Text>
               </Col>
-              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
                 <Text className="table-text" style={{ fontWeight: 700 }}>
                   {record?.destination?.name || ""}
                 </Text>
@@ -530,15 +495,24 @@ export const GoodsShow: React.FC = () => {
               <Col style={colStyle} span={8}>
                 <Text className="table-text">Комментарий</Text>
               </Col>
-              <Col style={{...colStyle, borderRight: "none"}} span={16}>
+              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
                 <Text className="table-text">{record?.comments || ""}</Text>
               </Col>
-              
+
               <Col style={{ ...colStyle, borderBottom: "none" }} span={8}>
                 <Text className="table-text">Фактический конечный город</Text>
               </Col>
-              <Col style={{ ...colStyle, borderBottom: "none", borderRight: "none" }} span={16}>
-                <Text className="table-text">{record?.sent_back?.name || ""}</Text>
+              <Col
+                style={{
+                  ...colStyle,
+                  borderBottom: "none",
+                  borderRight: "none",
+                }}
+                span={16}
+              >
+                <Text className="table-text">
+                  {record?.sent_back?.name || ""}
+                </Text>
               </Col>
             </Row>
           </div>
@@ -549,24 +523,35 @@ export const GoodsShow: React.FC = () => {
               gutter={[2, 0]}
               style={{
                 border: "1px solid black",
-                borderRadius: "4px",
                 overflow: "hidden",
               }}
             >
               <Col
-                style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  fontWeight: 600,
+                }}
                 span={4}
               >
                 <Text className="table-text">№ Мешка, Коробки</Text>
               </Col>
               <Col
-                style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  fontWeight: 600,
+                }}
                 span={5}
               >
                 <Text className="table-text">Наименование услуги</Text>
               </Col>
               <Col
-                style={{ ...colStyle, backgroundColor: "#F5F5F4", fontWeight: 600 }}
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  fontWeight: 600,
+                }}
                 span={5}
               >
                 <Text className="table-text">Наименование товара клиента</Text>
@@ -593,7 +578,11 @@ export const GoodsShow: React.FC = () => {
                   >
                     <p
                       className="table-text"
-                      style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
+                      style={{
+                        textAlign: "center",
+                        margin: 0,
+                        fontWeight: 600,
+                      }}
                     >
                       Количество
                     </p>
@@ -610,7 +599,11 @@ export const GoodsShow: React.FC = () => {
                   >
                     <p
                       className="table-text"
-                      style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
+                      style={{
+                        textAlign: "center",
+                        margin: 0,
+                        fontWeight: 600,
+                      }}
                     >
                       Мест
                     </p>
@@ -626,7 +619,11 @@ export const GoodsShow: React.FC = () => {
                   >
                     <p
                       className="table-text"
-                      style={{ textAlign: "center", margin: 0, fontWeight: 600 }}
+                      style={{
+                        textAlign: "center",
+                        margin: 0,
+                        fontWeight: 600,
+                      }}
                     >
                       шт
                     </p>
@@ -652,19 +649,27 @@ export const GoodsShow: React.FC = () => {
               {grouped?.map((service: any, index: number) => (
                 <React.Fragment key={index}>
                   <Col style={colStyle} span={4}>
-                    <Text className="table-text">{service.bag_number_numeric}</Text>
+                    <Text className="table-text">
+                      {service.bag_number_numeric}
+                    </Text>
                   </Col>
                   <Col style={colStyle} span={5}>
                     <Text
                       className="table-text"
-                      style={{ fontSize: 11, lineHeight: "12px", fontWeight: 600 }}
+                      style={{
+                        fontSize: 11,
+                        lineHeight: "12px",
+                        fontWeight: 600,
+                      }}
                     >
                       Грузоперевозка{" "}
                       {`${record?.employee?.branch?.name} - ${record?.destination?.name}`}
                     </Text>
                   </Col>
                   <Col style={colStyle} span={5}>
-                    <Text className="table-text">{service.nomenclature?.name}</Text>
+                    <Text className="table-text">
+                      {service.nomenclature?.name}
+                    </Text>
                   </Col>
                   <Col style={colStyle} span={2}>
                     <Text className="table-text">{service.count || 0}</Text>
@@ -674,7 +679,10 @@ export const GoodsShow: React.FC = () => {
                   </Col>
                   <Col style={colStyle} span={2}>
                     <Text className="table-text">
-                      {String(Number(service.weight || 0).toFixed(2)).replace(".", ",") || 0}
+                      {String(Number(service.weight || 0).toFixed(2)).replace(
+                        ".",
+                        ","
+                      ) || 0}
                     </Text>
                   </Col>
                   <Col style={colStyle} span={2}>
@@ -709,7 +717,10 @@ export const GoodsShow: React.FC = () => {
               </Col>
               <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
                 <Text className="table-text" style={{ fontWeight: "bold" }}>
-                  {String(Number(totalWeight || 0).toFixed(2)).replace(".", ",") || 0}
+                  {String(Number(totalWeight || 0).toFixed(2)).replace(
+                    ".",
+                    ","
+                  ) || 0}
                 </Text>
               </Col>
               <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
@@ -723,14 +734,13 @@ export const GoodsShow: React.FC = () => {
                 </Text>
               </Col>
             </Row>
-            
+
             {/* Таблица с товарами в правой части */}
             {record?.products?.length ? (
               <Row
                 gutter={[2, 0]}
                 style={{
                   border: "1px solid black",
-                  borderRadius: "4px",
                   overflow: "hidden",
                   marginTop: "6px",
                 }}
@@ -790,7 +800,10 @@ export const GoodsShow: React.FC = () => {
                       <Col span={4} style={colStyle}>
                         <Text className="table-text">{quantity}</Text>
                       </Col>
-                      <Col span={6} style={{ ...colStyle, borderRight: "none" }}>
+                      <Col
+                        span={6}
+                        style={{ ...colStyle, borderRight: "none" }}
+                      >
                         <Text className="table-text">{sum}</Text>
                       </Col>
                     </React.Fragment>
@@ -819,43 +832,160 @@ export const GoodsShow: React.FC = () => {
                 </Col>
               </Row>
             ) : null}
+            <Row
+              gutter={[2, 0]}
+              style={{
+                border: "1px solid black",
+                overflow: "hidden",
+                marginTop: "6px",
+              }}
+            >
+              <Col
+                span={14}
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  fontWeight: 600,
+                }}
+              >
+                <Text className="table-text"></Text>
+              </Col>
+              <Col
+                span={4}
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  fontWeight: 600,
+                }}
+              >
+                <Text className="table-text">RUB</Text>
+              </Col>
+              <Col
+                span={6}
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  borderRight: "none",
+                }}
+              >
+                <Text className="table-text" style={{ fontWeight: 600 }}>
+                  KGS
+                </Text>
+              </Col>
+              <Col
+                span={14}
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  fontWeight: 600,
+                }}
+              >
+                <Text className="table-text">
+                  Стоимость доставки (Транспортные услуги)
+                </Text>
+              </Col>
+              <Col
+                span={4}
+                style={{
+                  ...colStyle,
+                  fontWeight: 600,
+                }}
+              >
+                <Text className="table-text">{record?.amount}</Text>
+              </Col>
+              <Col
+                span={6}
+                style={{
+                  ...colStyle,
+                  borderRight: "none",
+                }}
+              >
+                <Text className="table-text" style={{ fontWeight: 600 }}>
+                  {som && somRate
+                    ? Number(
+                        Number(record?.amount || 0) * Number(somRate) || 0
+                      ).toFixed(2)
+                    : "Курс загружается..."}
+                </Text>
+              </Col>
+              <Col
+                span={14}
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  fontWeight: 600,
+                }}
+              >
+                <Text className="table-text">Оплачено</Text>
+              </Col>
+              <Col
+                span={4}
+                style={{
+                  ...colStyle,
+                  fontWeight: 600,
+                }}
+              >
+                <Text className="table-text">{record?.paid_sum}</Text>
+              </Col>
+              <Col
+                span={6}
+                style={{
+                  ...colStyle,
+                  borderRight: "none",
+                }}
+              >
+                <Text className="table-text" style={{ fontWeight: 600 }}>
+                  {som && somRate
+                    ? Number(
+                        Number(record?.paid_sum || 0) * Number(somRate) || 0
+                      ).toFixed(2)
+                    : "Курс загружается..."}
+                </Text>
+              </Col>
+              <Col
+                span={14}
+                style={{
+                  ...colStyle,
+                  backgroundColor: "#F5F5F4",
+                  borderBottom: "none",
+                  fontWeight: 600,
+                }}
+              >
+                <Text className="table-text">Итого к оплате (остаток)</Text>
+              </Col>
+              <Col
+                span={4}
+                style={{
+                  ...colStyle,
+                  borderBottom: "none",
+                  fontWeight: 600,
+                }}
+              >
+                <Text className="table-text">
+                  {record?.amount - record?.paid_sum}
+                </Text>
+              </Col>
+              <Col
+                span={6}
+                style={{
+                  ...colStyle,
+                  borderRight: "none",
+                  borderBottom: "none",
+                }}
+              >
+                <Text className="table-text" style={{ fontWeight: 600 }}>
+                  {som && somRate
+                    ? Number(
+                        Number(record?.amount - record?.paid_sum || 0) *
+                          Number(somRate) || 0
+                      ).toFixed(2)
+                    : "Курс загружается..."}
+                </Text>
+              </Col>
+            </Row>
           </div>
         </Flex>
-        <Flex
-          justify="space-between"
-          align="center"
-          style={{ marginTop: "6px" }}
-        >
-          <Text
-            className="total-sum-text"
-            style={{ fontWeight: "bold", fontSize: "20px", margin: 0 }}
-          >
-            Сумма заказа
-          </Text>
-          <Flex vertical align="flex-end" style={{ width: "350px" }}>
-            <Text
-              style={{
-                fontWeight: "bold",
-                fontSize: "20px",
-                borderBottom: "1px solid black",
-                margin: 0,
-              }}
-              className="total-sum-text"
-            >
-              Итого к оплате: {record?.amount} RUB
-            </Text>
-            <Text
-              className="total-sum-text"
-              style={{ fontWeight: "bold", fontSize: "14px", margin: 0 }}
-            >
-              {som && somRate 
-                ? Number((Number(record?.amount || 0) * Number(somRate)) || 0).toFixed(2)
-                : "Курс загружается..."
-              } KGS
-            </Text>
-          </Flex>
-        </Flex>
-        <Flex gap="10px" style={{ marginTop: "3px" }}>
+        <Flex gap="10px" style={{ marginTop: "5px" }}>
           <Flex vertical style={{ width: "50%" }}>
             <Text
               className="terms-section"
@@ -867,13 +997,19 @@ export const GoodsShow: React.FC = () => {
               className="terms-section"
               style={{ fontSize: "0.8em", margin: 0, lineHeight: "1.0" }}
             >
-              Согласно накладному стоимость доставки указана только до «Городов назначения», за «Фактический конечный город» взимается дополнительная плата в соответствии с тарифами местных транспортных компании.
+              Согласно накладному стоимость доставки указана только до «Городов
+              назначения», за «Фактический конечный город» взимается
+              дополнительная плата в соответствии с тарифами местных
+              транспортных компании.
             </Text>
             <Text
               className="terms-section"
               style={{ fontSize: "0.8em", margin: "1px 0", lineHeight: "1.0" }}
             >
-              Получатель несет дополнительные расходы, связанные с хранением и иными услугами, взимаемыми в соответствии с требованиями администрации склада, рынка или перегрузочного пункта по месту доставки.
+              Получатель несет дополнительные расходы, связанные с хранением и
+              иными услугами, взимаемыми в соответствии с требованиями
+              администрации склада, рынка или перегрузочного пункта по месту
+              доставки.
             </Text>
           </Flex>
           <Flex vertical style={{ width: "50%" }}>
@@ -881,13 +1017,17 @@ export const GoodsShow: React.FC = () => {
               className="terms-section"
               style={{ fontSize: "0.8em", margin: 0, lineHeight: "1.0" }}
             >
-              Предоставляя свои персональные данные, «Отправитель» дает полное и безусловное согласие на их хранение и обработку.
+              Предоставляя свои персональные данные, «Отправитель» дает полное и
+              безусловное согласие на их хранение и обработку.
             </Text>
             <Text
               className="terms-section"
               style={{ fontSize: "0.8em", margin: 0, lineHeight: "1.0" }}
             >
-              Подписанием данного накладного «Отправитель» подтверждает, что ознакомлен и согласен со всеми его условиями. Накладная составлена в двух экземплярах, по одной для каждой из сторон, и имеет равную юридическую силу.
+              Подписанием данного накладного «Отправитель» подтверждает, что
+              ознакомлен и согласен со всеми его условиями. Накладная составлена
+              в двух экземплярах, по одной для каждой из сторон, и имеет равную
+              юридическую силу.
             </Text>
           </Flex>
         </Flex>
@@ -923,150 +1063,7 @@ export const GoodsShow: React.FC = () => {
     <Show
       headerButtons={({ deleteButtonProps, editButtonProps }) => (
         <>
-          <Dropdown
-            trigger={["click"]}
-            overlayStyle={{ width: "200px" }}
-            overlay={
-              <Card
-                size="small"
-                style={{
-                  width: 480,
-                  boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.3)",
-                }}
-              >
-                <Form
-                  {...formProps}
-                  layout="vertical"
-                  onFinish={(values: any) => {
-                    const totalServiceAmount = record?.services?.reduce(
-                      (acc: number, service: any) => acc + Number(service.sum || 0),
-                      0
-                    ) || 0;
-                    const totalProductAmount = record?.products?.reduce(
-                      (acc: number, product: any) => acc + Number(product.sum || 0),
-                      0
-                    ) || 0;
-                    const totalGoodAmount = totalServiceAmount + totalProductAmount;
-
-                    const selectedCurrency = currencyTableProps?.dataSource?.find(
-                      (item: any) => item.name === values.type_currency
-                    );
-                    const historicalRate = getHistoricalRate(selectedCurrency, record?.created_at);
-                    
-                    const convertedAmount = historicalRate > 0 ? historicalRate * totalGoodAmount : totalGoodAmount;
-                    const remainingToPay = convertedAmount - (record?.paid_sum || 0);
-
-                    if (values.amount > remainingToPay) {
-                      message.error("Сумма к оплате не может превышать оставшуюся сумму к доплате");
-                      return;
-                    }
-
-                    const finalValues = {
-                      ...values,
-                      type: "income",
-                      type_operation: "Контрагент частично",
-                      counterparty_id: record?.sender?.id,
-                      good_id: record?.id,
-                        paid_sum: remainingToPay,
-                      date: dayjs(),
-                    };
-
-                    formProps.onFinish && formProps.onFinish(finalValues);
-                  }}
-                >
-                  <Row gutter={[16, 0]}>
-                    <Col span={12}>
-                      <Form.Item
-                        label="Банк"
-                        name={["bank_id"]}
-                        rules={[
-                          {
-                            required: true,
-                            message: "Пожалуйста, выберите Банк",
-                          },
-                        ]}
-                      >
-                        <Select
-                          {...bankSelectProps}
-                          placeholder="Выберите код банк"
-                          style={{ width: "100%" }}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        label="Метод оплаты"
-                        name="method_payment"
-                        rules={[
-                          {
-                            required: true,
-                            message: "Пожалуйста, выберите метод оплаты",
-                          },
-                        ]}
-                      >
-                        <Select
-                          options={paymentTypes.map((enumValue) => ({
-                            label: enumValue,
-                            value: enumValue,
-                          }))}
-                          placeholder="Выберите метод оплаты"
-                          style={{ width: "100%" }}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="type_currency"
-                        label="Валюта"
-                        rules={[{ required: true, message: "Выберите Валюту" }]}
-                      >
-                        <Select
-                          {...currencySelectProps}
-                          showSearch
-                          placeholder="Выберите валюту"
-                          style={{ width: "100%" }}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        label="Сумма для прихода"
-                        name="amount"
-                        rules={[{ required: true, message: "Укажите сумму" }]}
-                      >
-                        <Input
-                          type="number"
-                          min={0}
-                          placeholder="Введите сумму прихода"
-                          style={{ width: "100%" }}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={24}>
-                      <div style={{ marginBottom: "8px", fontSize: "14px", color: "#666" }}>
-                        <strong>Общая сумма:</strong> {Number((Number(record?.services?.reduce((acc: number, service: any) => acc + Number(service.sum || 0), 0) || 0) + Number(record?.products?.reduce((acc: number, product: any) => acc + Number(product.sum || 0), 0) || 0)) || 0).toFixed(2)} RUB
-                        <br />
-                        <strong>Уже оплачено:</strong> {Number(record?.paid_sum || 0).toFixed(2)} RUB
-                        <br />
-                        <strong>К доплате:</strong> {Number((Number(record?.services?.reduce((acc: number, service: any) => acc + Number(service.sum || 0), 0) || 0) + Number(record?.products?.reduce((acc: number, product: any) => acc + Number(product.sum || 0), 0) || 0)) - Number(record?.paid_sum || 0) || 0).toFixed(2)} RUB
-                      </div>
-                    </Col>
-                    <Col span={12}>
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        loading={formLoading}
-                      >3
-                        Сохранить
-                      </Button>
-                    </Col>
-                  </Row>
-                </Form>
-              </Card>
-            }
-          >
-            <Button>Оплатить частично</Button>
-          </Dropdown> 
+          {/* <PartialPayment record={record} refetch={refetch} /> */}
           <Button
             type="primary"
             icon={<PrinterOutlined />}

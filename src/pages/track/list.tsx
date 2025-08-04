@@ -21,8 +21,10 @@ import {
 import YandexMap from "./map";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 
 dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export const TrackList = () => {
   const { tableProps, tableQueryResult, setFilters } = useTable({
@@ -478,7 +480,7 @@ export const TrackList = () => {
                       }}
                     >
                       {item.history && item.history.length > 0
-                        ? item.history[0]?.message ||
+                        ? item.history[item.history.length - 1]?.message ||
                           "Нет сообщений"
                         : "Нет сообщений"}
                     </Typography.Text>
@@ -526,6 +528,9 @@ export const TrackList = () => {
                 <Typography.Text>Водитель:</Typography.Text>
                 <Typography.Text>{item.driver}</Typography.Text>
               </Flex>
+              <Typography.Text>
+                Дата отправки: {dayjs(item.created_at).utc().format("DD.MM.YYYY HH:mm")}
+              </Typography.Text>
             </Flex>
           ))}
         </Flex>

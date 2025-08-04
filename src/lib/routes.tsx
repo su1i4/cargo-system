@@ -278,7 +278,7 @@ export const routes = [
     show: "/users/show/:id",
     meta: {
       canDelete: true,
-      label: "Пользователи",
+      label: "Сотрудники",
       parent: "Настройки",
     },
   },
@@ -441,6 +441,15 @@ export const routes = [
       canDelete: true,
       label: "Триггеры",
       parent: "Автоматизация",
+    },
+  },
+  {
+    name: "endpoint",
+    list: "/endpoint",
+    meta: {
+      canDelete: true,
+      label: "Эндпоинты",
+      parent: "Настройки",
     },
   },
 ];

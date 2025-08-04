@@ -11,17 +11,19 @@ import {
   Table,
   Modal,
   Form,
-  Input,
   Button,
   Space,
   Popconfirm,
   Select,
   InputNumber,
+  Row,
+  Col,
 } from "antd";
 
 export const TariffList = () => {
-  const { tableProps } = useTable({
+  const { tableProps, setFilters: setTariffFilters } = useTable({
     resource: "tariff",
+    pagination: { mode: "off" as const },
   });
 
   const {
@@ -56,13 +58,49 @@ export const TariffList = () => {
     optionValue: "id",
   });
 
+  const { selectProps: branchSelectPropsSearch } = useSelect({
+    resource: "branch",
+    optionLabel: "name",
+    optionValue: "id",
+  });
+
   const { mutate: deleteOne } = useDelete();
 
   return (
     <List headerButtons={<CreateButton onClick={() => showCreateModal()} />}>
+      <Row style={{ marginBottom: 10 }}>
+        <Col span={12}>
+          <Select
+            style={{ width: "100%" }}
+            {...branchSelectPropsSearch}
+            placeholder="Выберите город"
+            allowClear
+            onChange={(value) => {
+              if (value) {
+                setTariffFilters(
+                  [{ field: "branch.id", operator: "eq", value }],
+                  "replace"
+                );
+              } else {
+                setTariffFilters([], "replace");
+              }
+            }}
+          />
+        </Col>
+      </Row>
       <Table {...tableProps} rowKey="id">
-        <Table.Column dataIndex="branch" width={250} title="Название города" render={(value) => value.name} />
-        <Table.Column dataIndex="product_type" width={250} title="Тип товара" render={(value) => value.name} />
+        <Table.Column
+          dataIndex="branch"
+          width={250}
+          title="Название города"
+          render={(value) => value.name}
+        />
+        <Table.Column
+          dataIndex="product_type"
+          width={250}
+          title="Тип товара"
+          render={(value) => value.name}
+        />
         <Table.Column dataIndex="tariff" width={250} title="Цена" />
         <Table.Column<any>
           title="Действия"
