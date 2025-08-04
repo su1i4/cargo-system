@@ -1063,7 +1063,7 @@ export const GoodsShow: React.FC = () => {
     <Show
       headerButtons={({ deleteButtonProps, editButtonProps }) => (
         <>
-          {/* <PartialPayment record={record} refetch={refetch} /> */}
+          <PartialPayment record={record} refetch={refetch} />
           <Button
             type="primary"
             icon={<PrinterOutlined />}

@@ -145,22 +145,11 @@ export const GoodsProcessingCreateRequisites = React.memo(
               item.counterparty?.clientCode || ""
             }, ${item.counterparty.name}. Сумма: ${item.amount}`,
             value: item.counterparty.type,
+            amount: item.amount,
+            counterparty_id: item.counterparty_id,
           })),
       [cashBacks, values?.sender_id, values?.recipient_id]
     );
-
-    useEffect(() => {
-      if (values?.discount_id) {
-        if (
-          values.sender_id !== values.discount_id &&
-          values.recipient_id !== values.discount_id
-        ) {
-          form.setFieldsValue({
-            discount_id: null,
-          });
-        }
-      }
-    }, [values?.sender_id, values?.recipient_id]);
 
     const discountOptions = useMemo(
       () =>
@@ -177,6 +166,8 @@ export const GoodsProcessingCreateRequisites = React.memo(
               item.counter_party?.clientCode || ""
             }, ${item.counter_party?.name}. Скидка: ${item.discount}`,
             value: item.counter_party_id,
+            discount: item.discount,
+            counter_party_id: item.counter_party_id,
           })),
       [
         discounts,
@@ -185,6 +176,71 @@ export const GoodsProcessingCreateRequisites = React.memo(
         values?.destination_id,
       ]
     );
+
+    // Функция для автоматического выбора лучшего кешбека
+    const selectBestCashBack = () => {
+      if (cashBackOptions.length === 0) return null;
+      
+      const bestCashBack = cashBackOptions.reduce((best, current) => {
+        return current.amount > best.amount ? current : best;
+      });
+      
+      return bestCashBack.value;
+    };
+
+    // Функция для автоматического выбора лучшей скидки
+    const selectBestDiscount = () => {
+      if (discountOptions.length === 0) return null;
+      
+      const bestDiscount = discountOptions.reduce((best, current) => {
+        return current.discount > best.discount ? current : best;
+      });
+      
+      return bestDiscount.value;
+    };
+
+    // Автоматический выбор лучшего варианта при изменении отправителя или получателя
+    useEffect(() => {
+      if (values?.sender_id || values?.recipient_id) {
+        const bestCashBack = selectBestCashBack();
+        const bestDiscount = selectBestDiscount();
+        
+        // Определяем, что выгоднее - кешбек или скидка
+        let shouldSelectCashBack = false;
+        let shouldSelectDiscount = false;
+        
+        if (bestCashBack && bestDiscount) {
+          const maxCashBack = cashBackOptions.find(cb => cb.value === bestCashBack)?.amount || 0;
+          const maxDiscount = discountOptions.find(d => d.value === bestDiscount)?.discount || 0;
+          
+          // Выбираем кешбек, если его сумма больше скидки (или можете изменить логику)
+          shouldSelectCashBack = maxCashBack >= maxDiscount;
+          shouldSelectDiscount = !shouldSelectCashBack;
+        } else if (bestCashBack) {
+          shouldSelectCashBack = true;
+        } else if (bestDiscount) {
+          shouldSelectDiscount = true;
+        }
+        
+        form.setFieldsValue({
+          cash_back_target: shouldSelectCashBack ? bestCashBack : null,
+          discount_id: shouldSelectDiscount ? bestDiscount : null,
+        });
+      }
+    }, [values?.sender_id, values?.recipient_id, cashBackOptions, discountOptions, form]);
+
+    useEffect(() => {
+      if (values?.discount_id) {
+        if (
+          values.sender_id !== values.discount_id &&
+          values.recipient_id !== values.discount_id
+        ) {
+          form.setFieldsValue({
+            discount_id: null,
+          });
+        }
+      }
+    }, [values?.sender_id, values?.recipient_id]);
 
     return (
       <>
@@ -203,6 +259,21 @@ export const GoodsProcessingCreateRequisites = React.memo(
                 {...branchSelectProps}
                 placeholder="Выберите город"
                 showSearch
+                onChange={(value, record: any) => {
+                  if (record?.is_sent) {
+                    form.setFieldsValue({
+                      destination_id: value,
+                    });
+                  } else {
+                    const city = sentCityData.find(
+                      (item: any) => item.sent_city_id === value
+                    );
+                    form.setFieldsValue({
+                      destination_id: city?.city_id,
+                      sent_back_id: city?.id,
+                    });
+                  }
+                }}
               />
             </Form.Item>
           </Col>
