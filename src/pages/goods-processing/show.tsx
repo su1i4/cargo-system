@@ -1,18 +1,7 @@
 import React, { useRef } from "react";
-import {
-  Show,
-  EditButton,
-  DeleteButton,
-  useTable,
-} from "@refinedev/antd";
+import { Show, EditButton, DeleteButton, useTable } from "@refinedev/antd";
 import { useNavigation, useShow } from "@refinedev/core";
-import {
-  Typography,
-  Flex,
-  Row,
-  Col,
-  Button,
-} from "antd";
+import { Typography, Flex, Row, Col, Button } from "antd";
 import { PrinterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import QRCode from "react-qr-code";
@@ -60,7 +49,7 @@ export const GoodsShow: React.FC = () => {
   const { data, isLoading, refetch } = queryResult;
   const record = data?.data;
   const printRef = useRef<HTMLDivElement>(null);
-  
+
   const { push } = useNavigation();
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -129,6 +118,11 @@ export const GoodsShow: React.FC = () => {
         tableText.forEach((section: any) => {
           section.style.setProperty("font-size", "11px", "important");
           // section.style.setProperty("font-family", "Times New Roman, serif", "important");
+        });
+
+        const wideText = el.querySelectorAll(".wide-text");
+        wideText.forEach((section: any) => {
+          section.style.setProperty("font-size", "13px", "important");
         });
 
         const termsSection = el.querySelectorAll(".terms-section");
@@ -317,7 +311,7 @@ export const GoodsShow: React.FC = () => {
     return (
       <div>
         <Flex justify="space-between" style={{ marginBottom: "4px" }}>
-          <Flex vertical>
+          <Flex vertical gap="5px">
             <img
               src="/rosscargo.png"
               style={{ width: "70px", height: "40px", objectFit: "contain" }}
@@ -363,7 +357,7 @@ export const GoodsShow: React.FC = () => {
               size={55}
             />
             <Text style={{ fontSize: "15px", whiteSpace: "nowrap" }}>
-              Сканируй и отслеживай
+              Сканируй и <br /> отслеживай
             </Text>
           </Flex>
           <Flex vertical align="end" gap="10px">
@@ -418,7 +412,7 @@ export const GoodsShow: React.FC = () => {
               <Col style={colStyle} span={8}>
                 <Text className="table-text">Ф.И.О</Text>
               </Col>
-              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
+              <Col style={{ ...colStyle, borderRight: "none" , fontWeight: 800}} span={16}>
                 <Text className="table-text">{record?.sender?.name || ""}</Text>
               </Col>
 
@@ -466,7 +460,7 @@ export const GoodsShow: React.FC = () => {
               <Col style={colStyle} span={8}>
                 <Text className="table-text">Ф.И.О</Text>
               </Col>
-              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
+              <Col style={{ ...colStyle, borderRight: "none" , fontWeight: 800}} span={16}>
                 <Text className="table-text">
                   {record?.recipient?.name || ""}
                 </Text>
@@ -492,12 +486,16 @@ export const GoodsShow: React.FC = () => {
                 </Text>
               </Col>
 
-              <Col style={colStyle} span={8}>
-                <Text className="table-text">Комментарий</Text>
-              </Col>
-              <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
-                <Text className="table-text">{record?.comments || ""}</Text>
-              </Col>
+              {record?.comments && (
+                <>
+                  <Col style={colStyle} span={8}>
+                    <Text className="table-text">Коммент</Text>
+                  </Col>
+                  <Col style={{ ...colStyle, borderRight: "none" }} span={16}>
+                    <Text className="table-text">{record?.comments || ""}</Text>
+                  </Col>
+                </>
+              )}
 
               <Col style={{ ...colStyle, borderBottom: "none" }} span={8}>
                 <Text className="table-text">Фактический конечный город</Text>
@@ -641,7 +639,7 @@ export const GoodsShow: React.FC = () => {
                 </Text>
               </Col>
               <Col style={{ ...colStyle, backgroundColor: "#F5F5F4" }} span={2}>
-                <Text className="table-text" style={{ fontWeight: 600 }}>
+                <Text className="table-text" style={{ fontWeight: 600, whiteSpace: "nowrap" }}>
                   Сумма
                 </Text>
               </Col>
@@ -687,12 +685,12 @@ export const GoodsShow: React.FC = () => {
                   </Col>
                   <Col style={colStyle} span={2}>
                     <Text className="table-text">
-                      {Number(service.price || 0).toFixed(2)}
+                      {Math.round(Number(service.price || 0))}
                     </Text>
                   </Col>
                   <Col style={colStyle} span={2}>
                     <Text className="table-text">
-                      {Number(service.sum || 0).toFixed(2)}
+                      {Math.round(Number(service.sum || 0))}
                     </Text>
                   </Col>
                 </React.Fragment>
@@ -716,7 +714,10 @@ export const GoodsShow: React.FC = () => {
                 </Text>
               </Col>
               <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
-                <Text className="table-text" style={{ fontWeight: "bold" }}>
+                <Text
+                  className="table-text"
+                  style={{ fontWeight: "bold", whiteSpace: "nowrap" }}
+                >
                   {String(Number(totalWeight || 0).toFixed(2)).replace(
                     ".",
                     ","
@@ -725,17 +726,15 @@ export const GoodsShow: React.FC = () => {
               </Col>
               <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
                 <Text className="table-text" style={{ fontWeight: "bold" }}>
-                  {/* {Number(totalSum || 0).toFixed(2)} */}
                 </Text>
               </Col>
               <Col style={{ ...colStyle, borderBottom: "none" }} span={2}>
                 <Text className="table-text" style={{ fontWeight: "bold" }}>
-                  {Number(totalSum || 0).toFixed(2)}
+                  {Math.round(Number(totalSum || 0))}
                 </Text>
               </Col>
             </Row>
 
-            {/* Таблица с товарами в правой части */}
             {record?.products?.length ? (
               <Row
                 gutter={[2, 0]}
@@ -795,7 +794,9 @@ export const GoodsShow: React.FC = () => {
                         <Text className="table-text">{name}</Text>
                       </Col>
                       <Col span={4} style={colStyle}>
-                        <Text className="table-text">{price}</Text>
+                        <Text className="table-text">
+                          {Math.round(Number(price || 0))}
+                        </Text>
                       </Col>
                       <Col span={4} style={colStyle}>
                         <Text className="table-text">{quantity}</Text>
@@ -804,7 +805,9 @@ export const GoodsShow: React.FC = () => {
                         span={6}
                         style={{ ...colStyle, borderRight: "none" }}
                       >
-                        <Text className="table-text">{sum}</Text>
+                        <Text className="table-text">
+                          {Math.round(Number(sum || 0))}
+                        </Text>
                       </Col>
                     </React.Fragment>
                   )
@@ -848,38 +851,6 @@ export const GoodsShow: React.FC = () => {
                   fontWeight: 600,
                 }}
               >
-                <Text className="table-text"></Text>
-              </Col>
-              <Col
-                span={4}
-                style={{
-                  ...colStyle,
-                  backgroundColor: "#F5F5F4",
-                  fontWeight: 600,
-                }}
-              >
-                <Text className="table-text">RUB</Text>
-              </Col>
-              <Col
-                span={6}
-                style={{
-                  ...colStyle,
-                  backgroundColor: "#F5F5F4",
-                  borderRight: "none",
-                }}
-              >
-                <Text className="table-text" style={{ fontWeight: 600 }}>
-                  KGS
-                </Text>
-              </Col>
-              <Col
-                span={14}
-                style={{
-                  ...colStyle,
-                  backgroundColor: "#F5F5F4",
-                  fontWeight: 600,
-                }}
-              >
                 <Text className="table-text">
                   Стоимость доставки (Транспортные услуги)
                 </Text>
@@ -891,7 +862,9 @@ export const GoodsShow: React.FC = () => {
                   fontWeight: 600,
                 }}
               >
-                <Text className="table-text">{record?.amount}</Text>
+                <Text className="table-text">
+                  {Math.round(Number(record?.amount || 0))} RUB
+                </Text>
               </Col>
               <Col
                 span={6}
@@ -902,10 +875,9 @@ export const GoodsShow: React.FC = () => {
               >
                 <Text className="table-text" style={{ fontWeight: 600 }}>
                   {som && somRate
-                    ? Number(
-                        Number(record?.amount || 0) * Number(somRate) || 0
-                      ).toFixed(2)
-                    : "Курс загружается..."}
+                    ? Math.round(Number(record?.amount || 0) * Number(somRate))
+                    : "Курс загружается..."}{" "}
+                  KGS
                 </Text>
               </Col>
               <Col
@@ -925,7 +897,9 @@ export const GoodsShow: React.FC = () => {
                   fontWeight: 600,
                 }}
               >
-                <Text className="table-text">{record?.paid_sum}</Text>
+                <Text className="table-text">
+                  {Math.round(Number(record?.paid_sum || 0))} RUB
+                </Text>
               </Col>
               <Col
                 span={6}
@@ -936,10 +910,11 @@ export const GoodsShow: React.FC = () => {
               >
                 <Text className="table-text" style={{ fontWeight: 600 }}>
                   {som && somRate
-                    ? Number(
-                        Number(record?.paid_sum || 0) * Number(somRate) || 0
-                      ).toFixed(2)
-                    : "Курс загружается..."}
+                    ? Math.round(
+                        Number(record?.paid_sum || 0) * Number(somRate)
+                      )
+                    : "Курс загружается..."}{" "}
+                  KGS
                 </Text>
               </Col>
               <Col
@@ -948,21 +923,22 @@ export const GoodsShow: React.FC = () => {
                   ...colStyle,
                   backgroundColor: "#F5F5F4",
                   borderBottom: "none",
-                  fontWeight: 600,
+                  fontWeight: 800,
                 }}
               >
-                <Text className="table-text">Итого к оплате (остаток)</Text>
+                <Text className="table-text wide-text">Итого к оплате</Text>
               </Col>
               <Col
                 span={4}
                 style={{
                   ...colStyle,
                   borderBottom: "none",
-                  fontWeight: 600,
+                  fontWeight: 800,
                 }}
               >
-                <Text className="table-text">
-                  {record?.amount - record?.paid_sum}
+                <Text className="table-text wide-text">
+                  {Math.round(Number(record?.amount - record?.paid_sum || 0))}{" "}
+                  RUB
                 </Text>
               </Col>
               <Col
@@ -973,13 +949,18 @@ export const GoodsShow: React.FC = () => {
                   borderBottom: "none",
                 }}
               >
-                <Text className="table-text" style={{ fontWeight: 600 }}>
+                <Text
+                  className="table-text wide-text"
+                  style={{ fontWeight: 800 }}
+                >
                   {som && somRate
-                    ? Number(
-                        Number(record?.amount - record?.paid_sum || 0) *
-                          Number(somRate) || 0
-                      ).toFixed(2)
-                    : "Курс загружается..."}
+                    ? Math.round(
+                        (Number(record?.amount) -
+                          Number(record?.paid_sum || 0)) *
+                          Number(somRate)
+                      )
+                    : "Курс загружается..."}{" "}
+                  KGS
                 </Text>
               </Col>
             </Row>

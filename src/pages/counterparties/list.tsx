@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import { useReactToPrint } from "react-to-print";
 import { List, useTable } from "@refinedev/antd";
 import { Space, Table, Button, Row, Col, Popconfirm, message } from "antd";
 import { BaseRecord } from "@refinedev/core";
@@ -7,12 +8,14 @@ import {
   DeleteOutlined,
   EditOutlined,
   FileAddOutlined,
+  PrinterOutlined,
 } from "@ant-design/icons";
 import { CounterpartyEditModal } from "./modal/edit-modal";
 import { SearchFilter } from "../../shared/search-input";
 import { SortContent } from "../../shared/sort-content";
 import { CustomTooltip } from "../../shared/custom-tooltip";
 import { API_URL } from "../../App";
+import dayjs from "dayjs";
 
 export const CounterpartyList: React.FC = () => {
   const { tableProps, setFilters, setSorters, sorters, tableQuery } = useTable({
@@ -31,6 +34,19 @@ export const CounterpartyList: React.FC = () => {
       ],
     },
   });
+
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Накладная ${dayjs().format("DD.MM.YYYY HH:mm")}`,
+    onBeforePrint: async () => {
+      const el = printRef.current;
+      if (el) {
+        el.style.fontSize = `15px`;
+      }
+    },
+  })
 
   const [open, setOpen] = useState(false);
 
@@ -83,7 +99,7 @@ export const CounterpartyList: React.FC = () => {
           tableQuery.refetch();
         }}
       />
-      <Row gutter={[16, 16]} align="middle" style={{ marginBottom: 16 }}>
+      <Row ref={printRef} gutter={[16, 16]} align="middle" style={{ marginBottom: 16 }}>
         <Col>
           <Space size="middle">
             <Button
@@ -171,6 +187,11 @@ export const CounterpartyList: React.FC = () => {
           render={(_, record: BaseRecord) => {
             return (
               <Space>
+                <Button
+                  icon={<PrinterOutlined />}
+                  onClick={handlePrint}
+                  title="Печать"
+                />
                 <Button
                   type="primary"
                   icon={<EditOutlined />}
