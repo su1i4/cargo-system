@@ -750,6 +750,13 @@ export const GoodsEdit = () => {
     optionLabel: (record: any) => {
       return `${record?.clientPrefix}-${record?.clientCode}, ${record?.name}, `;
     },
+    onSearch: (value) => [
+      {
+        field: "name",
+        operator: "contains",
+        value,
+      },
+    ],
     filters: [
       {
         field: "type",
@@ -764,6 +771,13 @@ export const GoodsEdit = () => {
     optionLabel: (record: any) => {
       return `${record?.clientPrefix}-${record?.clientCode}, ${record?.name}, `;
     },
+    onSearch: (value) => [
+      {
+        field: "name",
+        operator: "contains",
+        value,
+      },
+    ],
     filters: [
       {
         field: "type",
