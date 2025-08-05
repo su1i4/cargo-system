@@ -14,7 +14,7 @@ interface GoodsProcessingCreateRequisitesProps {
 const branchSelectConfig = {
   resource: "branch",
   optionLabel: (record: any) =>
-    `${record?.name || ""}${record?.is_sent ? " (досыльный)" : ""}`,
+    `${record?.name || ""}${record?.is_sent ? " (досыльный) " : ""}`,
   filters: [
     {
       field: "name",
@@ -113,7 +113,12 @@ export const GoodsProcessingCreateRequisites = React.memo(
     discounts,
     form,
   }: GoodsProcessingCreateRequisitesProps) => {
-    const { selectProps: branchSelectProps } = useSelect(branchSelectConfig);
+    const { selectProps: branchSelectProps } = useSelect({
+      ...branchSelectConfig,
+      meta: {
+        fields: ["is_sent"],
+      },
+    });
     const { selectProps: counterpartySelectPropsSender } = useSelect(
       counterpartySenderSelectConfig
     );
@@ -180,22 +185,22 @@ export const GoodsProcessingCreateRequisites = React.memo(
     // Функция для автоматического выбора лучшего кешбека
     const selectBestCashBack = () => {
       if (cashBackOptions.length === 0) return null;
-      
+
       const bestCashBack = cashBackOptions.reduce((best, current) => {
         return current.amount > best.amount ? current : best;
       });
-      
+
       return bestCashBack.value;
     };
 
     // Функция для автоматического выбора лучшей скидки
     const selectBestDiscount = () => {
       if (discountOptions.length === 0) return null;
-      
+
       const bestDiscount = discountOptions.reduce((best, current) => {
         return current.discount > best.discount ? current : best;
       });
-      
+
       return bestDiscount.value;
     };
 
@@ -204,15 +209,19 @@ export const GoodsProcessingCreateRequisites = React.memo(
       if (values?.sender_id || values?.recipient_id) {
         const bestCashBack = selectBestCashBack();
         const bestDiscount = selectBestDiscount();
-        
+
         // Определяем, что выгоднее - кешбек или скидка
         let shouldSelectCashBack = false;
         let shouldSelectDiscount = false;
-        
+
         if (bestCashBack && bestDiscount) {
-          const maxCashBack = cashBackOptions.find(cb => cb.value === bestCashBack)?.amount || 0;
-          const maxDiscount = discountOptions.find(d => d.value === bestDiscount)?.discount || 0;
-          
+          const maxCashBack =
+            cashBackOptions.find((cb) => cb.value === bestCashBack)?.amount ||
+            0;
+          const maxDiscount =
+            discountOptions.find((d) => d.value === bestDiscount)?.discount ||
+            0;
+
           // Выбираем кешбек, если его сумма больше скидки (или можете изменить логику)
           shouldSelectCashBack = maxCashBack >= maxDiscount;
           shouldSelectDiscount = !shouldSelectCashBack;
@@ -221,13 +230,19 @@ export const GoodsProcessingCreateRequisites = React.memo(
         } else if (bestDiscount) {
           shouldSelectDiscount = true;
         }
-        
+
         form.setFieldsValue({
           cash_back_target: shouldSelectCashBack ? bestCashBack : null,
           discount_id: shouldSelectDiscount ? bestDiscount : null,
         });
       }
-    }, [values?.sender_id, values?.recipient_id, cashBackOptions, discountOptions, form]);
+    }, [
+      values?.sender_id,
+      values?.recipient_id,
+      cashBackOptions,
+      discountOptions,
+      form,
+    ]);
 
     useEffect(() => {
       if (values?.discount_id) {
@@ -241,8 +256,6 @@ export const GoodsProcessingCreateRequisites = React.memo(
         }
       }
     }, [values?.sender_id, values?.recipient_id]);
-
-    console.log(values?.sent_back_id, values?.destination_id, "values");
 
     return (
       <>
@@ -262,8 +275,7 @@ export const GoodsProcessingCreateRequisites = React.memo(
                 placeholder="Выберите город"
                 showSearch
                 // onChange={(value, record: any) => {
-                //   console.log(record, value, "record");
-                //   if (record?.is_sent) {
+                //   if (!record?.label.includes("(досыльный)")) {
                 //     form.setFieldsValue({
                 //       destination_id: value,
                 //       sent_back_id: null,
