@@ -242,6 +242,8 @@ export const GoodsProcessingCreateRequisites = React.memo(
       }
     }, [values?.sender_id, values?.recipient_id]);
 
+    console.log(values?.sent_back_id, values?.destination_id, "values");
+
     return (
       <>
         <Title level={5} style={{ margin: 0 }}>
@@ -259,21 +261,23 @@ export const GoodsProcessingCreateRequisites = React.memo(
                 {...branchSelectProps}
                 placeholder="Выберите город"
                 showSearch
-                onChange={(value, record: any) => {
-                  if (record?.is_sent) {
-                    form.setFieldsValue({
-                      destination_id: value,
-                    });
-                  } else {
-                    const city = sentCityData.find(
-                      (item: any) => item.sent_city_id === value
-                    );
-                    form.setFieldsValue({
-                      destination_id: city?.city_id,
-                      sent_back_id: city?.id,
-                    });
-                  }
-                }}
+                // onChange={(value, record: any) => {
+                //   console.log(record, value, "record");
+                //   if (record?.is_sent) {
+                //     form.setFieldsValue({
+                //       destination_id: value,
+                //       sent_back_id: null,
+                //     });
+                //   } else {
+                //     const city = sentCityData.find(
+                //       (item: any) => item.sent_city_id === value
+                //     );
+                //     form.setFieldsValue({
+                //       destination_id: city?.city_id,
+                //       sent_back_id: city?.id,
+                //     });
+                //   }
+                // }}
               />
             </Form.Item>
           </Col>
