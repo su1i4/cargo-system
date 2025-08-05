@@ -327,7 +327,7 @@ export const GoodsProcessingCreateRequisites = React.memo(
 
         <Row gutter={16}>
           <Col xs={24} sm={12} md={8} lg={4}>
-            <Form.Item label="Комментарий" name="comment">
+            <Form.Item label="Комментарий" name="comments">
               <Input placeholder="Введите комментарий" allowClear />
             </Form.Item>
           </Col>
