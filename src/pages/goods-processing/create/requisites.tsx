@@ -274,22 +274,22 @@ export const GoodsProcessingCreateRequisites = React.memo(
                 {...branchSelectProps}
                 placeholder="Выберите город"
                 showSearch
-                // onChange={(value, record: any) => {
-                //   if (!record?.label.includes("(досыльный)")) {
-                //     form.setFieldsValue({
-                //       destination_id: value,
-                //       sent_back_id: null,
-                //     });
-                //   } else {
-                //     const city = sentCityData.find(
-                //       (item: any) => item.sent_city_id === value
-                //     );
-                //     form.setFieldsValue({
-                //       destination_id: city?.city_id,
-                //       sent_back_id: city?.id,
-                //     });
-                //   }
-                // }}
+                onChange={(value, record: any) => {
+                  if (!record?.label.includes("(досыльный)")) {
+                    form.setFieldsValue({
+                      destination_id: value,
+                      sent_back_id: null,
+                    });
+                  } else {
+                    const city = sentCityData.find(
+                      (item: any) => item.sent_city_id === value
+                    );
+                    form.setFieldsValue({
+                      destination_id: city?.city_id,
+                      sent_back_id: city?.id,
+                    });
+                  }
+                }}
               />
             </Form.Item>
           </Col>
