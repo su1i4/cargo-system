@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { List, useTable } from "@refinedev/antd";
+import { List, useSelect, useTable } from "@refinedev/antd";
 import {
   Space,
   Table,
@@ -135,6 +135,11 @@ export const CashDeskOutcomeList: React.FC = () => {
     onChange: handleTableChange,
   };
 
+  const { selectProps: userSelectProps } = useSelect({
+    resource: "users",
+    optionLabel: (item: any) => `${item.firstName} ${item.lastName}`,
+  });
+
   return (
     <List headerButtons={() => null}>
       <MyCreateModalOutcome
@@ -200,6 +205,32 @@ export const CashDeskOutcomeList: React.FC = () => {
                 "replace"
               );
             }}
+          />
+        </Col>
+        <Col>
+          <Select
+            mode="multiple"
+            placeholder="Выберите сотрудника"
+            style={{ width: 200 }}
+            onChange={(value: any) => {
+              if (!value || value?.length === 0) {
+                setFilters([{ type: { $eq: "outcome" } }], "replace");
+                return;
+              }
+
+              setFilters(
+                [
+                  {
+                    $and: [
+                      { type: { $eq: "outcome" } },
+                      { user_id: { $in: value } },
+                    ],
+                  },
+                ],
+                "replace"
+              );
+            }}
+            {...userSelectProps}
           />
         </Col>
         <Col>
