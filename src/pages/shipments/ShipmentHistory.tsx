@@ -47,6 +47,9 @@ const ShipmentHistory = () => {
       initial: [{ field: "created_at", order: "desc" }],
     },
     syncWithLocation: false,
+    pagination: {
+      mode: "off",
+    },
   });
 
   const { push, show } = useNavigation();

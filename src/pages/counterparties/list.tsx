@@ -1,5 +1,4 @@
-import React, { useRef, useState } from "react";
-import { useReactToPrint } from "react-to-print";
+import React, { useState } from "react";
 import { List, useTable } from "@refinedev/antd";
 import { Space, Table, Button, Row, Col, Popconfirm, message } from "antd";
 import { BaseRecord } from "@refinedev/core";
@@ -8,15 +7,12 @@ import {
   DeleteOutlined,
   EditOutlined,
   FileAddOutlined,
-  PrinterOutlined,
 } from "@ant-design/icons";
 import { CounterpartyEditModal } from "./modal/edit-modal";
 import { SearchFilter } from "../../shared/search-input";
 import { SortContent } from "../../shared/sort-content";
 import { CustomTooltip } from "../../shared/custom-tooltip";
 import { API_URL } from "../../App";
-import dayjs from "dayjs";
-import { PrintContent } from "./print-content";
 
 export const CounterpartyList: React.FC = () => {
   const { tableProps, setFilters, setSorters, sorters, tableQuery } = useTable({
@@ -34,14 +30,6 @@ export const CounterpartyList: React.FC = () => {
         },
       ],
     },
-  });
-
-  const printRef = useRef<HTMLDivElement>(null);
-  const [printData, setPrintData] = useState<any[]>([]);
-
-  const reactToPrint = useReactToPrint({
-    contentRef: printRef,
-    documentTitle: `Накладная ${dayjs().format("DD.MM.YYYY HH:mm")}`,
   });
 
   const [open, setOpen] = useState(false);
@@ -71,55 +59,6 @@ export const CounterpartyList: React.FC = () => {
       }
     } catch (error: any) {
       message.error(error?.message || "Ошибка при удалении контрагента");
-    }
-  };
-
-  const getCounterpartiesGoods = async (counterpartyId: number) => {
-    try {
-      const queryObject = {
-        s: JSON.stringify({
-          $and: [
-            {
-              $or: [
-                { "sender.id": { $eq: counterpartyId } },
-                { "recipient.id": { $eq: counterpartyId } },
-              ],
-            },
-            {
-              is_payment: {
-                $eq: false,
-              },
-            },
-          ],
-        }),
-      };
-
-      const queryString = new URLSearchParams(queryObject).toString();
-      const res = await fetch(`${API_URL}/goods-processing?${queryString}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
-        },
-      });
-
-      const data = await res.json();
-
-      if (!Array.isArray(data)) {
-        throw new Error("Ожидался массив от API, но пришёл другой тип");
-      }
-
-      setPrintData(data);
-
-      setTimeout(() => {
-        reactToPrint();
-      }, 300);
-
-      return data;
-    } catch (error: any) {
-      console.error("Print fetch error", error);
-      message.error(
-        error?.message || "Ошибка при получении товаров контрагента"
-      );
     }
   };
 
@@ -231,11 +170,6 @@ export const CounterpartyList: React.FC = () => {
             return (
               <Space>
                 <Button
-                  icon={<PrinterOutlined />}
-                  onClick={() => getCounterpartiesGoods(record.id as number)}
-                  title="Печать"
-                />
-                <Button
                   type="primary"
                   icon={<EditOutlined />}
                   onClick={() => {
@@ -258,10 +192,6 @@ export const CounterpartyList: React.FC = () => {
           }}
         />
       </Table>
-
-      <div ref={printRef}>
-        <PrintContent data={printData} />
-      </div>
     </List>
   );
 };

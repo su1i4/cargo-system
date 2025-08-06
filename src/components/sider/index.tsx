@@ -11,15 +11,25 @@ import {
 } from "@refinedev/core";
 import { Link } from "react-router";
 import { type Sider } from "@refinedev/antd";
-import { Layout as AntdLayout, Menu, Grid, theme, Button, Drawer } from "antd";
+import {
+  Layout as AntdLayout,
+  Menu,
+  Grid,
+  theme,
+  Button,
+  Drawer,
+  message,
+} from "antd";
 import { LogoutOutlined, RightOutlined, MenuOutlined } from "@ant-design/icons";
 import { antLayoutSider, antLayoutSiderMobile } from "./styles";
+import { API_URL } from "../../App";
 
 const { useToken } = theme;
 
 export const CustomSider: typeof Sider = ({ render }) => {
   const { token } = useToken();
   const [collapsed, setCollapsed] = useState<boolean>(false);
+  const [userPermissions, setUserPermissions] = useState<any[]>([]);
   const [mobileDrawerVisible, setMobileDrawerVisible] =
     useState<boolean>(false);
   const isExistAuthentication = useIsExistAuthentication();
@@ -27,6 +37,7 @@ export const CustomSider: typeof Sider = ({ render }) => {
   const { mutate: mutateLogout } = useLogout();
   const translate = useTranslate();
   const { menuItems, selectedKey, defaultOpenKeys } = useMenu();
+  const role = localStorage.getItem("cargo-system-role");
 
   const breakpoint = Grid.useBreakpoint();
 
@@ -38,6 +49,33 @@ export const CustomSider: typeof Sider = ({ render }) => {
       setCollapsed(true);
     }
   }, [isMobile]);
+
+  useEffect(() => {
+    if (role !== "admin") {
+      getUserPermissions();
+    }
+  }, []);
+
+  const getUserPermissions = async () => {
+    try {
+      const response = await fetch(`${API_URL}/users/permissions`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+        },
+      });
+      const data = await response.json();
+      setUserPermissions(data);
+    } catch (error: any) {
+      message.error(error?.message || "Ошибка при получении прав пользователя");
+    }
+  };
+
+  const checkPermission = (name: string) => {
+    const findPermission = userPermissions.find(
+      (permission) => permission.endpoint.path?.split("/")[1] === name
+    );
+    return findPermission?.show && findPermission?.create === true && findPermission?.delete === true && findPermission?.edit === true;
+  };
 
   const renderTreeView = (tree: ITreeMenu[], selectedKey: string) => {
     return tree.map((item: ITreeMenu) => {
@@ -76,32 +114,26 @@ export const CustomSider: typeof Sider = ({ render }) => {
 
       const isSelected = route === selectedKey;
 
+      const canShow = role === "admin" ? true : checkPermission(name);
+
       return (
-        <CanAccess
+        <Menu.Item
           key={route}
-          resource={name}
-          action="list"
-          params={{ resource: item }}
+          style={{
+            textTransform: "capitalize",
+            display: canShow ? "block" : "none",
+          }}
+          icon={icon}
         >
-          <Menu.Item
-            key={route}
-            style={{
-              textTransform: "capitalize",
-            }}
-            icon={icon}
-          >
-            {route ? (
-              <Link style={{ fontSize: 13 }} to={route || "/"}>
-                {label}
-              </Link>
-            ) : (
-              label
-            )}
-            {!collapsed && isSelected && (
-              <div className="ant-menu-tree-arrow" />
-            )}
-          </Menu.Item>
-        </CanAccess>
+          {route ? (
+            <Link style={{ fontSize: 13 }} to={route || "/"}>
+              {label}
+            </Link>
+          ) : (
+            label
+          )}
+          {!collapsed && isSelected && <div className="ant-menu-tree-arrow" />}
+        </Menu.Item>
       );
     });
   };

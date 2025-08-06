@@ -18,13 +18,11 @@ dayjs.tz.setDefault("Asia/Bishkek");
 
 const { Title, Text } = Typography;
 
-// Функция для получения исторического курса валюты на конкретную дату
-const getHistoricalRate = (currency: any, targetDate: string) => {
+export const getHistoricalRate = (currency: any, targetDate: string) => {
   if (!currency?.currency_history || !targetDate) {
     return currency?.rate || 1;
   }
 
-  // Сортируем историю по дате (по убыванию)
   const sortedHistory = [...currency.currency_history].sort(
     (a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -32,7 +30,6 @@ const getHistoricalRate = (currency: any, targetDate: string) => {
 
   const targetDateTime = new Date(targetDate).getTime();
 
-  // Ищем курс, который был актуален на дату создания товара
   for (const historyRecord of sortedHistory) {
     const historyDateTime = new Date(historyRecord.created_at).getTime();
     if (historyDateTime <= targetDateTime) {
@@ -40,7 +37,6 @@ const getHistoricalRate = (currency: any, targetDate: string) => {
     }
   }
 
-  // Если не нашли подходящий исторический курс, берем самый ранний
   return sortedHistory[sortedHistory.length - 1]?.rate || currency?.rate || 1;
 };
 
@@ -73,7 +69,6 @@ export const GoodsShow: React.FC = () => {
         el.style.boxSizing = "border-box";
         el.style.paddingLeft = "5px";
 
-        // Если товаров много, делаем каждую копию на отдельной странице
         const invoiceCopies = el.querySelectorAll(".invoice-copy");
         if (isLargeInvoice) {
           invoiceCopies.forEach((copy: any, index: number) => {
@@ -85,21 +80,17 @@ export const GoodsShow: React.FC = () => {
             );
             copy.style.setProperty("page-break-inside", "avoid", "important");
             copy.style.setProperty("flex", "none", "important");
-            // copy.style.setProperty("font-family", "Times New Roman, serif", "important");
           });
 
-          // Убираем divider если используем отдельные страницы
           const divider = el.querySelector(".divider");
           if (divider) {
             (divider as any).style.display = "none";
           }
         } else {
-          // Для небольшого количества товаров оставляем как есть
           invoiceCopies.forEach((copy: any) => {
             copy.style.setProperty("height", "49.5vh", "important");
             copy.style.setProperty("page-break-before", "auto", "important");
             copy.style.setProperty("flex", "1", "important");
-            // copy.style.setProperty("font-family", "Times New Roman, serif", "important");
           });
 
           const divider = el.querySelector(".divider");
@@ -111,13 +102,11 @@ export const GoodsShow: React.FC = () => {
         const totalSum = el.querySelectorAll(".total-sum-text");
         totalSum.forEach((section: any) => {
           section.style.setProperty("font-size", "13px", "important");
-          // section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
 
         const tableText = el.querySelectorAll(".table-text");
         tableText.forEach((section: any) => {
           section.style.setProperty("font-size", "11px", "important");
-          // section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
 
         const wideText = el.querySelectorAll(".wide-text");
@@ -132,7 +121,6 @@ export const GoodsShow: React.FC = () => {
           section.style.setProperty("font-weight", "400", "important");
           section.style.setProperty("margin", "0", "important");
           section.style.setProperty("padding", "0", "important");
-          // section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
 
         const termsSectionInvoice = el.querySelectorAll(
@@ -140,19 +128,16 @@ export const GoodsShow: React.FC = () => {
         );
         termsSectionInvoice.forEach((section: any) => {
           section.style.setProperty("font-size", "14px", "important");
-          // section.style.setProperty("font-family", "Times New Roman, serif", "important");
         });
       }
     },
     onAfterPrint: () => {
       const el = printRef.current;
       if (el) {
-        // Сохраняем fontFamily при сбросе других стилей
         const currentFontFamily = el.style.fontFamily;
         el.removeAttribute("style");
         el.style.fontFamily = currentFontFamily;
 
-        // Сбрасываем стили копий накладной
         const invoiceCopies = el.querySelectorAll(".invoice-copy");
         invoiceCopies.forEach((copy: any) => {
           copy.style.removeProperty("height");
@@ -162,7 +147,6 @@ export const GoodsShow: React.FC = () => {
           copy.style.removeProperty("font-family");
         });
 
-        // Возвращаем divider
         const divider = el.querySelector(".divider");
         if (divider) {
           (divider as any).style.removeProperty("display");
@@ -216,7 +200,6 @@ export const GoodsShow: React.FC = () => {
     },
   });
 
-  // Проверяем готовность данных о валютах
   const currenciesLoading = !currencyTableProps?.dataSource;
 
   if (isLoading || currenciesLoading) {
@@ -283,12 +266,10 @@ export const GoodsShow: React.FC = () => {
     }, {})
   );
 
-  // Получаем валюту "Сом" из загруженных данных
   const som = currencyTableProps?.dataSource?.find(
     (item: any) => item.name === "Сом"
   );
 
-  // Получаем курс сома на дату создания накладной
   const somRate = som ? getHistoricalRate(som, record?.created_at) : 1;
 
   const getDiscount = () => {

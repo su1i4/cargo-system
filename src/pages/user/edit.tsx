@@ -1,242 +1,298 @@
-import React, { useEffect, useState } from "react";
+import { DeleteButton, Edit, useForm, useSelect } from "@refinedev/antd";
 import {
-  Modal,
+  Col,
   Form,
   Input,
-  Select,
   Row,
-  Col,
+  Select,
+  Table,
+  Checkbox,
+  Button,
   message,
-  Spin,
+  Flex,
 } from "antd";
+import { useEffect, useState } from "react";
 import { API_URL } from "../../App";
+import { useNavigate } from "react-router";
 
-interface UserEditModalProps {
-  open: boolean;
-  onClose: () => void;
-  userId: string;
-  onSuccess?: () => void;
-}
-
-export const UserEditModal: React.FC<UserEditModalProps> = ({
-  open,
-  onClose,
-  userId,
-  onSuccess,
-}) => {
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [underBranches, setUnderBranches] = useState<any[]>([]);
+export const UserEdit = () => {
+  const { formProps, saveButtonProps, queryResult, formLoading } = useForm();
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
+  const [permissionData, setPermissionData] = useState<any[]>([]);
+  const navigate = useNavigate();
 
-  // Загрузка пользователя
+  const userId = queryResult?.data?.data?.id;
+
+  const { selectProps: branchSelectProps } = useSelect({
+    resource: "branch",
+    optionLabel: "name",
+  });
+
+  const { selectProps: underBranchSelectProps } = useSelect({
+    resource: "under-branch",
+    optionLabel: "address",
+    filters: [
+      {
+        field: "branch_id",
+        operator: "eq",
+        value: selectedBranchId,
+      },
+    ],
+    queryOptions: {
+      enabled: !!selectedBranchId,
+    },
+  });
+
+  const handleBranchChange = (value: any) => {
+    setSelectedBranchId(value);
+    formProps.form?.setFieldValue("under_branch_id", undefined);
+  };
+
+  // Загрузить и объединить endpoint + permission
   useEffect(() => {
-    if (!open || !userId) return;
-
-    const fetchUser = async () => {
-      setLoading(true);
+    const fetchPermissions = async () => {
       try {
-        const res = await fetch(`${API_URL}/user/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
-          },
+        const token = localStorage.getItem("cargo-system-token");
+
+        const [endpointsRes, userRes] = await Promise.all([
+          fetch(`${API_URL}/endpoint`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_URL}/users/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        const endpoints = await endpointsRes.json();
+        const user = await userRes.json();
+
+        const merged = endpoints.map((endpoint: any) => {
+          const found = user?.permission?.find(
+            (p: any) => p.endpoint_id === endpoint.id
+          );
+
+          return {
+            key: endpoint.id,
+            name: endpoint.name,
+            endpoint_id: endpoint.id,
+            create: found?.create || false,
+            show: found?.show || false,
+            edit: found?.edit || false,
+            delete: found?.delete || false,
+          };
         });
-        const result = await res.json();
-        if (result?.data) {
-          form.setFieldsValue(result.data);
-          setSelectedBranchId(result.data.branch_id);
-        } else {
-          message.error("Ошибка при загрузке данных пользователя");
-        }
+
+        setPermissionData(merged);
       } catch (error) {
-        message.error("Ошибка запроса");
-      } finally {
-        setLoading(false);
+        console.error("Ошибка загрузки данных:", error);
       }
     };
 
-    fetchUser();
-  }, [open, userId]);
+    if (userId) {
+      fetchPermissions();
+    }
+  }, [userId]);
 
-  // Загрузка веток и подветок
-  useEffect(() => {
-    const fetchBranches = async () => {
-      try {
-        const res = await fetch(`${API_URL}/branch`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
-          },
-        });
-        const data = await res.json();
-        setBranches(data?.data || []);
-      } catch (err) {
-        message.error("Не удалось загрузить пункты");
-      }
+  const handlePermissionChange = (
+    endpointId: number,
+    key: string,
+    checked: boolean
+  ) => {
+    setPermissionData((prev) =>
+      prev.map((item) =>
+        item.endpoint_id === endpointId ? { ...item, [key]: checked } : item
+      )
+    );
+  };
+
+  const handleFinish = async (values: any) => {
+    const updatedValues = {
+      ...values,
+      permission: permissionData
+        .filter((item) => item.create || item.show || item.edit || item.delete)
+        .map((item) => ({
+          endpoint_id: item.endpoint_id,
+          create: item.create,
+          show: item.show,
+          edit: item.edit,
+          delete: item.delete,
+        })),
     };
 
-    fetchBranches();
-  }, []);
-
-  useEffect(() => {
-    const fetchUnderBranches = async () => {
-      if (!selectedBranchId) return;
-
-      try {
-        const res = await fetch(
-          `${API_URL}/under-branch?s=${encodeURIComponent(
-            JSON.stringify({ field: "branch_id", operator: "eq", value: selectedBranchId })
-          )}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
-            },
-          }
-        );
-        const data = await res.json();
-        setUnderBranches(data?.data || []);
-      } catch (err) {
-        message.error("Не удалось загрузить ПВЗ");
-      }
-    };
-
-    fetchUnderBranches();
-  }, [selectedBranchId]);
-
-  const handleSave = async () => {
     try {
-      const values = await form.validateFields();
-      setSaving(true);
-
-      const res = await fetch(`${API_URL}/user/${userId}`, {
-        method: "PUT",
+      const response = await fetch(`${API_URL}/users/edit-user/${userId}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(updatedValues),
       });
 
-      const result = await res.json();
-
-      if (result.status === 200) {
-        message.success("Сотрудник обновлён");
-        onClose();
-        onSuccess?.();
-      } else {
-        message.error(result.message || "Ошибка при обновлении");
+      if (!response.ok) {
+        throw new Error("Ошибка при обновлении пользователя");
       }
+
+      message.success("Пользователь успешно обновлен");
+      setTimeout(() => {
+        navigate("/users");
+      }, 500);
     } catch (error: any) {
-      message.error(error?.message || "Ошибка при сохранении");
-    } finally {
-      setSaving(false);
+      message.error(error?.message || "Ошибка при обновлении");
     }
   };
 
+  useEffect(() => {
+    const branchId = formProps.form?.getFieldValue("branch_id");
+    setSelectedBranchId(branchId);
+  }, [formLoading, formProps]);
+
   return (
-    <Modal
-      open={open}
-      onCancel={onClose}
-      onOk={handleSave}
-      okText="Сохранить"
-      confirmLoading={saving}
-      title="Редактировать сотрудника"
-      width={800}
+    <Edit
+      headerButtons={({ deleteButtonProps }: any) =>
+        deleteButtonProps && <DeleteButton {...deleteButtonProps} />
+      }
+      saveButtonProps={{ style: { display: "none" } }}
+      isLoading={formLoading}
     >
-      {loading ? (
-        <Spin size="large" />
-      ) : (
-        <Form layout="vertical" form={form}>
-          <Row gutter={[16, 0]}>
-            <Col span={12}>
-              <Form.Item label="Email" name="email" rules={[{ required: true }]}>
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Роль"
-                name="role"
-                rules={[{ required: true }]}
-              >
-                <Select
-                  options={[
-                    { value: "admin", label: "Администратор" },
-                    { value: "user", label: "Пользователь" },
-                  ]}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={[16, 0]}>
-            <Col span={12}>
-              <Form.Item
-                label="Имя"
-                name="firstName"
-                rules={[{ required: true }]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Фамилия"
-                name="lastName"
-                rules={[{ required: true }]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={[16, 0]}>
-            <Col span={12}>
-              <Form.Item label="Должность" name="position">
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Фото" name="photo">
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={[16, 0]}>
-            <Col span={12}>
-              <Form.Item
-                label="Пункт назначения"
-                name="branch_id"
-                rules={[{ required: true }]}
-              >
-                <Select
-                  options={branches.map((b) => ({
-                    value: b.id,
-                    label: b.name,
-                  }))}
-                  onChange={(value) => {
-                    setSelectedBranchId(value);
-                    form.setFieldValue("under_branch_id", undefined);
-                  }}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="ПВЗ"
-                name="under_branch_id"
-                rules={[{ required: true }]}
-              >
-                <Select
-                  options={underBranches.map((b) => ({
-                    value: b.id,
-                    label: b.address,
-                  }))}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      )}
-    </Modal>
+      <Form {...formProps} onFinish={handleFinish} layout="vertical">
+        <Row style={{ marginBottom: 10 }} gutter={[16, 0]}>
+          <Col xs={24} sm={12} md={6}>
+            <Form.Item label="Email" name="email" rules={[{ required: true }]}>
+              <Input />
+            </Form.Item>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Form.Item
+              label="Имя"
+              name="firstName"
+              rules={[{ required: true }]}
+            >
+              <Input />
+            </Form.Item>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Form.Item
+              label="Фамилия"
+              name="lastName"
+              rules={[{ required: true }]}
+            >
+              <Input />
+            </Form.Item>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Form.Item label="Роль" name="role" rules={[{ required: true }]}>
+              <Select
+                options={[
+                  { value: "admin", label: "Админ" },
+                  { value: "user", label: "Пользователь" },
+                ]}
+              />
+            </Form.Item>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Form.Item
+              label="Город"
+              name="branch_id"
+              rules={[{ required: true, message: "Выберите город" }]}
+            >
+              <Select {...branchSelectProps} onChange={handleBranchChange} />
+            </Form.Item>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Form.Item
+              label="Филиал"
+              name="under_branch_id"
+              rules={[{ required: true, message: "Выберите филиал" }]}
+            >
+              <Select {...underBranchSelectProps} />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Table
+          dataSource={permissionData.filter((item) => item.name)}
+          rowKey="key"
+          pagination={false}
+        >
+          <Table.Column dataIndex="name" title="Название" />
+          <Table.Column
+            dataIndex="create"
+            title="Создание"
+            render={(value, record) => (
+              <Checkbox
+                checked={value}
+                onChange={(e) =>
+                  handlePermissionChange(
+                    record.endpoint_id,
+                    "create",
+                    e.target.checked
+                  )
+                }
+              />
+            )}
+          />
+          <Table.Column
+            dataIndex="show"
+            title="Просмотр"
+            render={(value, record) => (
+              <Checkbox
+                checked={value}
+                onChange={(e) =>
+                  handlePermissionChange(
+                    record.endpoint_id,
+                    "show",
+                    e.target.checked
+                  )
+                }
+              />
+            )}
+          />
+          <Table.Column
+            dataIndex="edit"
+            title="Редактирование"
+            render={(value, record) => (
+              <Checkbox
+                checked={value}
+                onChange={(e) =>
+                  handlePermissionChange(
+                    record.endpoint_id,
+                    "edit",
+                    e.target.checked
+                  )
+                }
+              />
+            )}
+          />
+          <Table.Column
+            dataIndex="delete"
+            title="Удаление"
+            render={(value, record) => (
+              <Checkbox
+                checked={value}
+                onChange={(e) =>
+                  handlePermissionChange(
+                    record.endpoint_id,
+                    "delete",
+                    e.target.checked
+                  )
+                }
+              />
+            )}
+          />
+        </Table>
+
+        <Flex style={{ marginTop: 10 }} justify="end">
+          <Button type="primary" htmlType="submit">
+            Сохранить
+          </Button>
+        </Flex>
+      </Form>
+    </Edit>
   );
 };

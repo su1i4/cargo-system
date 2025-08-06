@@ -5,6 +5,9 @@ import { Table } from "antd";
 export const UserList = () => {
   const { tableProps } = useTable({
     syncWithLocation: true,
+    pagination: {
+      mode: "off",
+    },
   });
 
   const { show } = useNavigation();

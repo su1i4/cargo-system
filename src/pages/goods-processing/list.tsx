@@ -644,9 +644,15 @@ export const GoogsProcessingList = () => {
           dataIndex="services"
           title="Номер мешка"
           render={(value) => {
-            return value
-              ?.map((item: any) => item.bag_number_numeric)
-              .join(", ");
+            return (
+              <p
+                style={{
+                  maxWidth: 150,
+                }}
+              >
+                {value?.map((item: any) => item.bag_number_numeric).join(",")}
+              </p>
+            );
           }}
         />
         <Table.Column

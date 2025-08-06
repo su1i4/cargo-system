@@ -1,9 +1,22 @@
 import { useEffect, useState } from "react";
-import { Create, useForm, useSelect, useTable } from "@refinedev/antd";
-import { Checkbox, Col, Form, Input, Row, Select, Table } from "antd";
+import { Create } from "@refinedev/antd";
+import {
+  Button,
+  Checkbox,
+  Col,
+  Flex,
+  Form,
+  Input,
+  Row,
+  Select,
+  Table,
+  message,
+} from "antd";
+import { useSelect, useTable } from "@refinedev/antd";
+import { API_URL } from "../../App";
 
 export const UserCreate = () => {
-  const { formProps, saveButtonProps } = useForm({});
+  const [form] = Form.useForm();
 
   const { tableProps } = useTable({
     resource: "endpoint",
@@ -12,6 +25,7 @@ export const UserCreate = () => {
 
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const [selectedEndpoints, setSelectedEndpoints] = useState<any[]>([]);
+
   const { selectProps: branchSelectProps } = useSelect({
     resource: "branch",
     optionLabel: "name",
@@ -34,10 +48,11 @@ export const UserCreate = () => {
 
   const handleBranchChange = (value: any) => {
     setSelectedBranchId(value);
-    formProps.form?.setFieldValue("under_branch_id", undefined);
+    form.setFieldValue("under_branch_id", undefined);
   };
 
   const handleFinish = async (values: any) => {
+    console.log("work");
     const submitValues = {
       ...values,
       permission: selectedEndpoints
@@ -51,8 +66,26 @@ export const UserCreate = () => {
         })),
     };
 
-    if (formProps.onFinish) {
-      await formProps.onFinish(submitValues);
+    try {
+      const response = await fetch(`${API_URL}/users/create-user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+        },
+        body: JSON.stringify(submitValues),
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка при создании пользователя");
+      }
+
+      message.success("Пользователь успешно создан");
+      form.resetFields();
+      setSelectedEndpoints([]);
+    } catch (error: any) {
+      console.log(error);
+      message.error(error?.message || "Ошибка при создании пользователя");
     }
   };
 
@@ -73,23 +106,20 @@ export const UserCreate = () => {
   }, [tableProps.dataSource]);
 
   return (
-    <Create title="Создание сотрудника" saveButtonProps={saveButtonProps}>
-      <Form {...formProps} onFinish={handleFinish} layout="vertical">
+    <Create
+      title="Создание сотрудника"
+      saveButtonProps={{ style: { display: "none" } }}
+    >
+      <Form form={form} onFinish={handleFinish} layout="vertical">
         <Row style={{ marginBottom: 10 }} gutter={[16, 0]}>
           <Col xs={24} sm={12} md={6}>
-            <Form.Item
-              style={{ marginBottom: 5 }}
-              label="Email"
-              name="email"
-              rules={[{ required: true }]}
-            >
+            <Form.Item label="Email" name="email" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12} md={6}>
             <Form.Item
-              style={{ marginBottom: 5 }}
               label="Имя"
               name="firstName"
               rules={[{ required: true }]}
@@ -100,7 +130,6 @@ export const UserCreate = () => {
 
           <Col xs={24} sm={12} md={6}>
             <Form.Item
-              style={{ marginBottom: 5 }}
               label="Фамилия"
               name="lastName"
               rules={[{ required: true }]}
@@ -110,12 +139,7 @@ export const UserCreate = () => {
           </Col>
 
           <Col xs={24} sm={12} md={6}>
-            <Form.Item
-              style={{ marginBottom: 5 }}
-              label="Роль"
-              name="role"
-              rules={[{ required: true }]}
-            >
+            <Form.Item label="Роль" name="role" rules={[{ required: true }]}>
               <Select
                 options={[
                   { value: "admin", label: "Админ" },
@@ -127,10 +151,9 @@ export const UserCreate = () => {
 
           <Col xs={24} sm={12} md={6}>
             <Form.Item
-              style={{ marginBottom: 5 }}
-              label="Пункт назначения"
+              label="Город"
               name="branch_id"
-              rules={[{ required: true, message: "Введите пункт назначения" }]}
+              rules={[{ required: true, message: "Выберите город" }]}
             >
               <Select {...branchSelectProps} onChange={handleBranchChange} />
             </Form.Item>
@@ -138,10 +161,9 @@ export const UserCreate = () => {
 
           <Col xs={24} sm={12} md={6}>
             <Form.Item
-              style={{ marginBottom: 5 }}
               label="Филиал"
               name="under_branch_id"
-              rules={[{ required: true, message: "Введите ПВЗ" }]}
+              rules={[{ required: true, message: "Выберите филиал" }]}
             >
               <Select {...underBranchSelectProps} />
             </Form.Item>
@@ -149,7 +171,6 @@ export const UserCreate = () => {
 
           <Col xs={24} sm={12} md={6}>
             <Form.Item
-              style={{ marginBottom: 5 }}
               label="Пароль"
               name="password"
               rules={[{ required: true }]}
@@ -158,6 +179,7 @@ export const UserCreate = () => {
             </Form.Item>
           </Col>
         </Row>
+
         <Table dataSource={selectedEndpoints} rowKey="key" pagination={false}>
           <Table.Column dataIndex="name" title="Название" />
           <Table.Column
@@ -166,15 +188,15 @@ export const UserCreate = () => {
             render={(value, record) => (
               <Checkbox
                 checked={value}
-                onChange={(e) => {
-                  setSelectedEndpoints(
-                    selectedEndpoints.map((endpoint) =>
+                onChange={(e) =>
+                  setSelectedEndpoints((prev) =>
+                    prev.map((endpoint) =>
                       endpoint.endpoint_id === record.endpoint_id
                         ? { ...endpoint, create: e.target.checked }
                         : endpoint
                     )
-                  );
-                }}
+                  )
+                }
               />
             )}
           />
@@ -184,15 +206,15 @@ export const UserCreate = () => {
             render={(value, record) => (
               <Checkbox
                 checked={value}
-                onChange={(e) => {
-                  setSelectedEndpoints(
-                    selectedEndpoints.map((endpoint) =>
+                onChange={(e) =>
+                  setSelectedEndpoints((prev) =>
+                    prev.map((endpoint) =>
                       endpoint.endpoint_id === record.endpoint_id
                         ? { ...endpoint, show: e.target.checked }
                         : endpoint
                     )
-                  );
-                }}
+                  )
+                }
               />
             )}
           />
@@ -202,15 +224,15 @@ export const UserCreate = () => {
             render={(value, record) => (
               <Checkbox
                 checked={value}
-                onChange={(e) => {
-                  setSelectedEndpoints(
-                    selectedEndpoints.map((endpoint) =>
+                onChange={(e) =>
+                  setSelectedEndpoints((prev) =>
+                    prev.map((endpoint) =>
                       endpoint.endpoint_id === record.endpoint_id
                         ? { ...endpoint, edit: e.target.checked }
                         : endpoint
                     )
-                  );
-                }}
+                  )
+                }
               />
             )}
           />
@@ -220,19 +242,24 @@ export const UserCreate = () => {
             render={(value, record) => (
               <Checkbox
                 checked={value}
-                onChange={(e) => {
-                  setSelectedEndpoints(
-                    selectedEndpoints.map((endpoint) =>
+                onChange={(e) =>
+                  setSelectedEndpoints((prev) =>
+                    prev.map((endpoint) =>
                       endpoint.endpoint_id === record.endpoint_id
                         ? { ...endpoint, delete: e.target.checked }
                         : endpoint
                     )
-                  );
-                }}
+                  )
+                }
               />
             )}
           />
         </Table>
+        <Flex style={{ marginTop: 10 }} justify="end">
+          <Button type="primary" htmlType="submit">
+            Сохранить
+          </Button>
+        </Flex>
       </Form>
     </Create>
   );

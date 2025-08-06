@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Create, useSelect, useForm } from "@refinedev/antd";
 import {
   useCustom,
@@ -30,6 +30,7 @@ import {
   ArrowUpOutlined,
   CalendarOutlined,
   PaperClipOutlined,
+  PrinterOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import { API_URL } from "../../App";
@@ -38,17 +39,17 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { useNavigate } from "react-router";
 import { useSearchParams } from "react-router";
+import { useReactToPrint } from "react-to-print";
+import { PrintContent } from "./print-content";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-// Функция для получения исторического курса валюты на конкретную дату
 const getHistoricalRate = (currency: any, targetDate: string) => {
   if (!currency?.currency_history || !targetDate) {
     return currency?.rate || 1;
   }
 
-  // Сортируем историю по дате (по убыванию)
   const sortedHistory = [...currency.currency_history].sort(
     (a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -56,7 +57,6 @@ const getHistoricalRate = (currency: any, targetDate: string) => {
 
   const targetDateTime = new Date(targetDate).getTime();
 
-  // Ищем курс, который был актуален на дату создания товара
   for (const historyRecord of sortedHistory) {
     const historyDateTime = new Date(historyRecord.created_at).getTime();
     if (historyDateTime <= targetDateTime) {
@@ -64,7 +64,6 @@ const getHistoricalRate = (currency: any, targetDate: string) => {
     }
   }
 
-  // Если не нашли подходящий исторический курс, берем самый ранний
   return sortedHistory[sortedHistory.length - 1]?.rate || currency?.rate || 1;
 };
 
@@ -81,26 +80,28 @@ export const CashDeskCreate: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [preselectedGoodsIds, setPreselectedGoodsIds] = useState<number[]>([]);
+  const [selectedCounterparty, setSelectedCounterparty] = useState<any>(null);
 
-  // Mutate function to update multiple goods (e.g., link them to the new cash-desk operation)
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const reactToPrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Накладная ${dayjs().format("DD.MM.YYYY HH:mm")}`,
+  });
+
   const { mutate: updateManyGoods } = useUpdateMany({
     resource: "goods-processing",
     mutationOptions: {
       onSuccess: async (data: any, variables, context) => {
-        refetch(); // Refetch goods data after update
-        push("/income"); // Navigate to income page
+        refetch();
+        push("/income");
       },
     },
   });
 
-  // Функция для создания cash-desk записей
-  const { mutate: createCashDeskEntry } = useCreate();
-
-  // Функция для создания bulk оплаты для оптовых операций
   const createBulkIncomeEntries = async (formValues: any) => {
     const totalItems = selectedRows.length;
 
-    // Показываем уведомление о начале процесса
     notification.info({
       message: "Создание оплат",
       description: `Создается bulk оплата для ${totalItems} товаров...`,
@@ -112,15 +113,12 @@ export const CashDeskCreate: React.FC = () => {
       (item: any) => item.name === selectedCurrency
     );
 
-    // Подготавливаем массив данных для bulk запроса
     const bulkData = selectedRows.map((good: any) => {
-      // Получаем исторический курс валюты на дату создания товара
       const historicalRate = getHistoricalRate(
         selectedCurrencyData,
         good.created_at
       );
 
-      // Вычисляем сумму для каждого товара отдельно
       const totalServiceAmount = good.services.reduce(
         (acc: number, service: any) => acc + Number(service.sum || 0),
         0
@@ -130,7 +128,7 @@ export const CashDeskCreate: React.FC = () => {
         0
       );
 
-      const totalGoodAmount = totalServiceAmount + totalProductAmount;   
+      const totalGoodAmount = totalServiceAmount + totalProductAmount;
       const transformAmount =
         historicalRate > 0 ? historicalRate * totalGoodAmount : totalGoodAmount;
       const remainingToPay = transformAmount - (good?.paid_sum || 0);
@@ -141,10 +139,10 @@ export const CashDeskCreate: React.FC = () => {
         amount: remainingToPay,
         type: "income",
         good_id: good.id,
-        date: formValues.date, // Добавлено поле date
-        counterparty_id: formValues.sender_id, // Добавлено поле counterparty_id
-        comment: formValues.comment || "", // Добавлено поле comment
-        method_payment: formValues.method_payment || "", // Добавлено поле method_payment
+        date: formValues.date,
+        counterparty_id: formValues.sender_id,
+        comment: formValues.comment || "",
+        method_payment: formValues.method_payment || "",
       };
     });
 
@@ -153,7 +151,7 @@ export const CashDeskCreate: React.FC = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("cargo-system-token")}`,
+          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
         },
         body: JSON.stringify(bulkData),
       });
@@ -172,7 +170,6 @@ export const CashDeskCreate: React.FC = () => {
       setTimeout(() => {
         push("/income");
       }, 1000);
-
     } catch (error) {
       console.error("Ошибка при создании bulk оплаты:", error);
       notification.error({
@@ -183,14 +180,10 @@ export const CashDeskCreate: React.FC = () => {
     }
   };
 
-  // Form hook for creating a cash-desk entry
   const { formProps, saveButtonProps, form } = useForm({
     onMutationSuccess(data, variables, context, isAutoSave) {
-      // Оптовая оплата с несколькими товарами обрабатывается в onFinish
-      // Здесь обрабатываем только остальные случаи
-      const id = data?.data?.id; // Get the ID of the newly created cash-desk entry
+      const id = data?.data?.id;
       if (selectedRowKeys.length > 0) {
-        // If goods were selected, update them with the cash-desk operation ID
         updateManyGoods({
           ids: selectedRowKeys,
           values: {
@@ -198,47 +191,43 @@ export const CashDeskCreate: React.FC = () => {
           },
         });
       } else {
-        // If no goods were selected (e.g., direct income), navigate
         navigate("/income");
       }
     },
     resource: "cash-desk",
-    redirect: false, // Prevent default redirection
+    redirect: false,
     //@ts-ignore
     defaultValues: {
-      type: "income", // Default type for cash desk entry
-      type_operation: "Извне", // Default operation type
-      date: dayjs(), // Default date to current day
-      type_currency: "Сом", // Default currency to Som
+      type: "income",
+      type_operation: "Извне",
+      date: dayjs(),
+      type_currency: "Сом",
     },
   });
 
-  const [isAgent, setIsAgent] = useState(false); // State to control visibility of agent-related fields and table
-  const [sorterVisible, setSorterVisible] = useState(false); // State for sort dropdown visibility
-  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC"); // Sorting direction
-  const [sortField, setSortField] = useState<"id" | "counterparty.name">("id"); // Field to sort by
-  const [filters, setFilters] = useState<any>([]); // Filters for the goods table
-  const [currentPage, setCurrentPage] = useState(1); // Current page for goods table
-  const [pageSize, setPageSize] = useState(100); // Page size for goods table
-  const [change, setChange] = useState(0); // Dummy state to trigger useEffect for amount calculation
-  const [bolik, setBolik] = useState(false); // True for "Контрагент частично" (partial payment), enables single selection
-  const [selectedCurrency, setSelectedCurrency] = useState("Сом"); // Track selected currency for table display
-  const [selectedCounterparty, setSelectedCounterparty] = useState<any>(null); // Track selected counterparty for balance operations
-  const [isBalanceOperation, setIsBalanceOperation] = useState(false); // Track if operation is "Контрагент частично с баланса"
+  const [isAgent, setIsAgent] = useState(false);
+  const [sorterVisible, setSorterVisible] = useState(false);
+  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
+  const [sortField, setSortField] = useState<"id" | "counterparty.name">("id");
+  const [filters, setFilters] = useState<any>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(100);
+  const [change, setChange] = useState(0);
+  const [bolik, setBolik] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState("Сом");
+  const [isBalanceOperation, setIsBalanceOperation] = useState(false);
 
-  // Fetch currency data
   const { data: currency = { data: [] }, isLoading: currencyLoading } =
     useCustom<any>({
       url: `${API_URL}/currency`,
       method: "get",
     });
 
-  const [selectedType, setSelectedType] = useState<string | null>(null); // To determine if sender or recipient
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedReceipientId, setSelectedReceipientId] = useState<
     string | null
-  >(null); // For fetching counterparty details (though not directly used now)
+  >(null);
 
-  // Функция для построения фильтров запроса
   const buildGoodsQuery = () => {
     if (preselectedGoodsIds.length > 0) {
       return {
@@ -264,7 +253,8 @@ export const CashDeskCreate: React.FC = () => {
       };
     }
 
-    // Обычная логика фильтрации по контрагенту
+    console.log(selectedCounterparty, 'fuck');
+
     return {
       s: JSON.stringify({
         $and: [
@@ -303,7 +293,6 @@ export const CashDeskCreate: React.FC = () => {
     };
   };
 
-  // Fetch goods-processing data based on filters, sorting, and pagination
   const { data, isLoading, refetch } = useCustom<any>({
     url: `${API_URL}/goods-processing`,
     method: "get",
@@ -312,13 +301,12 @@ export const CashDeskCreate: React.FC = () => {
     },
   });
 
-  // Select properties for the sender/counterparty dropdown
   const { selectProps: senderSelectProps } = useSelect({
     resource: "counterparty",
     optionLabel: (item) =>
       `${item.name} ${item.clientPrefix}-${item.clientCode}/${
         item.type === "sender" ? "." : ","
-      }`, // Custom label combining name, prefix, code
+      }`,
     filters: [
       {
         operator: "or",
@@ -341,7 +329,6 @@ export const CashDeskCreate: React.FC = () => {
     ],
   });
 
-  // Fetch selected counterparty data for balance operations
   const { data: selectedCounterpartyData } = useOne({
     resource: "counterparty",
     id: selectedCounterparty ?? "",
@@ -350,16 +337,14 @@ export const CashDeskCreate: React.FC = () => {
     },
   });
 
-  // Set initial form values (type: "income", currency: "Сом") when the form is available
   useEffect(() => {
     if (form) {
       form.setFieldValue("type", "income");
       form.setFieldValue("type_currency", "Сом");
-      setSelectedCurrency("Сом"); // Set initial selected currency
+      setSelectedCurrency("Сом");
     }
   }, [form]);
 
-  // Effect to calculate and set 'amount' and 'paid_sum' based on selections and currency
   useEffect(() => {
     if (formProps.form) {
       if (isAgent) {
@@ -368,18 +353,15 @@ export const CashDeskCreate: React.FC = () => {
           (item: any) => item.name === currentValue
         );
 
-        // Calculate total amounts from selected goods using historical rates for each good
         let totalTransformedAmount = 0;
         let totalPaidSumInCurrentCurrency = 0;
 
         selectedRows.forEach((item: any) => {
-          // Получаем исторический курс для каждого товара на дату его создания
           const historicalRate = getHistoricalRate(
             selectedCurrencyData,
             item.created_at
           );
 
-          // Рассчитываем сумму для каждого товара отдельно
           const serviceAmount = item.services.reduce(
             (acc: number, service: any) => acc + Number(service.sum || 0),
             0
@@ -390,14 +372,12 @@ export const CashDeskCreate: React.FC = () => {
           );
           const itemTotalAmount = serviceAmount + productAmount;
 
-          // Применяем исторический курс к сумме товара
           const itemTransformedAmount =
             historicalRate > 0
               ? historicalRate * itemTotalAmount
               : itemTotalAmount;
           totalTransformedAmount += itemTransformedAmount;
 
-          // Конвертируем paid_sum с учетом исторического курса
           const itemPaidSum = convertAmount(
             item.paid_sum || 0,
             currentValue,
@@ -409,27 +389,23 @@ export const CashDeskCreate: React.FC = () => {
         const remainingToPay =
           totalTransformedAmount - totalPaidSumInCurrentCurrency;
 
-        // Для операций с балансом подставляем баланс контрагента, но не больше суммы к оплате
         if (isBalanceOperation && selectedCounterpartyData?.data?.ross_coin) {
           const counterpartyBalance = Number(
             selectedCounterpartyData.data.ross_coin
           );
           const amountToSet = Math.min(counterpartyBalance, remainingToPay);
 
-          // Set form fields: 'amount' and 'paid_sum'
           formProps.form.setFieldsValue({
             amount: amountToSet,
             paid_sum: remainingToPay,
           });
         } else {
-          // Set form fields: 'amount' and 'paid_sum'
           formProps.form.setFieldsValue({
             amount: remainingToPay,
             paid_sum: remainingToPay,
           });
         }
       } else {
-        // If not an agent operation, reset agent-specific fields
         const currentValues: any = formProps.form.getFieldsValue();
 
         const resetValues = Object.keys(currentValues).reduce(
@@ -439,14 +415,14 @@ export const CashDeskCreate: React.FC = () => {
               key === "type_operation" ||
               key === "date" ||
               key === "type" ||
-              key === "type_currency" || // Keep currency selection
-              key === "bank_id" || // Keep bank selection
-              key === "method_payment" || // Keep payment method
-              key === "comment" // Keep comment
+                key === "type_currency" ||
+              key === "bank_id" ||
+              key === "method_payment" ||
+              key === "comment"
             ) {
               acc[key] = currentValues[key];
             } else {
-              acc[key] = undefined; // Reset other fields
+              acc[key] = undefined;
             }
             return acc;
           },
@@ -465,15 +441,13 @@ export const CashDeskCreate: React.FC = () => {
     selectedCurrency,
     isBalanceOperation,
     selectedCounterpartyData,
-  ]); // Added selectedCurrency to dependencies
+  ]);
 
-  // Select properties for the bank dropdown
   const { selectProps: bankSelectProps } = useSelect({
     resource: "bank",
     optionLabel: "name",
   });
 
-  // Function to convert amount based on selected currency and optional date for historical rate
   const convertAmount = (
     amount: number,
     targetCurrency: string,
@@ -485,16 +459,13 @@ export const CashDeskCreate: React.FC = () => {
       (item: any) => item.name === targetCurrency
     );
 
-    // Если передана дата, используем исторический курс, иначе текущий
     const rate = createdAt
       ? getHistoricalRate(currencyData, createdAt)
       : currencyData?.rate || 0;
 
-    // Convert from rubles to target currency
     return rate * amount;
   };
 
-  // Fetch counterparty data (currently not fully utilized for setting form fields, but available)
   const { data: counterpartyData } = useOne({
     resource: "counterparty",
     id: selectedReceipientId ?? "",
@@ -503,9 +474,8 @@ export const CashDeskCreate: React.FC = () => {
     },
   });
 
-  const currentDateDayjs = dayjs(); // Get current date for default value
+  const currentDateDayjs = dayjs();
 
-  // Set counterparty name and default date when data is available
   useEffect(() => {
     if (counterpartyData && counterpartyData.data) {
       // @ts-ignore
@@ -520,7 +490,6 @@ export const CashDeskCreate: React.FC = () => {
     }
   }, [counterpartyData, formProps.form]);
 
-  // Set default type_operation on component mount
   useEffect(() => {
     if (formProps.form) {
       formProps.form.setFieldsValue({
@@ -529,23 +498,20 @@ export const CashDeskCreate: React.FC = () => {
     }
   }, []);
 
-  // Set default bank and payment method when bank data is loaded
   useEffect(() => {
     if (
       formProps.form &&
       bankSelectProps.options &&
       bankSelectProps.options.length > 0
     ) {
-      // Выбираем первый банк из списка
       const firstBank = bankSelectProps.options[0];
       formProps.form.setFieldsValue({
         bank_id: firstBank.value,
-        method_payment: "Оплата наличными", // Устанавливаем метод оплаты по умолчанию
+        method_payment: "Оплата наличными",
       });
     }
   }, [formProps.form, bankSelectProps.options]);
 
-  // Обработка URL параметров для автоматической установки типа операции и выбора товаров
   useEffect(() => {
     const typeOperation = searchParams.get("type_operation");
     const goodsIds = searchParams.get("goods_ids");
@@ -555,46 +521,38 @@ export const CashDeskCreate: React.FC = () => {
         type_operation: typeOperation,
       });
 
-      // Если тип операции "Контрагент оптом" или "Контрагент частично", активируем режим агента
       if (
         typeOperation === "Контрагент оптом" ||
         typeOperation === "Контрагент частично" ||
         typeOperation === "Контрагент частично с баланса"
       ) {
         setIsAgent(true);
-        // Для частичного контрагента включаем режим одиночного выбора
         if (
           typeOperation === "Контрагент частично" ||
           typeOperation === "Контрагент частично с баланса"
         ) {
           setBolik(true);
         }
-        // Для операций с балансом включаем режим баланса
         if (typeOperation === "Контрагент частично с баланса") {
           setIsBalanceOperation(true);
-          // Автоматически устанавливаем рубль для операций с балансом
           formProps.form.setFieldValue("type_currency", "Рубль");
           setSelectedCurrency("Рубль");
-          // Автоматически устанавливаем метод оплаты балансом
           formProps.form.setFieldValue("method_payment", "Оплата балансом");
         }
       }
     }
 
-    // Устанавливаем предварительно выбранные товары для загрузки
     if (goodsIds) {
       const idsArray = goodsIds.split(",").map((id) => parseInt(id.trim()));
       setPreselectedGoodsIds(idsArray);
     }
 
-    // Синхронизируем selectedCurrency с текущим значением формы
     const currentCurrency = formProps.form?.getFieldValue("type_currency");
     if (currentCurrency) {
       setSelectedCurrency(currentCurrency);
     }
   }, [formProps.form, searchParams]);
 
-  // Отдельный useEffect для автоматического выбора товаров после их загрузки
   useEffect(() => {
     if (preselectedGoodsIds.length > 0 && data?.data?.data) {
       const goodsToSelect = data.data.data.filter((good: any) =>
@@ -604,10 +562,8 @@ export const CashDeskCreate: React.FC = () => {
       setSelectedRowKeys(preselectedGoodsIds);
       setSelectedRows(goodsToSelect);
 
-      // Автоматически выбираем контрагента на основе первого товара
       if (goodsToSelect.length > 0 && formProps.form) {
         const firstGood = goodsToSelect[0];
-        // Выбираем отправителя как контрагента
         if (firstGood.sender?.id) {
           formProps.form.setFieldsValue({
             sender_id: firstGood.sender.id,
@@ -617,23 +573,21 @@ export const CashDeskCreate: React.FC = () => {
     }
   }, [data?.data?.data, preselectedGoodsIds, formProps.form]);
 
-  // Принудительное обновление данных при изменении preselectedGoodsIds
   useEffect(() => {
     if (preselectedGoodsIds.length > 0) {
       refetch();
     }
   }, [preselectedGoodsIds, refetch]);
 
-  // Handle sender selection change
   const handleSenderChange = (value: any, record: any) => {
+    setSelectedCounterparty(record);
     setSelectedType(
       record.label.split("/")[1] === "." ? "sender" : "recipient"
     );
-    setSelectedRows([]); // Clear selected rows when sender changes
-    setSelectedRowKeys([]); // Clear selected row keys
-    setChange(change + 1); // Trigger recalculation
+    setSelectedRows([]);
+    setSelectedRowKeys([]);
+    setChange(change + 1);
 
-    // Для операций с балансом сохраняем выбранного контрагента
     if (isBalanceOperation) {
       setSelectedCounterparty(value);
     }
@@ -653,7 +607,6 @@ export const CashDeskCreate: React.FC = () => {
     "Контрагент частично с баланса",
   ];
 
-  // Handle table pagination, filtering, and sorting
   const handleTableChange = (pagination: any, filters: any, sorter: any) => {
     setCurrentPage(pagination.current);
     setPageSize(pagination.pageSize);
@@ -668,9 +621,8 @@ export const CashDeskCreate: React.FC = () => {
 
   const dataSource = data?.data?.data;
 
-  // Table props configuration
   const tableProps = {
-    type: "radio" as const, // Although we handle multi-select with checkboxes, Antd Table `type` can be used for built-in radio
+    type: "radio" as const,
     dataSource: dataSource?.filter((item: any) => item.id !== 64),
     loading: isLoading,
     pagination: {
@@ -686,7 +638,6 @@ export const CashDeskCreate: React.FC = () => {
     },
   };
 
-  // Content for the date picker dropdown
   const datePickerContent = (
     <DatePicker.RangePicker
       style={{ width: "280px" }}
@@ -702,13 +653,12 @@ export const CashDeskCreate: React.FC = () => {
             },
           ]);
         } else {
-          setFilters([]); // Clear date filter if dates are cleared
+          setFilters([]);
         }
       }}
     />
   );
 
-  // Content for the sort dropdown
   const sortContent = (
     <Card style={{ width: 200, padding: "0px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -799,16 +749,13 @@ export const CashDeskCreate: React.FC = () => {
           type: "income",
         }}
         onFinish={(values: any) => {
-          // --- Validation for agent operations - товар должен быть выбран ---
           if (isAgent && selectedRows.length === 0) {
             message.error(
               "Для операций с контрагентом необходимо выбрать хотя бы один товар."
             );
-            return; // Prevent form submission
+            return;
           }
 
-          // --- Validation for "Контрагент частично" (Partial Payment) ---
-          // This ensures the user cannot pay more than the remaining balance for a single item.
           if (bolik && selectedRows.length === 1) {
             const selectedGood = selectedRows[0];
             let rate = 0;
@@ -820,7 +767,6 @@ export const CashDeskCreate: React.FC = () => {
                 )?.rate || 0;
             }
 
-            // Calculate the total actual amount of the selected good (services + products)
             const totalGoodAmount =
               selectedGood.services.reduce(
                 (acc: number, service: any) => acc + Number(service.sum || 0),
@@ -831,20 +777,17 @@ export const CashDeskCreate: React.FC = () => {
                 0
               );
 
-            // Calculate the remaining amount due for this specific good, considering currency rate
             const remainingAmount =
               (rate > 0 ? rate * totalGoodAmount : totalGoodAmount) -
               (selectedGood?.paid_sum || 0);
 
-            // Check if the user-entered amount exceeds the remaining amount
             if (values.amount > remainingAmount) {
               message.error(
                 "Сумма к оплате не может превышать оставшуюся сумму."
               );
-              return; // Prevent form submission
+              return;
             }
 
-            // Additional validation for balance operations
             if (
               isBalanceOperation &&
               selectedCounterpartyData?.data?.ross_coin
@@ -856,38 +799,31 @@ export const CashDeskCreate: React.FC = () => {
                 message.error(
                   "Сумма к оплате не может превышать баланс контрагента."
                 );
-                return; // Prevent form submission
+                return;
               }
             }
           }
-          // --- End Validation ---
 
-          // Проверяем, если это оптовая оплата с несколькими товарами
           if (
             values.type_operation === "Контрагент оптом" &&
             selectedRows.length > 1
           ) {
-            // Для оптовой оплаты используем bulk запрос
             createBulkIncomeEntries(values);
-            return; // Не продолжаем обычную логику создания
+            return;
           }
 
           const finalValues = {
             ...values,
             type: "income",
-            // counterparty_id is set based on the sender_id selected in the form
             counterparty_id: formProps?.form?.getFieldValue("sender_id"),
           };
 
-          // If it's an agent operation, link the cash desk entry to the first selected good
-          // (For "Контрагент частично", this will be the single selected good)
-          // (For "Контрагент оптом" с одним товаром, this will link to that single good)
           if (isAgent && selectedRows.length > 0) {
             //@ts-ignore
-            finalValues.good_id = selectedRows[0]?.id; // Link to the first selected good's ID
+            finalValues.good_id = selectedRows[0]?.id;
           }
 
-          formProps.onFinish && formProps.onFinish(finalValues); // Proceed with form submission
+          formProps.onFinish && formProps.onFinish(finalValues);
         }}
       >
         <Form.Item name="type" hidden={true} initialValue="income">
@@ -902,7 +838,7 @@ export const CashDeskCreate: React.FC = () => {
               style={{ marginBottom: 5 }}
             >
               <DatePicker
-                disabled={true} // Date is disabled and set to current date
+                disabled={true}
                 style={{ width: "100%" }}
                 format="YYYY-MM-DD HH:mm:ss"
                 showTime
@@ -943,26 +879,21 @@ export const CashDeskCreate: React.FC = () => {
                 placeholder="Выберите вид прихода"
                 style={{ width: "100%" }}
                 onChange={(e) => {
-                  // Set isAgent based on selection
                   setIsAgent(
                     e === "Контрагент оптом" ||
                       e === "Контрагент частично" ||
                       e === "Контрагент частично с баланса"
                   );
-                  // Set bolik for "Контрагент частично" to enable single selection
                   setBolik(
                     e === "Контрагент частично" ||
                       e === "Контрагент частично с баланса"
                   );
-                  // Set balance operation flag
                   setIsBalanceOperation(e === "Контрагент частично с баланса");
 
-                  // Reset counterparty selection when changing operation type
                   if (e !== "Контрагент частично с баланса") {
                     setSelectedCounterparty(null);
                   }
 
-                  // Auto-set currency to Ruble for balance operations
                   if (e === "Контрагент частично с баланса") {
                     form.setFieldValue("type_currency", "Рубль");
                     setSelectedCurrency("Рубль");
@@ -998,10 +929,10 @@ export const CashDeskCreate: React.FC = () => {
               style={{ marginBottom: 5 }}
             >
               <Select
-                disabled={isBalanceOperation} // Disabled for balance operations
+                disabled={isBalanceOperation}
                 options={
                   isBalanceOperation
-                    ? [{ label: "Оплата балансом", value: "Оплата балансом" }] // Only balance payment for balance operations
+                    ? [{ label: "Оплата балансом", value: "Оплата балансом" }]
                     : paymentTypes.map((enumValue) => ({
                         label: enumValue,
                         value: enumValue,
@@ -1055,7 +986,7 @@ export const CashDeskCreate: React.FC = () => {
               <Select
                 showSearch
                 loading={currencyLoading}
-                disabled={currencyLoading || isBalanceOperation} // Disabled for balance operations
+                disabled={currencyLoading || isBalanceOperation}
                 placeholder="Выберите валюту"
                 filterOption={(input, option) =>
                   (option?.label ?? "")
@@ -1063,14 +994,12 @@ export const CashDeskCreate: React.FC = () => {
                     .includes(input.toLowerCase())
                 }
                 onChange={(value) => {
-                  setSelectedCurrency(value); // Update selected currency for table display
-                  setChange(change + 1); // Trigger re-calculation on currency change
-                  // The main logic for amount calculation is in the useEffect,
-                  // this handler just ensures that effect runs.
+                  setSelectedCurrency(value);
+                  setChange(change + 1);
                 }}
                 options={
                   isBalanceOperation
-                    ? [{ label: "Рубль", value: "Рубль" }] // Only rubles for balance operations
+                    ? [{ label: "Рубль", value: "Рубль" }]
                     : Object.values(CurrencyType).map((item: any) => ({
                         label: `${item}`,
                         value: item,
@@ -1095,7 +1024,7 @@ export const CashDeskCreate: React.FC = () => {
             >
               <Input
                 type="number"
-                disabled={isAgent && !bolik} // Disabled if agent AND NOT partial payment (bolik)
+                disabled={isAgent && !bolik}
                 min={0}
                 max={
                   isBalanceOperation &&
@@ -1117,7 +1046,7 @@ export const CashDeskCreate: React.FC = () => {
               >
                 <Input
                   type="number"
-                  disabled // This field is always disabled as it displays the calculated remaining amount
+                  disabled
                   style={{ width: "100%" }}
                 />
               </Form.Item>
@@ -1157,24 +1086,20 @@ export const CashDeskCreate: React.FC = () => {
               <Form.Item name="check_file" noStyle>
                 <Upload.Dragger
                   name="file"
-                  action={`${API_URL}/file-upload`} // Your upload endpoint
+                    action={`${API_URL}/file-upload`}
                   listType="picture"
                   accept=".png,.jpg,.jpeg"
                   beforeUpload={(file) => {
-                    // Create FormData to send the file
                     const formData = new FormData();
                     formData.append("file", file);
 
-                    // Send request to server to get file path
                     fetch(`${API_URL}/file-upload`, {
                       method: "POST",
                       body: formData,
                     })
                       .then((response) => response.json())
                       .then((data) => {
-                        // Assuming the server returns an object with the file path
                         const filePath = data.path || data.url || data.filePath;
-                        // Set the file path in the form field
                         if (formProps.form) {
                           formProps.form.setFieldsValue({
                             check_file: filePath,
@@ -1185,7 +1110,6 @@ export const CashDeskCreate: React.FC = () => {
                         console.error("Ошибка загрузки файла:", error);
                       });
 
-                    // Prevent Ant Design's default upload behavior
                     return false;
                   }}
                 >
@@ -1232,7 +1156,7 @@ export const CashDeskCreate: React.FC = () => {
                 onChange={(e) => {
                   const value = e.target.value;
                   if (!value) {
-                    setFilters([]); // Clear filters if search is empty
+                    setFilters([]);
                     return;
                   }
 
@@ -1264,15 +1188,19 @@ export const CashDeskCreate: React.FC = () => {
                 </Button>
               </Dropdown>
             </Col>
+            <Col>
+              <Button icon={<PrinterOutlined />} onClick={() => reactToPrint()}>
+                Печать
+              </Button>
+            </Col>
           </Row>
-
           <Table
             {...tableProps}
             rowKey="id"
             scroll={{ x: "max-content" }}
             onRow={(record) => ({
               onClick: () => {
-                handleRowSelect(record); // Handle row click for selection
+                handleRowSelect(record);
               },
               style: { cursor: "pointer" },
             })}
@@ -1281,10 +1209,7 @@ export const CashDeskCreate: React.FC = () => {
               title=""
               dataIndex="id"
               render={(value) => (
-                <Checkbox
-                  // This checkbox visualizes selection; the actual selection is handled by onRow onClick
-                  checked={selectedRowKeys.includes(value)}
-                />
+                <Checkbox checked={selectedRowKeys.includes(value)} />
               )}
             />
             <Table.Column
@@ -1396,6 +1321,15 @@ export const CashDeskCreate: React.FC = () => {
             />
             <Table.Column dataIndex="comments" title="Комментарий" />
           </Table>
+          <div ref={printRef}>
+            <PrintContent
+              data={data}
+              pageSize={pageSize}
+              selectedCurrency={selectedCurrency}
+              convertAmount={convertAmount}
+              client={selectedCounterparty}
+            />
+          </div>
         </>
       )}
     </Create>
