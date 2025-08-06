@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { List, useTable } from "@refinedev/antd";
+import React, { useState, useEffect, useCallback } from "react";
+import { List, useSelect, useTable } from "@refinedev/antd";
 import {
   Space,
   Table,
@@ -23,6 +23,13 @@ import {
 import dayjs from "dayjs";
 import { API_URL } from "../../App";
 import { typeOperationMap } from "../bank";
+import { debounce } from "lodash";
+
+interface IncomeFilters {
+  search?: string;
+  userIds?: number[];
+  bankIds?: number[];
+}
 
 export const CashDeskList: React.FC = () => {
   const { tableProps: bankTableProps } = useTable({
@@ -31,23 +38,58 @@ export const CashDeskList: React.FC = () => {
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState<"id" | "counterparty.name">("id");
-  const [searchFilters, setSearchFilters] = useState<any[]>([
-    { type: { $eq: "income" } },
-  ]);
-
+  
+  // Отдельные состояния для каждого типа фильтра
+  const [filters, setFilters] = useState<IncomeFilters>({});
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sorterVisible, setSorterVisible] = useState(false);
 
-  const buildQueryParams = () => {
+  const buildSearchFilters = useCallback(() => {
+    const searchFilters: any[] = [{ type: { $eq: "income" } }];
+
+    // Фильтр поиска
+    if (filters.search?.trim()) {
+      searchFilters.push({
+        $or: [
+          { "good.invoice_number": { $contL: filters.search } },
+          { "good.sender.name": { $contL: filters.search } },
+          { "good.recipient.name": { $contL: filters.search } },
+          { "good.sender.clientCode": { $contL: filters.search } },
+          { "good.recipient.clientCode": { $contL: filters.search } },
+        ],
+      });
+    }
+
+    // Фильтр по пользователям
+    if (filters.userIds && filters.userIds.length > 0) {
+      searchFilters.push({
+        user_id: { $in: filters.userIds },
+      });
+    }
+
+    // Фильтр по банкам
+    if (filters.bankIds && filters.bankIds.length > 0) {
+      searchFilters.push({
+        bank_id: { $in: filters.bankIds },
+      });
+    }
+
+    return searchFilters;
+  }, [filters]);
+
+  const buildQueryParams = useCallback(() => {
     return {
-      s: JSON.stringify({ $and: searchFilters }),
+      s: JSON.stringify({
+        $and: buildSearchFilters(),
+      }),
       sort: `${sortField},${sortDirection}`,
       limit: pageSize,
       page: currentPage,
       offset: (currentPage - 1) * pageSize,
     };
-  };
+  }, [buildSearchFilters, sortField, sortDirection, pageSize, currentPage]);
 
   const { data, isLoading, refetch } = useCustom<any>({
     url: `${API_URL}/cash-desk`,
@@ -57,22 +99,58 @@ export const CashDeskList: React.FC = () => {
     },
   });
 
-  const [open, setOpen] = useState(false);
-
-  const setFilters = (
-    filters: any[],
-    mode: "replace" | "append" = "append"
-  ) => {
-    if (mode === "replace") {
-      setSearchFilters(filters);
-    } else {
-      setSearchFilters((prevFilters) => [...prevFilters, ...filters]);
-    }
-  };
-
+  // Перезагружаем данные при изменении фильтров, сортировки или пагинации
   useEffect(() => {
     refetch();
-  }, [searchFilters, sortDirection, sortField, currentPage, pageSize]);
+  }, [filters, sortDirection, sortField, currentPage, pageSize, refetch]);
+
+  // Сбрасываем пагинацию при изменении фильтров
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [filters]);
+
+  const [open, setOpen] = useState(false);
+
+  // Debounced функция для поиска
+  const debouncedSearch = useCallback(
+    debounce((searchValue: string) => {
+      setFilters(prev => ({
+        ...prev,
+        search: searchValue,
+      }));
+    }, 500),
+    []
+  );
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    debouncedSearch(value);
+  };
+
+  const handleUserChange = (userIds: number[]) => {
+    setFilters(prev => ({
+      ...prev,
+      userIds: userIds.length > 0 ? userIds : undefined,
+    }));
+  };
+
+  const handleBankChange = (bankIds: number[]) => {
+    setFilters(prev => ({
+      ...prev,
+      bankIds: bankIds.length > 0 ? bankIds : undefined,
+    }));
+  };
+
+  const handleSort = (field: "id" | "counterparty.name") => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === "ASC" ? "DESC" : "ASC");
+    } else {
+      setSortField(field);
+      setSortDirection("DESC");
+    }
+  };
 
   const sortContent = (
     <Card style={{ width: 200, padding: "0px" }}>
@@ -94,10 +172,7 @@ export const CashDeskList: React.FC = () => {
             textAlign: "left",
             fontWeight: sortField === "id" ? "bold" : "normal",
           }}
-          onClick={() => {
-            setSortField("id");
-            setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
-          }}
+          onClick={() => handleSort("id")}
         >
           Дате создания{" "}
           {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
@@ -108,10 +183,7 @@ export const CashDeskList: React.FC = () => {
             textAlign: "left",
             fontWeight: sortField === "counterparty.name" ? "bold" : "normal",
           }}
-          onClick={() => {
-            setSortField("counterparty.name");
-            setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
-          }}
+          onClick={() => handleSort("counterparty.name")}
         >
           По контрагенту{" "}
           {sortField === "counterparty.name" &&
@@ -135,6 +207,8 @@ export const CashDeskList: React.FC = () => {
       current: currentPage,
       pageSize: pageSize,
       total: data?.data?.total || 0,
+      showSizeChanger: true,
+      showQuickJumper: true,
     },
     onChange: handleTableChange,
   };
@@ -175,6 +249,11 @@ export const CashDeskList: React.FC = () => {
     }
   };
 
+  const { selectProps: userSelectProps } = useSelect({
+    resource: "users",
+    optionLabel: (item: any) => `${item.firstName} ${item.lastName}`,
+  });
+
   const { push, show } = useNavigation();
 
   // @ts-ignore
@@ -207,7 +286,7 @@ export const CashDeskList: React.FC = () => {
                     <ArrowDownOutlined />
                   )
                 }
-              ></Button>
+              />
             </Dropdown>
           </Space>
         </Col>
@@ -215,62 +294,34 @@ export const CashDeskList: React.FC = () => {
           <Input
             placeholder="Поиск по номеру накладной, Фио клиента"
             prefix={<SearchOutlined />}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (!value) {
-                setFilters([{ type: { $eq: "income" } }], "replace");
-                return;
-              }
-
-              setFilters(
-                [
-                  {
-                    $and: [
-                      { type: { $eq: "income" } },
-                      {
-                        $or: [
-                          { "good.invoice_number": { $contL: value } },
-                          { "good.sender.name": { $contL: value } },
-                          { "good.recipient.name": { $contL: value } },
-                          { "good.sender.clientCode": { $contL: value } },
-                          { "good.recipient.clientCode": { $contL: value } },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-                "replace"
-              );
-            }}
+            onChange={handleSearchChange}
+            allowClear
           />
         </Col>
         <Col>
           <Select
             mode="multiple"
             placeholder="Выберите банк"
-            style={{ width: 200 }}
-            onChange={(value) => {
-              if (!value || value.length === 0) {
-                setFilters([{ type: { $eq: "income" } }], "replace");
-                return;
-              }
-
-              setFilters(
-                [
-                  {
-                    $and: [
-                      { type: { $eq: "income" } },
-                      { bank_id: { $in: value } },
-                    ],
-                  },
-                ],
-                "replace"
-              );
-            }}
+            style={{ width: 300 }}
+            onChange={handleBankChange}
+            allowClear
+            maxTagCount="responsive"
             options={bankTableProps?.dataSource?.map((bank: any) => ({
               label: bank.name,
               value: bank.id,
             }))}
+          />
+        </Col>
+        <Col>
+          <Select
+            mode="multiple"
+            placeholder="Выберите сотрудника"
+            style={{ width: 300 }}
+            // @ts-ignore
+            onChange={handleUserChange}
+            allowClear
+            maxTagCount="responsive"
+            {...userSelectProps}
           />
         </Col>
       </Row>
@@ -279,6 +330,7 @@ export const CashDeskList: React.FC = () => {
         {...tableProps}
         rowKey="id"
         scroll={{ x: 1000 }}
+        size="small"
         onRow={(record) => ({
           onDoubleClick: () => {
             show("income", record.id as number);
@@ -288,13 +340,15 @@ export const CashDeskList: React.FC = () => {
         <Table.Column
           title="№"
           render={(_: any, __: any, index: number) => {
-            return (data?.data?.page - 1) * pageSize + index + 1;
+            return (currentPage - 1) * pageSize + index + 1;
           }}
+          width={60}
         />
         <Table.Column
           dataIndex="date"
           title="Дата оплаты"
           render={(date) => dayjs(date).format("DD.MM.YYYY HH:mm")}
+          width={120}
         />
 
         <Table.Column
@@ -304,10 +358,15 @@ export const CashDeskList: React.FC = () => {
             const bank = bankTableProps?.dataSource?.find(
               (bank) => bank.id === value
             );
-            return bank?.name;
+            return bank?.name || "-";
           }}
+          width={120}
         />
-        <Table.Column dataIndex="method_payment" title="Метод оплаты" />
+        <Table.Column 
+          dataIndex="method_payment" 
+          title="Метод оплаты" 
+          render={(value) => value || "-"}
+        />
         <Table.Column
           dataIndex="type_operation"
           title="Вид прихода"
@@ -318,14 +377,14 @@ export const CashDeskList: React.FC = () => {
           dataIndex="counterparty"
           title="Код клиента"
           render={(value) =>
-            `${value?.clientPrefix || ""}-${value?.clientCode || ""}`
+            value ? `${value?.clientPrefix || ""}-${value?.clientCode || ""}` : "-"
           }
         />
 
         <Table.Column
           dataIndex="counterparty"
           title="Фио клиента"
-          render={(counterparty) => (counterparty ? counterparty.name : "")}
+          render={(counterparty) => counterparty?.name || "-"}
         />
 
         <Table.Column
@@ -334,9 +393,17 @@ export const CashDeskList: React.FC = () => {
           render={(value) => value?.invoice_number || "-"}
         />
 
-        <Table.Column dataIndex="amount" title="Сумма" />
+        <Table.Column 
+          dataIndex="amount" 
+          title="Сумма"
+          render={(value) => value || "-"}
+        />
 
-        <Table.Column dataIndex="type_currency" title="валюта" />
+        <Table.Column 
+          dataIndex="type_currency" 
+          title="Валюта"
+          render={(value) => value || "-"}
+        />
 
         <Table.Column
           dataIndex="comment"
@@ -350,7 +417,7 @@ export const CashDeskList: React.FC = () => {
           render={(check_file) => {
             const downloadUrl = `${API_URL}/${check_file}`;
             return check_file ? (
-              <Space direction="vertical" align="center">
+              <Space direction="vertical" align="center" size="small">
                 {downloadUrl.endsWith(".pdf") ? (
                   <a
                     href={downloadUrl}
@@ -366,18 +433,17 @@ export const CashDeskList: React.FC = () => {
                     height={50}
                     src={downloadUrl}
                     preview={{ src: downloadUrl }}
+                    fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHANwDrkl1AuO+pmgAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAwqADAAQAAAABAAAAwwAAAAD9b/HnAAAHlklEQVR4Ae3dP3Yk1xkE8A8uJBNLkYjkLuLSJpJO4GLNBXiFx8r0Cu7d+gC7bJf3vJnZZo2b12t5FPv5+/v7X+I8AYHAhwlwAwKBL2AAgYDgIhD4MgZ..."
                   />
                 )}
-                {check_file && (
-                  <Button
-                    type="link"
-                    icon={<DownloadOutlined />}
-                    onClick={() => handleDownloadPhoto(check_file)}
-                    size="small"
-                  >
-                    Скачать
-                  </Button>
-                )}
+                <Button
+                  type="link"
+                  icon={<DownloadOutlined />}
+                  onClick={() => handleDownloadPhoto(check_file)}
+                  size="small"
+                >
+                  Скачать
+                </Button>
               </Space>
             ) : (
               "Нет"
@@ -387,7 +453,9 @@ export const CashDeskList: React.FC = () => {
         <Table.Column
           title="Сотрудник"
           dataIndex="user"
-          render={(value) => `${value?.firstName} ${value?.lastName}` || "-"}
+          render={(value) => 
+            value ? `${value?.firstName || ""} ${value?.lastName || ""}`.trim() || "-" : "-"
+          }
         />
       </Table>
     </List>

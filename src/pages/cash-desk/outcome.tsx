@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { List, useSelect, useTable } from "@refinedev/antd";
 import {
   Space,
@@ -13,7 +13,7 @@ import {
   Card,
 } from "antd";
 import { useCustom } from "@refinedev/core";
-import { MyCreateModalOutcome } from "./modal/create-modal-outcome";
+import { expenseTypes, MyCreateModalOutcome } from "./modal/create-modal-outcome";
 import {
   FileAddOutlined,
   SearchOutlined,
@@ -23,6 +23,14 @@ import {
 import dayjs from "dayjs";
 import { API_URL } from "../../App";
 import { typeOperationMap } from "../bank";
+import { debounce } from "lodash";
+
+interface Filters {
+  search?: string;
+  userIds?: number[];
+  bankIds?: number[];
+  type_operation?: string[];
+}
 
 export const CashDeskOutcomeList: React.FC = () => {
   const { tableProps: bankTableProps } = useTable({
@@ -31,23 +39,65 @@ export const CashDeskOutcomeList: React.FC = () => {
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState<"id" | "counterparty.name">("id");
-  const [searchFilters, setSearchFilters] = useState<any[]>([
-    { type: { $eq: "outcome" } },
-  ]);
-
+  
+  // Отдельные состояния для каждого типа фильтра
+  const [filters, setFilters] = useState<Filters>({});
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sorterVisible, setSorterVisible] = useState(false);
 
-  const buildQueryParams = () => {
+  const buildSearchFilters = useCallback(() => {
+    const searchFilters: any[] = [{ type: { $eq: "outcome" } }];
+
+    // Фильтр поиска
+    if (filters.search?.trim()) {
+      searchFilters.push({
+        $or: [
+          { "good.invoice_number": { $contL: filters.search } },
+          { "good.sender.name": { $contL: filters.search } },
+          { "good.recipient.name": { $contL: filters.search } },
+          { "good.sender.clientCode": { $contL: filters.search } },
+          { "good.recipient.clientCode": { $contL: filters.search } },
+        ],
+      });
+    }
+
+    // Фильтр по пользователям
+    if (filters.userIds && filters.userIds.length > 0) {
+      searchFilters.push({
+        user_id: { $in: filters.userIds },
+      });
+    }
+
+    // Фильтр по банкам
+    if (filters.bankIds && filters.bankIds.length > 0) {
+      searchFilters.push({
+        bank_id: { $in: filters.bankIds },
+      });
+    }
+
+    // Фильтр по типу операции
+    if (filters.type_operation && filters.type_operation.length > 0) {
+      searchFilters.push({
+        type_operation: { $in: filters.type_operation },
+      });
+    }
+
+    return searchFilters;
+  }, [filters]);
+
+  const buildQueryParams = useCallback(() => {
     return {
-      s: JSON.stringify({ $and: searchFilters }),
+      s: JSON.stringify({
+        $and: buildSearchFilters(),
+      }),
       sort: `${sortField},${sortDirection}`,
       limit: pageSize,
       page: currentPage,
       offset: (currentPage - 1) * pageSize,
     };
-  };
+  }, [buildSearchFilters, sortField, sortDirection, pageSize, currentPage]);
 
   const { data, isLoading, refetch } = useCustom<any>({
     url: `${API_URL}/cash-desk`,
@@ -57,16 +107,63 @@ export const CashDeskOutcomeList: React.FC = () => {
     },
   });
 
+  // Перезагружаем данные при изменении фильтров, сортировки или пагинации
+  useEffect(() => {
+    refetch();
+  }, [filters, sortField, sortDirection, currentPage, pageSize, refetch]);
+
+  // Сбрасываем пагинацию при изменении фильтров
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [filters]);
+
   const [open, setOpen] = useState(false);
 
-  const setFilters = (
-    filters: any[],
-    mode: "replace" | "append" = "append"
-  ) => {
-    if (mode === "replace") {
-      setSearchFilters(filters);
+  // Debounced функция для поиска
+  const debouncedSearch = useCallback(
+    debounce((searchValue: string) => {
+      setFilters(prev => ({
+        ...prev,
+        search: searchValue,
+      }));
+    }, 500),
+    []
+  );
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    debouncedSearch(value);
+  };
+
+  const handleUserChange = (userIds: number[]) => {
+    setFilters(prev => ({
+      ...prev,
+      userIds: userIds.length > 0 ? userIds : undefined,
+    }));
+  };
+
+  const handleBankChange = (bankIds: number[]) => {
+    setFilters(prev => ({
+      ...prev,
+      bankIds: bankIds.length > 0 ? bankIds : undefined,
+    }));
+  };
+
+  const handleExpenseTypeChange = (value: string[]) => {
+    setFilters(prev => ({
+      ...prev,
+      type_operation: value.length > 0 ? value : undefined,
+    }));
+  };
+
+  const handleSort = (field: "id" | "counterparty.name") => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === "ASC" ? "DESC" : "ASC");
     } else {
-      setSearchFilters((prevFilters) => [...prevFilters, ...filters]);
+      setSortField(field);
+      setSortDirection("DESC");
     }
   };
 
@@ -90,10 +187,7 @@ export const CashDeskOutcomeList: React.FC = () => {
             textAlign: "left",
             fontWeight: sortField === "id" ? "bold" : "normal",
           }}
-          onClick={() => {
-            setSortField("id");
-            setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
-          }}
+          onClick={() => handleSort("id")}
         >
           Дате создания{" "}
           {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
@@ -104,10 +198,7 @@ export const CashDeskOutcomeList: React.FC = () => {
             textAlign: "left",
             fontWeight: sortField === "counterparty.name" ? "bold" : "normal",
           }}
-          onClick={() => {
-            setSortField("counterparty.name");
-            setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
-          }}
+          onClick={() => handleSort("counterparty.name")}
         >
           По контрагенту{" "}
           {sortField === "counterparty.name" &&
@@ -131,6 +222,8 @@ export const CashDeskOutcomeList: React.FC = () => {
       current: currentPage,
       pageSize: pageSize,
       total: data?.data?.total || 0,
+      showSizeChanger: true,
+      showQuickJumper: true,
     },
     onChange: handleTableChange,
   };
@@ -173,38 +266,16 @@ export const CashDeskOutcomeList: React.FC = () => {
                     <ArrowDownOutlined />
                   )
                 }
-              ></Button>
+              />
             </Dropdown>
           </Space>
         </Col>
         <Col flex="auto">
           <Input
-            placeholder="Поиск по трек-коду или коду клиента"
+            placeholder="Поиск по номеру накладной, Фио клиента"
             prefix={<SearchOutlined />}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (!value) {
-                setFilters([{ type: { $eq: "outcome" } }], "replace");
-                return;
-              }
-
-              setFilters(
-                [
-                  {
-                    $and: [
-                      { type: { $eq: "outcome" } },
-                      {
-                        $or: [
-                          { trackCode: { $contL: value } },
-                          { "counterparty.clientCode": { $contL: value } },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-                "replace"
-              );
-            }}
+            onChange={handleSearchChange}
+            allowClear
           />
         </Col>
         <Col>
@@ -212,24 +283,10 @@ export const CashDeskOutcomeList: React.FC = () => {
             mode="multiple"
             placeholder="Выберите сотрудника"
             style={{ width: 200 }}
-            onChange={(value: any) => {
-              if (!value || value?.length === 0) {
-                setFilters([{ type: { $eq: "outcome" } }], "replace");
-                return;
-              }
-
-              setFilters(
-                [
-                  {
-                    $and: [
-                      { type: { $eq: "outcome" } },
-                      { user_id: { $in: value } },
-                    ],
-                  },
-                ],
-                "replace"
-              );
-            }}
+            // @ts-ignore
+            onChange={handleUserChange}
+            allowClear
+            maxTagCount="responsive"
             {...userSelectProps}
           />
         </Col>
@@ -238,28 +295,24 @@ export const CashDeskOutcomeList: React.FC = () => {
             mode="multiple"
             placeholder="Выберите банк"
             style={{ width: 200 }}
-            onChange={(value) => {
-              if (!value || value.length === 0) {
-                setFilters([{ type: { $eq: "outcome" } }], "replace");
-                return;
-              }
-
-              setFilters(
-                [
-                  {
-                    $and: [
-                      { type: { $eq: "outcome" } },
-                      { bank_id: { $in: value } },
-                    ],
-                  },
-                ],
-                "replace"
-              );
-            }}
+            onChange={handleBankChange}
+            allowClear
+            maxTagCount="responsive"
             options={bankTableProps?.dataSource?.map((bank: any) => ({
               label: bank.name,
               value: bank.id,
             }))}
+          />
+        </Col>
+        <Col>
+          <Select
+            mode="multiple"
+            placeholder="Выберите тип расхода"
+            style={{ width: 200 }}
+            onChange={handleExpenseTypeChange}
+            allowClear
+            maxTagCount="responsive"
+            options={expenseTypes}
           />
         </Col>
       </Row>
@@ -268,8 +321,9 @@ export const CashDeskOutcomeList: React.FC = () => {
         <Table.Column
           title="№"
           render={(_: any, __: any, index: number) => {
-            return (data?.data?.page - 1) * pageSize + index + 1;
+            return (currentPage - 1) * pageSize + index + 1;
           }}
+          width={60}
         />
         <Table.Column
           dataIndex="date"
@@ -285,7 +339,7 @@ export const CashDeskOutcomeList: React.FC = () => {
             const bank = bankTableProps?.dataSource?.find(
               (bank) => bank.id === value
             );
-            return bank?.name;
+            return bank?.name || "-";
           }}
           width={120}
         />
@@ -293,21 +347,22 @@ export const CashDeskOutcomeList: React.FC = () => {
         <Table.Column
           dataIndex="type_operation"
           title="Вид расхода"
-          render={(value) => typeOperationMap[value] || value}
         />
         <Table.Column dataIndex="comment" title="Комментарий" />
 
-        {/* <Table.Column dataIndex="id" title="Трек-код" /> */}
+        <Table.Column 
+          dataIndex="amount" 
+          title="Сумма" 
+          render={(value) => value ? `${value}` : "-"}
+        />
 
-        <Table.Column dataIndex="amount" title="Сумма" />
-
-        <Table.Column dataIndex="type_currency" title="валюта" />
+        <Table.Column dataIndex="type_currency" title="Валюта" />
 
         <Table.Column
           dataIndex="user"
           title="Сотрудник"
           render={(value) =>
-            value ? `${value.firstName || ""} ${value.lastName || ""}` : "-"
+            value ? `${value.firstName || ""} ${value.lastName || ""}`.trim() || "-" : "-"
           }
         />
       </Table>

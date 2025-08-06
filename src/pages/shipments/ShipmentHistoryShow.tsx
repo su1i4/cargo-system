@@ -1,6 +1,4 @@
 import {
-  DeleteButton,
-  EditButton,
   Show,
   TextField,
   useTable,
@@ -17,9 +15,9 @@ import {
   Input,
   Menu,
 } from "antd";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { translateStatus } from "../../lib/utils";
-import { ArrowUpOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, ArrowUpOutlined } from "@ant-design/icons";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { SearchOutlined } from "@ant-design/icons";
 import { useState } from "react";
@@ -32,7 +30,7 @@ const ShipmentHistoryShow = () => {
   const { queryResult } = useShow({ resource: "shipments", id: Number(id) });
   const { data, isLoading } = queryResult;
   const record = data?.data;
-
+  const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("ASC");
   const [sortField, setSortField] = useState<string>("id");
@@ -143,7 +141,12 @@ const ShipmentHistoryShow = () => {
 
   return (
     <Show
-      title="Просмотр истории отправки"
+      title={
+        <Flex align="center" gap={10}>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} />
+          <Title style={{ margin: 0 }} level={4}>Просмотр истории отправки</Title>
+        </Flex>
+      }
       headerButtons={() => null}
       isLoading={isLoading}
     >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   type ITreeMenu,
   CanAccess,
@@ -12,12 +12,7 @@ import {
 import { Link } from "react-router";
 import { type Sider } from "@refinedev/antd";
 import { Layout as AntdLayout, Menu, Grid, theme, Button, Drawer } from "antd";
-import {
-  LogoutOutlined,
-  RightOutlined,
-  LeftOutlined,
-  MenuOutlined,
-} from "@ant-design/icons";
+import { LogoutOutlined, RightOutlined, MenuOutlined } from "@ant-design/icons";
 import { antLayoutSider, antLayoutSiderMobile } from "./styles";
 
 const { useToken } = theme;

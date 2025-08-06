@@ -16,6 +16,7 @@ import { SortContent } from "../../shared/sort-content";
 import { CustomTooltip } from "../../shared/custom-tooltip";
 import { API_URL } from "../../App";
 import dayjs from "dayjs";
+import { PrintContent } from "./print-content";
 
 export const CounterpartyList: React.FC = () => {
   const { tableProps, setFilters, setSorters, sorters, tableQuery } = useTable({
@@ -36,23 +37,16 @@ export const CounterpartyList: React.FC = () => {
   });
 
   const printRef = useRef<HTMLDivElement>(null);
+  const [printData, setPrintData] = useState<any[]>([]);
 
-  const handlePrint = useReactToPrint({
+  const reactToPrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Накладная ${dayjs().format("DD.MM.YYYY HH:mm")}`,
-    onBeforePrint: async () => {
-      const el = printRef.current;
-      if (el) {
-        el.style.fontSize = `15px`;
-      }
-    },
-  })
+  });
 
   const [open, setOpen] = useState(false);
-
   const [openEdit, setOpenEdit] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
-
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const sortFields = [
@@ -80,6 +74,55 @@ export const CounterpartyList: React.FC = () => {
     }
   };
 
+  const getCounterpartiesGoods = async (counterpartyId: number) => {
+    try {
+      const queryObject = {
+        s: JSON.stringify({
+          $and: [
+            {
+              $or: [
+                { "sender.id": { $eq: counterpartyId } },
+                { "recipient.id": { $eq: counterpartyId } },
+              ],
+            },
+            {
+              is_payment: {
+                $eq: false,
+              },
+            },
+          ],
+        }),
+      };
+
+      const queryString = new URLSearchParams(queryObject).toString();
+      const res = await fetch(`${API_URL}/goods-processing?${queryString}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (!Array.isArray(data)) {
+        throw new Error("Ожидался массив от API, но пришёл другой тип");
+      }
+
+      setPrintData(data);
+
+      setTimeout(() => {
+        reactToPrint();
+      }, 300);
+
+      return data;
+    } catch (error: any) {
+      console.error("Print fetch error", error);
+      message.error(
+        error?.message || "Ошибка при получении товаров контрагента"
+      );
+    }
+  };
+
   return (
     <List headerButtons={() => null}>
       <MyCreateModal
@@ -99,7 +142,7 @@ export const CounterpartyList: React.FC = () => {
           tableQuery.refetch();
         }}
       />
-      <Row ref={printRef} gutter={[16, 16]} align="middle" style={{ marginBottom: 16 }}>
+      <Row gutter={[16, 16]} align="middle" style={{ marginBottom: 16 }}>
         <Col>
           <Space size="middle">
             <Button
@@ -189,7 +232,7 @@ export const CounterpartyList: React.FC = () => {
               <Space>
                 <Button
                   icon={<PrinterOutlined />}
-                  onClick={handlePrint}
+                  onClick={() => getCounterpartiesGoods(record.id as number)}
                   title="Печать"
                 />
                 <Button
@@ -215,6 +258,10 @@ export const CounterpartyList: React.FC = () => {
           }}
         />
       </Table>
+
+      <div ref={printRef}>
+        <PrintContent data={printData} />
+      </div>
     </List>
   );
 };

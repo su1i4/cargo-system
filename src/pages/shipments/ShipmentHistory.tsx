@@ -237,6 +237,7 @@ const ShipmentHistory = () => {
           width={50}
           title="Вес (кг)"
           dataIndex="totalServiceWeight"
+          render={(value) => Number(value || 0).toFixed(2)}
         />
         <Table.Column
           width={50}
