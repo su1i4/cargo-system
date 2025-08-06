@@ -72,7 +72,7 @@ export const CustomSider: typeof Sider = ({ render }) => {
 
   const checkPermission = (name: string) => {
     const findPermission = userPermissions.find(
-      (permission) => permission.endpoint.path?.split("/")[1] === name
+      (permission) => permission.endpoint.path === name
     );
     return findPermission?.show || findPermission?.create || findPermission?.delete || findPermission?.edit;
   };
