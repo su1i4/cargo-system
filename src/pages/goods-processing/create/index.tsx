@@ -212,10 +212,10 @@ export const GoodsProcessingCreate = memo(() => {
         return;
       }
 
-      if (state.hasBagNumber.length > 0) {
-        message.error("Обнаружены дублированные номера мешков. Исправьте перед отправкой.");
-        return;
-      }
+      // if (state.hasBagNumber.length > 0) {
+      //   message.error("Обнаружены дублированные номера мешков. Исправьте перед отправкой.");
+      //   return;
+      // }
 
       const invalidServices = state.services.filter((service) => {
         return !service.type_id || !service.weight || service.weight <= 0;
@@ -234,10 +234,10 @@ export const GoodsProcessingCreate = memo(() => {
         return;
       }
 
-      if (state.isCheckingBagNumbers) {
-        message.warning("Дождитесь завершения проверки номеров мешков");
-        return;
-      }
+      // if (state.isCheckingBagNumbers) {
+      //   message.warning("Дождитесь завершения проверки номеров мешков");
+      //   return;
+      // }
 
       const requiredFields = [
         { field: "destination_id", message: "Выберите город назначения" },
