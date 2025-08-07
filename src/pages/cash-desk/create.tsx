@@ -5,7 +5,6 @@ import {
   useNavigation,
   useOne,
   useUpdateMany,
-  useCreate,
 } from "@refinedev/core";
 import {
   Button,
@@ -40,7 +39,7 @@ import utc from "dayjs/plugin/utc";
 import { useNavigate } from "react-router";
 import { useSearchParams } from "react-router";
 import { useReactToPrint } from "react-to-print";
-import { PrintContent } from "./print-content";
+// import { PrintContent } from "./print-content";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -1321,7 +1320,7 @@ export const CashDeskCreate: React.FC = () => {
             />
             <Table.Column dataIndex="comments" title="Комментарий" />
           </Table>
-          <div ref={printRef}>
+          {/* <div ref={printRef}>
             <PrintContent
               data={data}
               pageSize={pageSize}
@@ -1329,7 +1328,7 @@ export const CashDeskCreate: React.FC = () => {
               convertAmount={convertAmount}
               client={selectedCounterparty}
             />
-          </div>
+          </div> */}
         </>
       )}
     </Create>
