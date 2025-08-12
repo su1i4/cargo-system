@@ -8,8 +8,6 @@ import {
   Modal,
   Select,
   Upload,
-  AutoComplete,
-  message,
 } from "antd";
 import { API_URL } from "../../../App";
 import { PaperClipOutlined } from "@ant-design/icons";
@@ -27,18 +25,10 @@ export const expenseTypes = [
   { value: "Маркетинговые расходы", label: "Маркетинговые расходы" },
   { value: "Административные расходы", label: "Административные расходы" },
   { value: "Материальные расходы", label: "Материальные расходы" },
-  { value: "Выплата учредителю", label: "Выплата учредителю" },
   { value: "Оплата поставщику", label: "Оплата поставщику" },
   { value: "Оплата за ремонт", label: "Оплата за ремонт" },
   { value: "Контрагент с баланса", label: "Контрагент с баланса" },
-  {
-    value: "Выплата заработной платы работнику",
-    label: "Выплата заработной платы работнику",
-  },
-  {
-    value: "Выплата учредителю",
-    label: "Выплата учредителю",
-  },
+  { value: "Выплата заработной платы работнику", label: "Выплата заработной платы работнику" },
   { value: "Выдача подотчет", label: "Выдача подотчет" },
   { value: "Фрахт", label: "Фрахт" },
   { value: "Проходы КЗ", label: "Проходы КЗ" },
@@ -58,20 +48,19 @@ export const expenseTypes = [
   { value: "Электроэнергия", label: "Электроэнергия" },
   { value: "Оплата за мусор", label: "Оплата за мусор" },
   { value: "Фрахт стандарт", label: "Фрахт стандарт" },
-  { value: "Фрахт за экспресс", label: "Фракт за экспресс" },
+  { value: "Фрахт за экспресс", label: "Фрахт за экспресс" },
   { value: "Граница", label: "Граница" },
   { value: "Документы", label: "Документы" },
   { value: "Обратная дорога экспресс", label: "Обратная дорога экспресс" },
   { value: "Обслуживание ТС", label: "Обслуживание ТС" },
-  { value: "ГСМ", label: "ГСМ" },
   { value: "Склад", label: "Склад" },
   { value: "Аренда", label: "Аренда" },
   { value: "Коммунальные Услуги", label: "Коммунальные Услуги" },
   { value: "Охрана", label: "Охрана" },
   { value: "Хоз товары", label: "Хоз товары" },
-  { value: "Канц товары", label: "Канц товары" },
   { value: "Зп сотрудникам", label: "Зп сотрудникам" },
   { value: "Погрузка", label: "Погрузка" },
+  { value: "Выплата учредителю", label: "Выплата учредителю" },
 ];
 
 export const MyCreateModalOutcome: React.FC<{
@@ -211,22 +200,13 @@ export const MyCreateModalOutcome: React.FC<{
           ]}
           style={formItemStyle}
         >
-          <AutoComplete
+          <Select 
+            placeholder="Выберите статью расходов"
             options={expenseTypes}
-            placeholder="Выберите или введите статью расходов"
-            style={{ width: "100%" }}
-            filterOption={(inputValue, option) =>
-              option?.label?.toLowerCase().indexOf(inputValue.toLowerCase()) !==
-              -1
+            showSearch
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
-            onSelect={(value) => {
-              if (value === "Контрагент с баланса") {
-                setIsBalanceOperation(true);
-                form.setFieldValue("type_currency", "Рубль");
-              } else {
-                setIsBalanceOperation(false);
-              }
-            }}
           />
         </Form.Item>
 
