@@ -52,13 +52,13 @@ export const IncomeReport = () => {
     | "counterparty.name"
   >("id");
   const [search, setSearch] = useState("");
-  
+
   // Отдельные состояния для каждого типа фильтра
   const [destinationFilter, setDestinationFilter] = useState<any[]>([]);
   const [paymentFilter, setPaymentFilter] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<any[]>([]);
   const [searchFilter, setSearchFilter] = useState<any[]>([]);
-  
+
   // Состояние для отображения мешков (по умолчанию отключено)
   const [showBags, setShowBags] = useState(false);
 
@@ -130,6 +130,17 @@ export const IncomeReport = () => {
 
     dataSource.forEach((record: any, index: number) => {
       // Основная строка товара
+      const truck_numbers = record.services?.reduce((acc: any, item: any) => {
+        if (
+          item.shipment &&
+          item.shipment.truck_number &&
+          !acc.includes(Number(item.shipment.truck_number))
+        ) {
+          acc.push(Number(item.shipment.truck_number));
+        }
+        return acc;
+      }, []);
+
       const mainRow = {
         "№": index + 1,
         "Дата приемки": record.created_at
@@ -143,13 +154,15 @@ export const IncomeReport = () => {
           : "",
         "Дата выдачи": (() => {
           const issuedStatus = Array.isArray(record.tracking_status)
-            ? record.tracking_status.find((item: any) => item.status === "Выдали")
+            ? record.tracking_status.find(
+                (item: any) => item.status === "Выдали"
+              )
             : null;
           return issuedStatus?.createdAt
             ? dayjs(issuedStatus.createdAt).utc().format("DD.MM.YYYY HH:mm")
             : "";
         })(),
-        "Номер машины": record.truck_number || "",
+        "Номера рейсов": truck_numbers.join(", ") || "",
         "№ накладной": record.invoice_number || "",
         "Код отправителя": record.sender
           ? `${record.sender.clientPrefix}-${record.sender.clientCode}`
@@ -161,7 +174,10 @@ export const IncomeReport = () => {
         "Фио получателя": record.recipient?.name || "",
         "Номер получателя": record.recipient?.phoneNumber || "",
         "Город (с досыслом если есть)": record.destination?.name || "",
-        "Номер мешков": record.services?.map((item: any) => item.bag_number_numeric).join(", ") || "",
+        "Номер мешков":
+          record.services
+            ?.map((item: any) => item.bag_number_numeric)
+            .join(", ") || "",
         "Вес, кг": record.totalServiceWeight
           ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5)
           : "",
@@ -282,7 +298,15 @@ export const IncomeReport = () => {
   // Обновляем данные при изменении дат и фильтров
   useEffect(() => {
     refetch();
-  }, [from, to, destinationFilter, paymentFilter, statusFilter, searchFilter, refetch]);
+  }, [
+    from,
+    to,
+    destinationFilter,
+    paymentFilter,
+    statusFilter,
+    searchFilter,
+    refetch,
+  ]);
 
   const filterContent = (
     <Card style={{ width: 300, padding: "0px !important" }}>
@@ -541,8 +565,8 @@ export const IncomeReport = () => {
           />
         </Col>
         <Col>
-          <Checkbox 
-            checked={showBags} 
+          <Checkbox
+            checked={showBags}
             onChange={(e) => setShowBags(e.target.checked)}
             style={{ marginRight: 8 }}
           >
@@ -634,66 +658,79 @@ export const IncomeReport = () => {
         pagination={false}
         rowKey="id"
         scroll={{ x: 1000 }}
-        expandable={showBags ? {
-          expandedRowRender: (record: any) => {
-            if (!record.services || record.services.length === 0) {
-              return <div style={{ padding: '10px', color: '#666' }}>Нет информации о мешках</div>;
-            }
+        expandable={
+          showBags
+            ? {
+                expandedRowRender: (record: any) => {
+                  if (!record.services || record.services.length === 0) {
+                    return (
+                      <div style={{ padding: "10px", color: "#666" }}>
+                        Нет информации о мешках
+                      </div>
+                    );
+                  }
 
-            const columns = [
-              {
-                title: '№',
-                key: 'index',
-                render: (_: any, __: any, index: number) => index + 1,
-                width: 50,
-              },
-              {
-                title: 'Номер мешка',
-                dataIndex: 'bag_number_numeric',
-                key: 'bag_number_numeric',
-                width: 120,
-              },
-              {
-                title: 'Вес, кг',
-                dataIndex: 'weight',
-                key: 'weight',
-                render: (value: any) => value ? String(value).replace(".", ",").slice(0, 5) : '',
-                width: 100,
-              },
-              {
-                title: 'Сумма',
-                dataIndex: 'sum',
-                key: 'sum',
-                width: 100,
-              },
-              {
-                title: 'Описание',
-                dataIndex: 'description',
-                key: 'description',
-                render: (value: any) => value || '-',
-              },
-            ];
+                  const columns = [
+                    {
+                      title: "№",
+                      key: "index",
+                      render: (_: any, __: any, index: number) => index + 1,
+                      width: 50,
+                    },
+                    {
+                      title: "Номер мешка",
+                      dataIndex: "bag_number_numeric",
+                      key: "bag_number_numeric",
+                      width: 120,
+                    },
+                    {
+                      title: "Вес, кг",
+                      dataIndex: "weight",
+                      key: "weight",
+                      render: (value: any) =>
+                        value
+                          ? String(value).replace(".", ",").slice(0, 5)
+                          : "",
+                      width: 100,
+                    },
+                    {
+                      title: "Сумма",
+                      dataIndex: "sum",
+                      key: "sum",
+                      width: 100,
+                    },
+                    {
+                      title: "Описание",
+                      dataIndex: "description",
+                      key: "description",
+                      render: (value: any) => value || "-",
+                    },
+                  ];
 
-            return (
-              <Table
-                columns={columns}
-                dataSource={record.services}
-                pagination={false}
-                rowKey={(item: any) => `${record.id}-${item.bag_number_numeric}`}
-                size="small"
-                style={{ margin: '10px 0' }}
-              />
-            );
-          },
-          expandIcon: ({ expanded, onExpand, record }: any) => (
-            <Button
-              type="text"
-              size="small"
-              icon={expanded ? <MinusOutlined /> : <PlusOutlined />}
-              onClick={(e) => onExpand(record, e)}
-            />
-          ),
-        } : undefined}
+                  return (
+                    <Table
+                      columns={columns}
+                      dataSource={record.services}
+                      pagination={false}
+                      rowKey={(item: any) =>
+                        `${record.id}-${item.bag_number_numeric}`
+                      }
+                      size="small"
+                      style={{ margin: "10px 0" }}
+                    />
+                  );
+                },
+                expandIcon: ({ expanded, onExpand, record }: any) => (
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={expanded ? <MinusOutlined /> : <PlusOutlined />}
+                    onClick={(e) => onExpand(record, e)}
+                  />
+                ),
+              }
+            : undefined
+        }
       >
         <Table.Column
           title="№"
@@ -735,8 +772,24 @@ export const IncomeReport = () => {
               : "";
           }}
         />
+        <Table.Column
+          dataIndex="services"
+          title="Номера рейсов"
+          render={(services) => {
+            if (!Array.isArray(services)) return "";
 
-        <Table.Column dataIndex="truck_number" title="Номер машины" />
+            const truckNumbers = services.reduce<string[]>((acc, item) => {
+              const number = item?.shipment?.truck_number;
+              if (number && !acc.includes(number)) {
+                acc.push(number);
+              }
+              return acc;
+            }, []);
+
+            return truckNumbers.join(", ");
+          }}
+        />
+
         <Table.Column dataIndex="invoice_number" title="№ накладной" />
         <Table.Column
           dataIndex="sender"

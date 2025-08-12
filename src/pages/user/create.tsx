@@ -52,7 +52,6 @@ export const UserCreate = () => {
   };
 
   const handleFinish = async (values: any) => {
-    console.log("work");
     const submitValues = {
       ...values,
       permission: selectedEndpoints
@@ -84,7 +83,6 @@ export const UserCreate = () => {
       form.resetFields();
       setSelectedEndpoints([]);
     } catch (error: any) {
-      console.log(error);
       message.error(error?.message || "Ошибка при создании пользователя");
     }
   };

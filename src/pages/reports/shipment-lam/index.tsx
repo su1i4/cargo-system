@@ -283,7 +283,6 @@ export const WarehouseStockGoodsReport = () => {
           }
         }
       } catch (styleError) {
-        console.log("Стили не поддерживаются в данной версии XLSX");
       }
 
       // Create workbook and append worksheet

@@ -405,7 +405,6 @@ export const GoodsProcessingCreateServices = React.memo(
           newItem.sum = calculateSum(newItem.weight, newItem.price);
         }
 
-        console.log("newItem", newItem);
         return newItem;
       },
       [

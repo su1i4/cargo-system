@@ -27,6 +27,7 @@ import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import * as XLSX from "xlsx";
+import { expenseTypes } from "../../cash-desk/modal/create-modal-outcome";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -38,7 +39,7 @@ const typeOperationMap: Record<string, string> = {
   salary_payment: "Выплата заработной платы",
   advance_payment: "Выдача подотчет",
   cash: "Наличные",
-  "Извне": "Извне",
+  Извне: "Извне",
   "Контрагент оптом": "Контрагент оптом",
   "Контрагент частично": "Контрагент частично",
 };
@@ -54,7 +55,9 @@ export const CashDeskReport = () => {
   const [sortField, setSortField] = useState<"id" | "date" | "amount">("date");
   const [searchFilters, setSearchFilters] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  const [operationType, setOperationType] = useState<"all" | "income" | "outcome">("all");
+  const [operationType, setOperationType] = useState<
+    "all" | "income" | "outcome"
+  >("all");
 
   // Состояния для дат
   const [from, setFrom] = useState(
@@ -139,20 +142,23 @@ export const CashDeskReport = () => {
         ? dayjs(record.date).utc().format("DD.MM.YYYY HH:mm")
         : "",
       "Тип операции": record.type === "income" ? "Приход" : "Расход",
-      "Вид операции": typeOperationMap[record.type_operation] || record.type_operation || "",
-      "Банк": banks.find((bank: any) => bank.id === record.bank_id)?.name || "",
+      "Вид операции":
+        typeOperationMap[record.type_operation] || record.type_operation || "",
+      Банк: banks.find((bank: any) => bank.id === record.bank_id)?.name || "",
       "Код клиента": record.counterparty
-        ? `${record.counterparty.clientPrefix || ""}-${record.counterparty.clientCode || ""}`
+        ? `${record.counterparty.clientPrefix || ""}-${
+            record.counterparty.clientCode || ""
+          }`
         : "",
       "ФИО клиента": record.counterparty?.name || "",
       "Номер накладной": record.good?.invoice_number || "",
-      "Сумма": `${record.amount || 0} ${record.type_currency || ""}`,
-      "Валюта": record.type_currency || "",
+      Сумма: `${record.amount || 0}`,
+      Валюта: record.type_currency || "",
       "Способ оплаты": record.method_payment || "",
-      "Сотрудник": record.user
+      Сотрудник: record.user
         ? `${record.user.firstName || ""} ${record.user.lastName || ""}`
         : "",
-      "Комментарий": record.comment || "",
+      Комментарий: record.comment || "",
     }));
   };
 
@@ -211,7 +217,9 @@ export const CashDeskReport = () => {
         ),
       ].join("\n");
 
-      const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob(["\uFEFF" + csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
@@ -234,7 +242,15 @@ export const CashDeskReport = () => {
   // Обновляем данные при изменении фильтров
   useEffect(() => {
     refetch();
-  }, [from, to, operationType, searchFilters, sortDirection, sortField, refetch]);
+  }, [
+    from,
+    to,
+    operationType,
+    searchFilters,
+    sortDirection,
+    sortField,
+    refetch,
+  ]);
 
   // Компонент сортировки
   const sortContent = (
@@ -289,12 +305,22 @@ export const CashDeskReport = () => {
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
-          ID{" "}
-          {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
+          ID {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
       </div>
     </Card>
   );
+
+  const handleExpenseTypeChange = (value: string[]) => {
+    setFilters(
+      [
+        {
+          type_operation: { $in: value?.length > 0 ? value : undefined },
+        },
+      ],
+      "replace"
+    );
+  };
 
   return (
     <List
@@ -418,6 +444,19 @@ export const CashDeskReport = () => {
             style={{ width: "100%" }}
           />
         </Col>
+        {operationType === "outcome" && (
+          <Col>
+            <Select
+              mode="multiple"
+              placeholder="Выберите тип расхода"
+              style={{ width: 200 }}
+              onChange={handleExpenseTypeChange}
+              allowClear
+              maxTagCount="responsive"
+              options={expenseTypes}
+            />
+          </Col>
+        )}
       </Row>
 
       <Table
@@ -520,12 +559,17 @@ export const CashDeskReport = () => {
                   fontWeight: "500",
                 }}
               >
-                {isIncome ? "+" : "-"}
-                {value?.toLocaleString() || 0} {record.type_currency || ""}
+                {value?.toLocaleString() || 0}
               </span>
             );
           }}
           width={120}
+        />
+        <Table.Column
+          dataIndex="type_currency"
+          title="Валюта"
+          render={(value) => value || "-"}
+          width={100}
         />
         <Table.Column
           dataIndex="method_payment"
@@ -550,4 +594,4 @@ export const CashDeskReport = () => {
       </Table>
     </List>
   );
-}; 
+};

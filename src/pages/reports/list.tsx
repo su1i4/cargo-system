@@ -95,6 +95,13 @@ export const ReportList = () => {
       icon: <CargoReceivedIcon3 />,
       link: "warehouse-stock-goods",
     },
+    {
+      id: "oo-kuda-list",
+      title: "Отчет по рейсам",
+      description: "Отчёт по рейсам",
+      icon: <CargoReceivedIcon3 />,
+      link: "oo-kuda-list",
+    },
   ];
 
   const { push } = useNavigation();

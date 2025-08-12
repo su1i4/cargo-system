@@ -22,6 +22,7 @@ import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import { API_URL } from "../../../App";
 import * as XLSX from "xlsx";
+import { expenseTypes } from "../../cash-desk/modal/create-modal-outcome";
 
 const { Column } = Table;
 
@@ -44,6 +45,8 @@ export const BankReport = () => {
   const [from, setFrom] = useState(
     dayjs().startOf("day").format("YYYY-MM-DDTHH:mm")
   );
+  const [type, setType] = useState<"income" | "outcome">("income");
+  const [expenseType, setExpenseType] = useState<string[]>([]); 
   const [to, setTo] = useState(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
 
   // Стили для инпутов дат
@@ -64,7 +67,6 @@ export const BankReport = () => {
       sort: `${sortField},${sortDirection}`,
     };
 
-    // Добавляем только searchFilters (без фильтра по дате)
     if (searchFilters.length > 0) {
       params.s = JSON.stringify({ $and: searchFilters });
     }
@@ -72,13 +74,11 @@ export const BankReport = () => {
     return params;
   };
 
-  // Получаем список банков
   const { selectProps, query: bankQuery } = useSelect({
     resource: "bank",
     optionLabel: (value) => value?.name,
   });
 
-  // Автовыбор первого банка при загрузке
   useEffect(() => {
     if (
       bankQuery.data?.data &&
@@ -90,7 +90,6 @@ export const BankReport = () => {
     }
   }, [bankQuery.data, bankId]);
 
-  // Запрос операций с сортировкой и фильтрацией
   const { data, isLoading, refetch } = useCustom<any>({
     url: `${API_URL}/bank/${bankId}`,
     method: "get",
@@ -102,14 +101,12 @@ export const BankReport = () => {
     },
   });
 
-  // Обновление данных при изменении фильтров или сортировки (без дат)
   useEffect(() => {
     if (bankId) {
       refetch();
     }
-  }, [searchFilters, sortDirection, sortField, bankId]);
+  }, [searchFilters, sortDirection, sortField, bankId, type]);
 
-  // Компонент сортировки
   const sortContent = (
     <Card style={{ width: 200, padding: "0px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -123,7 +120,6 @@ export const BankReport = () => {
         >
           Сортировать по
         </div>
-        {/* Сортировка по ID (дате создания) */}
         <Button
           type="text"
           style={{
@@ -138,7 +134,6 @@ export const BankReport = () => {
           Дате создания{" "}
           {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
-        {/* Сортировка по типу операции */}
         <Button
           type="text"
           style={{
@@ -157,18 +152,15 @@ export const BankReport = () => {
     </Card>
   );
 
-  // Получаем данные операций
   const operations = data?.data?.operation || [];
 
-  // Применяем локальную фильтрацию по поиску и датам
   const filteredOperations = useMemo(() => {
     let result = [...operations];
 
-    // Применяем фильтрацию по датам
     if (from || to) {
       result = result.filter((op) => {
         if (!op.date) return false;
-        
+
         const opDate = dayjs(op.date);
         const fromDate = from ? dayjs(from) : null;
         const toDate = to ? dayjs(to) : null;
@@ -183,7 +175,6 @@ export const BankReport = () => {
       });
     }
 
-    // Применяем общий поиск по коду клиента и трек-коду
     if (searchText) {
       result = result.filter(
         (op) =>
@@ -198,12 +189,17 @@ export const BankReport = () => {
       );
     }
 
-    return result;
-  }, [operations, searchText, from, to]);
+    if (expenseType.length > 0) {
+      result = result.filter((op) =>
+        expenseType.includes(op.type_operation)
+      );
+    }
+
+    return result.filter((op) => op.type === type);
+  }, [operations, searchText, from, to, type]);
 
   const total = filteredOperations.length;
 
-  // Обработчик изменения таблицы (только сортировка)
   const handleTableChange = (_pagination: any, _filters: any, sorter: any) => {
     if (sorter && sorter.field) {
       setSortField(sorter.field === "type" ? "type" : "id");
@@ -211,7 +207,6 @@ export const BankReport = () => {
     }
   };
 
-  // Функция для сброса всех фильтров и поиска
   const resetAllFilters = () => {
     setSearchFilters([]);
     setSearchText("");
@@ -219,7 +214,6 @@ export const BankReport = () => {
     setTo("");
   };
 
-  // Получаем контрагентов
   const { data: counterparty } = useCustom<any>({
     url: `${API_URL}/counterparty`,
     method: "get",
@@ -227,7 +221,6 @@ export const BankReport = () => {
 
   const counterparties = counterparty?.data || [];
 
-  // Функция экспорта в XLSX
   const exportToXLSX = () => {
     if (!filteredOperations.length) {
       return;
@@ -251,9 +244,7 @@ export const BankReport = () => {
         "Код клиента": clientCode,
         "Номер накладной": op.good?.invoice_number || "-",
         Валюта: op.type_currency || "-",
-        Сумма: `${op.type === "income" ? "+" : "-"}${
-          op.amount?.toLocaleString() || 0
-        } ${op.type_currency || ""}`,
+        Сумма: `${op.amount?.toLocaleString() || 0}`,
         "Тип операции": op.type === "income" ? "Приход" : "Расход",
         "Вид прихода": typeOperationMap[op.type_operation] ?? op.type_operation,
         Комментарий: op.comment || "",
@@ -268,7 +259,6 @@ export const BankReport = () => {
     XLSX.writeFile(workbook, fileName);
   };
 
-  // Функция экспорта в CSV
   const exportToCSV = () => {
     if (!filteredOperations.length) {
       return;
@@ -318,6 +308,10 @@ export const BankReport = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleExpenseTypeChange = (value: string[]) => {
+    setExpenseType(value);
   };
 
   return (
@@ -447,6 +441,28 @@ export const BankReport = () => {
             style={{ minWidth: 200 }}
           />
         </Col>
+        <Col>
+          <Select
+            value={type}
+            onChange={(value: any) => setType(value as "income" | "outcome")}
+            placeholder="Выберите тип операции"
+            options={[
+              { value: "income", label: "Приход" },
+              { value: "outcome", label: "Расход" },
+            ]}
+          />
+        </Col>
+        <Col>
+          <Select
+            onChange={handleExpenseTypeChange}
+            placeholder="Выберите статью расхода"
+            style={{ minWidth: 200 }}
+            options={expenseTypes}
+            value={expenseType}
+            mode="multiple"
+            allowClear
+          />
+        </Col>
       </Row>
 
       <div style={{ marginBottom: 16, fontSize: "14px", color: "#666" }}>
@@ -502,7 +518,7 @@ export const BankReport = () => {
         <Column
           title="Валюта"
           dataIndex="type_currency"
-          width={80}
+          width={100}
           render={(value) => value || "-"}
         />
         <Column
@@ -518,8 +534,7 @@ export const BankReport = () => {
                   fontWeight: "500",
                 }}
               >
-                {isIncome ? "+" : "-"}
-                {value?.toLocaleString() || 0} {record.type_currency}
+                {value?.toLocaleString() || 0}
               </span>
             );
           }}
