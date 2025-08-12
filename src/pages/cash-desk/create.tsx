@@ -80,6 +80,7 @@ export const CashDeskCreate: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [preselectedGoodsIds, setPreselectedGoodsIds] = useState<number[]>([]);
   const [selectedCounterparty, setSelectedCounterparty] = useState<any>(null);
+  const [isSubmit, setIsSubmit] = useState(false);
 
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -99,6 +100,7 @@ export const CashDeskCreate: React.FC = () => {
   });
 
   const createBulkIncomeEntries = async (formValues: any) => {
+    setIsSubmit(true);
     const totalItems = selectedRows.length;
 
     notification.info({
@@ -165,18 +167,17 @@ export const CashDeskCreate: React.FC = () => {
         description: `Успешно создана bulk оплата для ${totalItems} товаров`,
         duration: 4,
       });
-
-      setTimeout(() => {
-        push("/income");
-      }, 1000);
+      push("/income");
     } catch (error) {
-      console.error("Ошибка при создании bulk оплаты:", error);
       notification.error({
         message: "Ошибка при создании bulk оплаты",
         description: "Не удалось создать bulk оплату. Попробуйте снова.",
         duration: 4,
       });
+    } finally {
+      setIsSubmit(false);
     }
+    setIsSubmit(false);
   };
 
   const { formProps, saveButtonProps, form } = useForm({
@@ -251,8 +252,6 @@ export const CashDeskCreate: React.FC = () => {
         offset: (currentPage - 1) * pageSize,
       };
     }
-
-    console.log(selectedCounterparty, 'fuck');
 
     return {
       s: JSON.stringify({
@@ -414,7 +413,7 @@ export const CashDeskCreate: React.FC = () => {
               key === "type_operation" ||
               key === "date" ||
               key === "type" ||
-                key === "type_currency" ||
+              key === "type_currency" ||
               key === "bank_id" ||
               key === "method_payment" ||
               key === "comment"
@@ -726,12 +725,19 @@ export const CashDeskCreate: React.FC = () => {
     setSelectedRows([]);
   }, [bolik]);
 
+  console.log(isSubmit, "isSubmit");
+
   return (
     <Create
       saveButtonProps={{
         ...saveButtonProps,
         onClick: () => {
-          const confirmed = window.confirm("Вы уверены, что хотите сохранить?");
+          if (isSubmit) return;
+          const confirmed =
+            formProps.form?.getFieldValue("type_operation") ===
+            "Контрагент оптом"
+              ? true
+              : window.confirm("Вы уверены, что хотите сохранить?");
           if (confirmed) {
             form.setFieldValue("type", "income");
             saveButtonProps.onClick && saveButtonProps.onClick();
@@ -748,6 +754,7 @@ export const CashDeskCreate: React.FC = () => {
           type: "income",
         }}
         onFinish={(values: any) => {
+          if (isSubmit) return;
           if (isAgent && selectedRows.length === 0) {
             message.error(
               "Для операций с контрагентом необходимо выбрать хотя бы один товар."
@@ -1043,11 +1050,7 @@ export const CashDeskCreate: React.FC = () => {
                 name="paid_sum"
                 style={{ marginBottom: 5 }}
               >
-                <Input
-                  type="number"
-                  disabled
-                  style={{ width: "100%" }}
-                />
+                <Input type="number" disabled style={{ width: "100%" }} />
               </Form.Item>
             </Col>
           )}
@@ -1085,7 +1088,7 @@ export const CashDeskCreate: React.FC = () => {
               <Form.Item name="check_file" noStyle>
                 <Upload.Dragger
                   name="file"
-                    action={`${API_URL}/file-upload`}
+                  action={`${API_URL}/file-upload`}
                   listType="picture"
                   accept=".png,.jpg,.jpeg"
                   beforeUpload={(file) => {
