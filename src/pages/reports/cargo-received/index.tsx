@@ -1,7 +1,7 @@
 import { List } from "@refinedev/antd";
 import { Button, Table, Space, message, Divider, Checkbox } from "antd";
 import { FileExcelOutlined, FileOutlined } from "@ant-design/icons";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useCustom } from "@refinedev/core";
 import { API_URL } from "../../../App";
 import dayjs from "dayjs";
@@ -163,6 +163,7 @@ export const CargoReceivedReport = () => {
   const [tableData, setTableData] = useState<GroupedData[]>([]);
   const [totalData, setTotalData] = useState<GroupedData[]>([]);
   const [isWarehouse, setIsWarehouse] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   const [from, setFrom] = useState(
     dayjs().startOf("day").format("YYYY-MM-DDTHH:mm")
@@ -170,19 +171,18 @@ export const CargoReceivedReport = () => {
   const [to, setTo] = useState(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
 
   const fromDate = new Date(from);
-
   const formattedFrom =
     fromDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
     " " +
     fromDate.toLocaleDateString("ru-RU");
-  const toDate = new Date(from);
-
+  
+  const toDate = new Date(to); // Исправлено: было new Date(from)
   const formattedTo =
     toDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
     " " +
     toDate.toLocaleDateString("ru-RU");
 
-  const { data, isLoading, refetch } = useCustom<any>({
+  const { data, isLoading, refetch, error } = useCustom<any>({
     url: `${API_URL}/report/reportOnReceivedCargo`,
     method: "get",
     config: {
@@ -195,17 +195,30 @@ export const CargoReceivedReport = () => {
     },
   });
 
-  useEffect(() => {
-    if (!isLoading) {
-      refetch();
+  // Безопасная обработка изменения чекбокса
+  const handleWarehouseChange = useCallback(async (checked: boolean) => {
+    try {
+      setIsProcessing(true);
+      setIsWarehouse(checked);
+    } catch (error) {
+      console.error("Error handling warehouse change:", error);
+      message.error("Произошла ошибка при изменении состояния");
+    } finally {
+      setIsProcessing(false);
     }
-  }, [isLoading, refetch, from, to, isWarehouse]);
+  }, []);
 
-  useEffect(() => {
-    if (data?.data) {
+  // Безопасная обработка данных
+  const processData = useCallback((responseData: any) => {
+    try {
+      if (!responseData?.routes) {
+        setTableData([]);
+        setTotalData([]);
+        return;
+      }
+
       const grouped: GroupedData[] = [];
-
-      const fromGroups = data.data.routes?.reduce((acc: any, item: any) => {
+      const fromGroups = responseData.routes.reduce((acc: any, item: any) => {
         if (!acc[item.from]) {
           acc[item.from] = [];
         }
@@ -213,30 +226,30 @@ export const CargoReceivedReport = () => {
         return acc;
       }, {} as Record<string, CargoItem[]>);
 
-      for (const [from, items] of Object.entries(fromGroups || {})) {
+      for (const [from, items] of Object.entries(fromGroups)) {
         const itemsT: any = items;
         const fromTotalCount = itemsT?.reduce(
-          (sum: any, i: any) => sum + i.totalCount,
+          (sum: any, i: any) => sum + (i.totalCount || 0),
           0
         );
         const fromTotalWeight = itemsT?.reduce(
-          (sum: any, i: any) => sum + i.totalWeight,
+          (sum: any, i: any) => sum + (i.totalWeight || 0),
           0
         );
         const fromSewing = itemsT?.reduce(
-          (sum: any, i: any) => sum + (i.productTypes["Пошив"] || 0),
+          (sum: any, i: any) => sum + (i.productTypes?.["Пошив"] || 0),
           0
         );
         const fromImported = itemsT?.reduce(
-          (sum: any, i: any) => sum + (i.productTypes["К-Привозные"] || 0),
+          (sum: any, i: any) => sum + (i.productTypes?.["К-Привозные"] || 0),
           0
         );
         const fromBrand = itemsT?.reduce(
-          (sum: any, i: any) => sum + (i.productTypes["Брендированные"] || 0),
+          (sum: any, i: any) => sum + (i.productTypes?.["Брендированные"] || 0),
           0
         );
         const fromMarking = itemsT?.reduce(
-          (sum: any, i: any) => sum + (i.productTypes["Маркировка"] || 0),
+          (sum: any, i: any) => sum + (i.productTypes?.["Маркировка"] || 0),
           0
         );
 
@@ -255,12 +268,12 @@ export const CargoReceivedReport = () => {
           grouped.push({
             isGroupHeader: false,
             region: item.to,
-            totalCount: item.totalCount,
-            totalWeight: item.totalWeight,
-            sewing: item.productTypes["Пошив"] || 0,
-            brand: item.productTypes["Брендированные"] || 0,
-            imported: item.productTypes["К-Привозные"] || 0,
-            marking: item.productTypes["Маркировка"] || 0,
+            totalCount: item.totalCount || 0,
+            totalWeight: item.totalWeight || 0,
+            sewing: item.productTypes?.["Пошив"] || 0,
+            brand: item.productTypes?.["Брендированные"] || 0,
+            imported: item.productTypes?.["К-Привозные"] || 0,
+            marking: item.productTypes?.["Маркировка"] || 0,
           });
         });
       }
@@ -268,55 +281,82 @@ export const CargoReceivedReport = () => {
       setTableData(grouped);
 
       // Prepare total data
-      const cities = data?.data?.cities || [];
+      const cities = responseData?.cities || [];
       const totalDataArray: GroupedData[] = [
-        ...cities.map((item: any) => {
-          return {
-            isGroupHeader: false,
-            region: `Всего ${item.toCity}`,
-            totalCount: item.totalCount,
-            totalWeight: item.totalWeight,
-            sewing: item.productTypes["Пошив"] || 0,
-            brand: item.productTypes["Брендированные"] || 0,
-            imported: item.productTypes["К-Привозные"] || 0,
-            marking: item.productTypes["Маркировка"] || 0,
-          };
-        }),
+        ...cities.map((item: any) => ({
+          isGroupHeader: false,
+          region: `Всего ${item.toCity}`,
+          totalCount: item.totalCount || 0,
+          totalWeight: item.totalWeight || 0,
+          sewing: item.productTypes?.["Пошив"] || 0,
+          brand: item.productTypes?.["Брендированные"] || 0,
+          imported: item.productTypes?.["К-Привозные"] || 0,
+          marking: item.productTypes?.["Маркировка"] || 0,
+        })),
         {
           isGroupHeader: true,
           region: "Всего итого",
           totalCount: cities?.reduce(
-            (sum: any, i: any) => sum + i.totalCount,
+            (sum: any, i: any) => sum + (i.totalCount || 0),
             0
           ),
           totalWeight: cities?.reduce(
-            (sum: any, i: any) => sum + i.totalWeight,
+            (sum: any, i: any) => sum + (i.totalWeight || 0),
             0
           ),
           sewing: cities?.reduce(
-            (sum: any, i: any) => sum + (i.productTypes["Пошив"] || 0),
+            (sum: any, i: any) => sum + (i.productTypes?.["Пошив"] || 0),
             0
           ),
           brand: cities?.reduce(
-            (sum: any, i: any) => sum + (i.productTypes["Брендированные"] || 0),
+            (sum: any, i: any) => sum + (i.productTypes?.["Брендированные"] || 0),
             0
           ),
           imported: cities?.reduce(
-            (sum: any, i: any) => sum + (i.productTypes["К-Привозные"] || 0),
+            (sum: any, i: any) => sum + (i.productTypes?.["К-Привозные"] || 0),
             0
           ),
           marking: cities?.reduce(
-            (sum: any, i: any) => sum + (i.productTypes["Маркировка"] || 0),
+            (sum: any, i: any) => sum + (i.productTypes?.["Маркировка"] || 0),
             0
           ),
         },
       ];
 
       setTotalData(totalDataArray);
+    } catch (error) {
+      console.error("Error processing data:", error);
+      message.error("Ошибка при обработке данных");
+      setTableData([]);
+      setTotalData([]);
     }
-  }, [data]);
+  }, []);
 
-  const prepareExportData = () => {
+  useEffect(() => {
+    if (!isLoading && !error) {
+      const timeoutId = setTimeout(() => {
+        refetch();
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isLoading, refetch, from, to, isWarehouse, error]);
+
+  useEffect(() => {
+    if (data?.data && !error) {
+      processData(data.data);
+    }
+  }, [data, processData, error]);
+
+  // Показать ошибку если есть
+  useEffect(() => {
+    if (error) {
+      console.error("API Error:", error);
+      message.error("Ошибка загрузки данных");
+    }
+  }, [error]);
+
+  const prepareExportData = useCallback(() => {
     const exportData: any[] = [];
 
     exportData.push({
@@ -386,10 +426,10 @@ export const CargoReceivedReport = () => {
     });
 
     return exportData;
-  };
+  }, [tableData, totalData, formattedFrom, formattedTo]);
 
   // Export to XLSX
-  const exportToXLSX = () => {
+  const exportToXLSX = useCallback(() => {
     try {
       const exportData = prepareExportData();
       const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -416,10 +456,10 @@ export const CargoReceivedReport = () => {
       console.error("Error exporting to XLSX:", error);
       message.error("Ошибка при экспорте в XLSX");
     }
-  };
+  }, [prepareExportData, formattedFrom, formattedTo]);
 
   // Export to CSV
-  const exportToCSV = () => {
+  const exportToCSV = useCallback(() => {
     try {
       const exportData = prepareExportData();
       const headers = Object.keys(exportData[0]);
@@ -465,14 +505,16 @@ export const CargoReceivedReport = () => {
       console.error("Error exporting to CSV:", error);
       message.error("Ошибка при экспорте в CSV");
     }
-  };
+  }, [prepareExportData, formattedFrom, formattedTo]);
+
+  const isLoadingOrProcessing = isLoading || isProcessing;
 
   return (
     <List
       title={
         <p style={{ fontSize: 15, lineHeight: "18px" }}>
           Отчет по принятым грузам
-          <br /> от {formattedTo} до {formattedFrom}
+          <br /> от {formattedFrom} до {formattedTo}
         </p>
       }
       headerButtons={() => (
@@ -487,7 +529,8 @@ export const CargoReceivedReport = () => {
               color: "#28a745",
             }}
             onClick={exportToXLSX}
-            loading={isLoading}
+            loading={isLoadingOrProcessing}
+            disabled={tableData.length === 0}
           >
             XLSX
           </Button>
@@ -501,7 +544,8 @@ export const CargoReceivedReport = () => {
               color: "#17a2b8",
             }}
             onClick={exportToCSV}
-            loading={isLoading}
+            loading={isLoadingOrProcessing}
+            disabled={tableData.length === 0}
           >
             CSV
           </Button>
@@ -515,6 +559,7 @@ export const CargoReceivedReport = () => {
                 style={inputStyle}
                 onFocus={(e) => (e.target.style.borderColor = "#4096ff")}
                 onBlur={(e) => (e.target.style.borderColor = "#d9d9d9")}
+                disabled={isLoadingOrProcessing}
               />
             </div>
 
@@ -527,6 +572,7 @@ export const CargoReceivedReport = () => {
                 style={inputStyle}
                 onFocus={(e) => (e.target.style.borderColor = "#4096ff")}
                 onBlur={(e) => (e.target.style.borderColor = "#d9d9d9")}
+                disabled={isLoadingOrProcessing}
               />
             </div>
 
@@ -535,8 +581,9 @@ export const CargoReceivedReport = () => {
             >
               <Checkbox
                 checked={isWarehouse}
-                onChange={(e) => setIsWarehouse(e.target.checked)}
+                onChange={(e) => handleWarehouseChange(e.target.checked)}
                 style={{ fontSize: "14px" }}
+                disabled={isLoadingOrProcessing}
               >
                 В складе
               </Checkbox>
@@ -545,13 +592,19 @@ export const CargoReceivedReport = () => {
         </Space>
       )}
     >
+      {error && (
+        <div style={{ color: 'red', marginBottom: '16px' }}>
+          Ошибка загрузки данных. Попробуйте обновить страницу.
+        </div>
+      )}
+      
       <Table
         columns={columns.map((item: any, index: number) => {
           if (index === 0) return { ...item, title: "Всего Кыргызстан" };
           return item;
         })}
         dataSource={tableData}
-        loading={isLoading}
+        loading={isLoadingOrProcessing}
         pagination={false}
         size="small"
         bordered
@@ -562,15 +615,20 @@ export const CargoReceivedReport = () => {
         style={{
           backgroundColor: "white",
         }}
+        locale={{
+          emptyText: error ? 'Ошибка загрузки данных' : 'Нет данных',
+        }}
       />
+      
       <Divider />
+      
       <Table
         columns={columns.map((item: any, index: number) => {
           if (index === 0) return { ...item, title: "Всего Россия" };
           return item;
         })}
         dataSource={totalData}
-        loading={isLoading}
+        loading={isLoadingOrProcessing}
         pagination={false}
         size="small"
         bordered
@@ -580,6 +638,9 @@ export const CargoReceivedReport = () => {
         scroll={{ x: 1200 }}
         style={{
           backgroundColor: "white",
+        }}
+        locale={{
+          emptyText: error ? 'Ошибка загрузки данных' : 'Нет данных',
         }}
       />
 
