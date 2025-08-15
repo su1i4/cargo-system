@@ -452,4 +452,13 @@ export const routes = [
       parent: "Настройки",
     },
   },
+  // {
+  //   name: "audit",
+  //   list: "/audit",
+  //   meta: {
+  //     canDelete: true,
+  //     label: "Аудит",
+  //     parent: "Продукты",
+  //   },
+  // },
 ];

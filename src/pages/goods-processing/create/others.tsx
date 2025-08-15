@@ -81,9 +81,6 @@ export const GoodsProcessingCreateOthers = React.memo(
 
     return (
       <>
-        <Title style={{ marginTop: 20 }} level={5}>
-          Прочее
-        </Title>
         <Row gutter={16}>
           <Col span={8}>
             <Form.Item label="Процент скидки" name="discount_custom">

@@ -47,6 +47,25 @@ export const SentTheCityList = () => {
   const { selectProps: branchSelectProps } = useSelect({
     resource: "branch",
     optionLabel: "name",
+    filters: [
+      {
+        field: "is_sent",
+        operator: "eq",
+        value: false,
+      },
+    ],
+  });
+
+  const { selectProps: sentCitySelectProps } = useSelect({
+    resource: "branch",
+    optionLabel: "name",
+    filters: [
+      {
+        field: "is_sent",
+        operator: "eq",
+        value: true,
+      },
+    ],
   });
 
   return (
@@ -58,21 +77,13 @@ export const SentTheCityList = () => {
         <Table.Column
           dataIndex="city_id"
           title="Город"
-          render={(_, record) =>
-            branchSelectProps?.options?.find(
-              (item: any) => item.value === record.city_id
-            )?.label || "-"
-          }
+          render={(_, record) => record.city?.name}
         />
 
         <Table.Column
           dataIndex="sent_city_id"
           title="Досыльный город"
-          render={(_, record) =>
-            branchSelectProps?.options?.find(
-              (item: any) => item.value === record.sent_city_id
-            )?.label || "-"
-          }
+          render={(_, record) => record.sent_city?.name}
         />
 
         <Table.Column<any>
@@ -112,11 +123,11 @@ export const SentTheCityList = () => {
             <Select {...branchSelectProps} />
           </Form.Item>
           <Form.Item
-            label="Филиал"
+            label="Досыльный город"
             name="sent_city_id"
-            rules={[{ required: true, message: "Выберите филиал" }]}
+            rules={[{ required: true, message: "Выберите досыльный город" }]}
           >
-            <Select {...branchSelectProps} />
+            <Select {...sentCitySelectProps} />
           </Form.Item>
         </Form>
       </Modal>
@@ -132,11 +143,11 @@ export const SentTheCityList = () => {
             <Select {...branchSelectProps} />
           </Form.Item>
           <Form.Item
-            label="Филиал"
+            label="Досыльный город"
             name="sent_city_id"
-            rules={[{ required: true, message: "Выберите филиал" }]}
+            rules={[{ required: true, message: "Выберите досыльный город" }]}
           >
-            <Select {...branchSelectProps} />
+            <Select {...sentCitySelectProps} />
           </Form.Item>
         </Form>
       </Modal>

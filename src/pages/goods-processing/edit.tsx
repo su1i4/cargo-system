@@ -14,6 +14,7 @@ import {
   Input,
   Tooltip,
   Checkbox,
+  Flex,
 } from "antd";
 import dayjs from "dayjs";
 
@@ -100,8 +101,6 @@ interface CashBackItem {
   };
 }
 
-
-
 export const GoodsEdit = () => {
   const { goBack } = useNavigation();
   const { formProps, saveButtonProps, form, queryResult } = useForm({
@@ -127,15 +126,12 @@ export const GoodsEdit = () => {
   const [nextId, setNextId] = useState(1);
   const [typeProducts, setTypeProducts] = useState<TypeProduct[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [selectedProductKeys, setSelectedProductKeys] = useState<React.Key[]>(
-    []
-  );
   const [deletedServices, setDeletedServices] = useState<GoodItem[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [tariffs, setTariffs] = useState<TariffItem[]>([]);
   const [copyCount, setCopyCount] = useState(0);
   const [sentCityData, setSentCityData] = useState<any[]>([]);
-
+  const [autoBagNumber, setAutoBagNumber] = useState(true);
   const [cashBacks, setCashBacks] = useState<CashBackItem[]>([]);
   const [discounts, setDiscounts] = useState<any[]>([]);
 
@@ -344,11 +340,43 @@ export const GoodsEdit = () => {
     return `${prefix}${timestamp}${random}`;
   };
 
+  const getNextBagNumber = (): string => {
+    const existingNumbers = services
+      .map((item) => item.bag_number_numeric)
+      .filter((num) => num && !isNaN(Number(num)))
+      .map((num) => Number(num))
+      .sort((a, b) => a - b);
+
+    if (existingNumbers.length === 0) {
+      return "1";
+    }
+
+    const maxNumber = Math.max(...existingNumbers);
+    return (maxNumber + 1).toString();
+  };
+
+  const generateConsecutiveBagNumbers = (count: number): string[] => {
+    const existingNumbers = services
+      .map((item) => item.bag_number_numeric)
+      .filter((num) => num && !isNaN(Number(num)))
+      .map((num) => Number(num))
+      .sort((a, b) => a - b);
+
+    let startNumber = 1;
+    if (existingNumbers.length > 0) {
+      startNumber = Math.max(...existingNumbers) + 1;
+    }
+
+    return Array.from({ length: count }, (_, i) =>
+      (startNumber + i).toString()
+    );
+  };
+
   const addNewItem = () => {
     const newItem: GoodItem = {
       id: nextId,
       barcode: generateBarcode(),
-      bag_number_numeric: "",
+      bag_number_numeric: autoBagNumber ? getNextBagNumber() : "",
       is_created: true,
       is_price_editable: false,
     };
@@ -357,11 +385,6 @@ export const GoodsEdit = () => {
   };
 
   const copySelectedItems = () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning("Выберите товары для копирования");
-      return;
-    }
-
     const selectedItems = services.filter((item) =>
       selectedRowKeys.includes(item.id)
     );
@@ -373,6 +396,9 @@ export const GoodsEdit = () => {
         ...item,
         id: newId,
         barcode: generateBarcode(),
+        bag_number_numeric: autoBagNumber
+          ? getNextBagNumber()
+          : item.bag_number_numeric,
         is_created: true,
         is_price_editable: item.is_price_editable || false,
       };
@@ -445,9 +471,11 @@ export const GoodsEdit = () => {
       if (response.ok) {
         const data = await response.json();
         const discountData = data[0];
-        
-        const discountValue = discountData?.discount ? Number(discountData.discount) : 0;
-        
+
+        const discountValue = discountData?.discount
+          ? Number(discountData.discount)
+          : 0;
+
         return {
           discount: discountValue,
           discountId: discountData?.id || null,
@@ -481,12 +509,17 @@ export const GoodsEdit = () => {
             if (selectedType) {
               newItem.tariff = selectedType.tariff;
 
-              if (field === "type_id" && values?.destination_id && values?.discount_id) {
-                const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
-                  values.destination_id,
-                  value,
-                  values.discount_id
-                );
+              if (
+                field === "type_id" &&
+                values?.destination_id &&
+                values?.discount_id
+              ) {
+                const { discount: individualDiscount, discountId } =
+                  await checkIndividualDiscount(
+                    values.destination_id,
+                    value,
+                    values.discount_id
+                  );
                 newItem.individual_discount = individualDiscount;
                 newItem.discount_id = discountId;
               }
@@ -540,8 +573,8 @@ export const GoodsEdit = () => {
                 }
 
                 if (newItem.weight) {
-                  const priceToUse = item.is_price_editable 
-                    ? (newItem.price || item.price || tariffValue)
+                  const priceToUse = item.is_price_editable
+                    ? newItem.price || item.price || tariffValue
                     : newItem.price;
                   newItem.sum = calculateSum(newItem.weight, priceToUse);
                 }
@@ -566,12 +599,13 @@ export const GoodsEdit = () => {
         const updatedServices = await Promise.all(
           services.map(async (item, index) => {
             if (item.type_id) {
-              const { discount: individualDiscount, discountId } = await checkIndividualDiscount(
-                values.destination_id,
-                Number(item.type_id),
-                values.discount_id
-              );
-              
+              const { discount: individualDiscount, discountId } =
+                await checkIndividualDiscount(
+                  values.destination_id,
+                  Number(item.type_id),
+                  values.discount_id
+                );
+
               const newItem = { ...item, updated: true };
               newItem.individual_discount = individualDiscount;
               newItem.discount_id = discountId;
@@ -585,7 +619,7 @@ export const GoodsEdit = () => {
               if (selectedType && !item.is_price_editable) {
                 const discountToApply = individualDiscount || 0;
                 newItem.price = Number(selectedType.tariff) - discountToApply;
-                
+
                 if (newItem.weight) {
                   newItem.sum = calculateSum(newItem.weight, newItem.price);
                 }
@@ -787,13 +821,18 @@ export const GoodsEdit = () => {
     ],
   });
 
-
-
   const { selectProps: branchSelectProps } = useSelect({
     resource: "branch",
     optionLabel: (record: any) => {
-      return `${record?.name}`;
+      return `${record?.name}${record?.is_sent ? " (досыльный)" : ""}`;
     },
+    onSearch: (value) => [
+      {
+        field: "name",
+        operator: "contains",
+        value,
+      },
+    ],
   });
 
   const { selectProps: nomenclatureSelectProps } = useSelect({
@@ -908,64 +947,44 @@ export const GoodsEdit = () => {
 
   const createItemsByCount = () => {
     const count = Number(copyCount || 0);
-    if (count <= 0) {
-      message.warning("Укажите корректное количество для создания");
-      return;
-    }
 
     let newItems: GoodItem[] = [];
 
-    if (selectedRowKeys.length > 0) {
-      const selectedItems = services.filter((item) =>
-        selectedRowKeys.includes(item.id)
-      );
+    const selectedItems = services.filter((item) =>
+      selectedRowKeys.includes(item.id)
+    );
 
-      for (let i = 0; i < count; i++) {
-        const itemsToAdd = selectedItems.map((item, index) => {
-          const newId = nextId + i * selectedItems.length + index;
-          return {
-            ...item,
-            id: newId,
-            barcode: generateBarcode(),
-            is_created: true,
-            is_price_editable: item.is_price_editable || false,
-          };
-        });
-        newItems = [...newItems, ...itemsToAdd];
-      }
+    const totalItemsToCreate = count * selectedItems.length;
+    const newBagNumbers = generateConsecutiveBagNumbers(totalItemsToCreate);
+    let bagNumberIndex = 0;
 
-      setNextId(nextId + count * selectedItems.length);
-    } else {
-      newItems = Array.from({ length: count }, (_, i) => {
-        const newId = nextId + i;
+    for (let i = 0; i < count; i++) {
+      const itemsToAdd = selectedItems.map((item, index) => {
+        const newId = nextId + i * selectedItems.length + index;
         return {
+          ...item,
           id: newId,
           barcode: generateBarcode(),
-          bag_number_numeric: "",
-          is_created: true,
-          is_price_editable: false,
+          bag_number_numeric: autoBagNumber
+            ? newBagNumbers[bagNumberIndex++]
+            : item.bag_number_numeric,
+          is_price_editable: item.is_price_editable || false,
         };
       });
-
-      setNextId(nextId + count);
+      newItems = [...newItems, ...itemsToAdd];
     }
+
+    setNextId(nextId + count * selectedItems.length);
 
     setServices([...services, ...newItems]);
     setSelectedRowKeys([]);
   };
 
-  const copyWhileCount = () => {
-    const count = Number(copyCount || 0);
-    const hasSelectedItems = selectedRowKeys.length > 0;
-
-    createItemsByCount();
-
-    if (hasSelectedItems) {
-      message.success(
-        `Скопировано ${selectedRowKeys.length} товаров ${count} раз(а)`
-      );
+  const copyItems = () => {
+    if (copyCount === 0) {
+      copySelectedItems();
     } else {
-      message.success(`Создано ${count} новых товаров`);
+      createItemsByCount();
     }
   };
 
@@ -996,25 +1015,35 @@ export const GoodsEdit = () => {
               name="destination_id"
             >
               <Select
-                onChange={(val, record: any) => {
-                  const sentCityRecord = sentCityData.find(
-                    (item: any) => item.city_id === val
-                  );
-
-                  if (sentCityRecord) {
-                    formProps.form?.setFieldsValue({
-                      destination_id: sentCityRecord.city_id,
-                      sent_back_id: sentCityRecord.id,
-                    });
-                  } else {
-                    formProps.form?.setFieldsValue({
-                      destination_id: val,
+                {...branchSelectProps}
+                placeholder="Выберите город"
+                showSearch
+                onChange={(value, record: any) => {
+                  if (!record?.label.includes("(досыльный)")) {
+                    form.setFieldsValue({
+                      destination_id: value,
                       sent_back_id: null,
                     });
+                  } else {
+                    const city = sentCityData.find(
+                      (item: any) => item.sent_city_id === value
+                    );
+                    if (city) {
+                      form.setFieldsValue({
+                        destination_id: city?.city_id,
+                        sent_back_id: city?.id,
+                      });
+                    } else {
+                      message.error(
+                        "Не удалось найти главный город досыла. Попробуйте выбрать другой город"
+                      );
+                      form.setFieldsValue({
+                        destination_id: values?.destination_id,
+                        sent_back_id: null,
+                      });
+                    }
                   }
                 }}
-                {...branchSelectProps}
-                allowClear
               />
             </Form.Item>
           </Col>
@@ -1129,9 +1158,16 @@ export const GoodsEdit = () => {
           </Col>
         </Row>
 
-
-
-        <Title level={5}>Услуги</Title>
+        <Flex justify="space-between" align="center">
+          <Title level={5}>Услуги</Title>
+          <Flex align="center" gap={10}>
+            <span>Автоматическая нумерация мешков:</span>
+            <Checkbox
+              checked={autoBagNumber}
+              onChange={(e) => setAutoBagNumber(e.target.checked)}
+            />
+          </Flex>
+        </Flex>
         <Row gutter={[16, 8]} style={{ marginBottom: 10 }}>
           <Col xs={24} sm={12} md={8} lg={6}>
             <Tooltip
@@ -1162,29 +1198,15 @@ export const GoodsEdit = () => {
               placeholder="Кол-во"
             />
           </Col>
-          <Col xs={12} sm={10} md={8} lg={6}>
-            <Button
-              disabled={
-                Number(copyCount || 0) === 0 ||
-                values?.destination_id === undefined ||
-                values?.sender_id === undefined ||
-                values?.recipient_id === undefined
-              }
-              onClick={copyWhileCount}
-              icon={<CopyOutlined />}
-              style={{ width: "100%" }}
-            >
-              Копировать: ({copyCount})
-            </Button>
-          </Col>
           <Col xs={12} sm={8} md={6} lg={5}>
             <Button
-              onClick={copySelectedItems}
+              onClick={copyItems}
               icon={<CopyOutlined />}
               disabled={selectedRowKeys.length === 0}
               style={{ width: "100%" }}
             >
-              Копировать ({selectedRowKeys.length})
+              Копировать ({selectedRowKeys.length}){" "}
+              {copyCount > 0 && `* (${copyCount})`}
             </Button>
           </Col>
           <Col xs={12} sm={8} md={6} lg={4}>

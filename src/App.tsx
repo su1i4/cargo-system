@@ -142,6 +142,9 @@ const CashDeskOutcomeList = lazy(() =>
     default: m.CashDeskOutcomeList,
   }))
 );
+const Audit = lazy(() =>
+  import("./pages/audit").then((m) => ({ default: m.Audit }))
+);
 
 const UnderBranchCreate = lazy(() =>
   import("./pages/under-branch").then((m) => ({ default: m.UnderBranchCreate }))
@@ -1294,6 +1297,17 @@ function App() {
                       </Suspense>
                     }
                   />
+
+                  <Route path="/audit">
+                    <Route
+                      index
+                      element={
+                        <Suspense fallback={<PageLoadingFallback />}>
+                          <Audit />
+                        </Suspense>
+                      }
+                    />
+                  </Route>
 
                   <Route path="*" element={<ErrorComponent />} />
                 </Route>

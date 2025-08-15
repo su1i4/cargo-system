@@ -12,6 +12,7 @@ import {
   Space,
   Checkbox,
   message,
+  Flex,
 } from "antd";
 import Title from "antd/es/typography/Title";
 import {
@@ -102,24 +103,12 @@ export const GoodsProcessingCreateServices = React.memo(
     const [nextId, setNextId] = useState(1);
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
     const [copyCount, setCopyCount] = useState(0);
-
+    const [autoBagNumber, setAutoBagNumber] = useState(true);
     const { selectProps: nomenclatureSelectProps } = useSelect(
       nomenclatureSelectConfig
     );
     const { selectProps: typeProductSelectProps } = useSelect(
       typeProductSelectConfig
-    );
-
-    const findTariff = useCallback(
-      (branchId: number, productTypeId: number): number => {
-        const foundTariff = tariffs.find(
-          (tariff) =>
-            tariff.branch_id === branchId &&
-            tariff.product_type_id === productTypeId
-        );
-        return foundTariff ? parseFloat(foundTariff.tariff) : 0;
-      },
-      [tariffs]
     );
 
     const calculateSum = useCallback(
@@ -443,7 +432,7 @@ export const GoodsProcessingCreateServices = React.memo(
       const newItem: GoodItem = {
         id: nextId,
         barcode: generateBarcode(),
-        bag_number_numeric: getNextBagNumber(),
+        bag_number_numeric: autoBagNumber ? getNextBagNumber() : "",
         is_price_editable: false,
       };
       setServices([...services, newItem]);
@@ -458,6 +447,7 @@ export const GoodsProcessingCreateServices = React.memo(
       generateBarcode,
       getNextBagNumber,
       checkBagNumberWithDebounce,
+      autoBagNumber,
     ]);
 
     const copySelectedItems = useCallback(() => {
@@ -473,7 +463,7 @@ export const GoodsProcessingCreateServices = React.memo(
           ...item,
           id: newId,
           barcode: generateBarcode(),
-          bag_number_numeric: newBagNumbers[index],
+          bag_number_numeric: autoBagNumber ? newBagNumbers[index] : item.bag_number_numeric,
           is_price_editable: item.is_price_editable || false,
         };
       });
@@ -501,56 +491,37 @@ export const GoodsProcessingCreateServices = React.memo(
       generateBarcode,
       generateConsecutiveBagNumbers,
       checkMultipleBagNumbersAsync,
+      autoBagNumber,
     ]);
 
     const createItemsByCount = useCallback(() => {
       const count = Number(copyCount || 0);
-      if (count <= 0) {
-        message.warning("Укажите корректное количество для создания");
-        return;
-      }
 
       let newItems: GoodItem[] = [];
 
-      if (selectedRowKeys.length > 0) {
-        const selectedItems = services.filter((item) =>
-          selectedRowKeys.includes(item.id)
-        );
+      const selectedItems = services.filter((item) =>
+        selectedRowKeys.includes(item.id)
+      );
 
-        const totalItemsToCreate = count * selectedItems.length;
-        const newBagNumbers = generateConsecutiveBagNumbers(totalItemsToCreate);
-        let bagNumberIndex = 0;
+      const totalItemsToCreate = count * selectedItems.length;
+      const newBagNumbers = generateConsecutiveBagNumbers(totalItemsToCreate);
+      let bagNumberIndex = 0;
 
-        for (let i = 0; i < count; i++) {
-          const itemsToAdd = selectedItems.map((item, index) => {
-            const newId = nextId + i * selectedItems.length + index;
-            return {
-              ...item,
-              id: newId,
-              barcode: generateBarcode(),
-              bag_number_numeric: newBagNumbers[bagNumberIndex++],
-              is_price_editable: item.is_price_editable || false,
-            };
-          });
-          newItems = [...newItems, ...itemsToAdd];
-        }
-
-        setNextId(nextId + count * selectedItems.length);
-      } else {
-        const newBagNumbers = generateConsecutiveBagNumbers(count);
-
-        newItems = Array.from({ length: count }, (_, i) => {
-          const newId = nextId + i;
+      for (let i = 0; i < count; i++) {
+        const itemsToAdd = selectedItems.map((item, index) => {
+          const newId = nextId + i * selectedItems.length + index;
           return {
+            ...item,
             id: newId,
             barcode: generateBarcode(),
-            bag_number_numeric: newBagNumbers[i],
-            is_price_editable: false,
+            bag_number_numeric: autoBagNumber ? newBagNumbers[bagNumberIndex++] : item.bag_number_numeric,
+            is_price_editable: item.is_price_editable || false,
           };
         });
-
-        setNextId(nextId + count);
+        newItems = [...newItems, ...itemsToAdd];
       }
+
+      setNextId(nextId + count * selectedItems.length);
 
       setServices([...services, ...newItems]);
       setSelectedRowKeys([]);
@@ -571,29 +542,16 @@ export const GoodsProcessingCreateServices = React.memo(
       generateBarcode,
       generateConsecutiveBagNumbers,
       copyCount,
+      autoBagNumber,
     ]);
 
-    const copyWhileCount = useCallback(() => {
-      const count = Number(copyCount || 0);
-      const hasSelectedItems = selectedRowKeys.length > 0;
-
-      if (count <= 0) {
-        message.warning("Укажите корректное количество для создания");
-        return;
-      }
-
-      requestAnimationFrame(() => {
+    const copyItems = useCallback(() => {
+      if (copyCount === 0) {
+        copySelectedItems();
+      } else {
         createItemsByCount();
-
-        if (hasSelectedItems) {
-          message.success(
-            `Скопировано ${selectedRowKeys.length} товаров ${count} раз(а)`
-          );
-        } else {
-          message.success(`Создано ${count} новых товаров`);
-        }
-      });
-    }, [copyCount, selectedRowKeys.length, createItemsByCount]);
+      }
+    }, [services, selectedRowKeys, copyCount]);
 
     const removeSelectedItems = useCallback(() => {
       if (selectedRowKeys.length === 0) {
@@ -625,7 +583,13 @@ export const GoodsProcessingCreateServices = React.memo(
         getCheckboxProps: (
           record:
             | GoodItem
-            | { id: string; weight: number; price: number; quantity: number; sum: number }
+            | {
+                id: string;
+                weight: number;
+                price: number;
+                quantity: number;
+                sum: number;
+              }
         ) => ({
           disabled: record.id === "summary", // Отключаем чекбокс для строки итогов
           style: {
@@ -680,16 +644,25 @@ export const GoodsProcessingCreateServices = React.memo(
 
     return (
       <>
-        <Title level={5}>
-          Услуги
-          {isCheckingBagNumbers && (
-            <span
-              style={{ marginLeft: 10, fontSize: "12px", color: "#1890ff" }}
-            >
-              (Идет проверка номеров мешков...)
-            </span>
-          )}
-        </Title>
+        <Flex justify="space-between" align="center">
+          <Title level={5}>
+            Услуги
+            {isCheckingBagNumbers && (
+              <span
+                style={{ marginLeft: 10, fontSize: "12px", color: "#1890ff" }}
+              >
+                (Идет проверка номеров мешков...)
+              </span>
+            )}
+          </Title>
+          <Flex align="center" gap={10}>
+            <span>Автоматическая нумерация мешков:</span>
+            <Checkbox
+              checked={autoBagNumber}
+              onChange={(e) => setAutoBagNumber(e.target.checked)}
+            />
+          </Flex>
+        </Flex>
         <Row gutter={[16, 8]} style={{ marginBottom: 10 }}>
           <Col xs={24} sm={12} md={8} lg={6}>
             <Tooltip
@@ -724,35 +697,15 @@ export const GoodsProcessingCreateServices = React.memo(
               placeholder="Кол-во"
             />
           </Col>
-          <Col xs={12} sm={10} md={8} lg={6}>
-            <Tooltip
-              title={
-                selectedRowKeys.length > 0
-                  ? `Скопировать выделенные товары (${selectedRowKeys.length}) указанное количество раз`
-                  : "Создать новые пустые товары в указанном количестве"
-              }
-            >
-              <Button
-                disabled={Number(copyCount || 0) === 0 || isCheckingBagNumbers}
-                loading={isCheckingBagNumbers}
-                onClick={copyWhileCount}
-                icon={<CopyOutlined />}
-                style={{ width: "100%" }}
-              >
-                {selectedRowKeys.length > 0 ? "Копировать" : "Создать"}: (
-                {copyCount})
-              </Button>
-            </Tooltip>
-          </Col>
           <Col xs={12} sm={8} md={6} lg={5}>
             <Button
-              onClick={copySelectedItems}
+              onClick={copyItems}
               icon={<CopyOutlined />}
               disabled={selectedRowKeys.length === 0 || isCheckingBagNumbers}
               loading={isCheckingBagNumbers}
               style={{ width: "100%" }}
             >
-              Копировать ({selectedRowKeys.length})
+              Копировать ({selectedRowKeys.length}) {copyCount > 0 && `* (${copyCount})`}
             </Button>
           </Col>
           <Col xs={12} sm={8} md={6} lg={4}>

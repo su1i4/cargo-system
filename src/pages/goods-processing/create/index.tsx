@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback, memo } from "react";
 import { Create, useForm, useTable } from "@refinedev/antd";
-import { Form, message } from "antd";
+import { Checkbox, Flex, Form, message, Tooltip } from "antd";
+import Title from "antd/es/typography/Title";
 import { GoodsProcessingCreateRequisites } from "./requisites";
 import { GoodsProcessingCreateServices } from "./services";
 import { GoodsProcessingCreateProducts } from "./products";
@@ -22,6 +23,7 @@ dayjs.tz.setDefault("Asia/Bishkek");
 
 export const GoodsProcessingCreate = memo(() => {
   const { formProps, saveButtonProps, form } = useForm();
+  const [showOthers, setShowOthers] = useState(false);
 
   const [state, setState] = useState({
     services: [] as GoodItem[],
@@ -39,11 +41,14 @@ export const GoodsProcessingCreate = memo(() => {
   const updateState = useCallback(
     <K extends keyof typeof state>(
       key: K,
-      value: (typeof state)[K] | ((prev: (typeof state)[K]) => (typeof state)[K])
+      value:
+        | (typeof state)[K]
+        | ((prev: (typeof state)[K]) => (typeof state)[K])
     ) => {
       setState((prev) => ({
         ...prev,
-        [key]: typeof value === "function" ? (value as Function)(prev[key]) : value,
+        [key]:
+          typeof value === "function" ? (value as Function)(prev[key]) : value,
       }));
     },
     []
@@ -83,13 +88,17 @@ export const GoodsProcessingCreate = memo(() => {
 
   useEffect(() => {
     if (cashBacksTableProps.dataSource) {
-      updateState("cashBacks", [...cashBacksTableProps.dataSource] as CashBackItem[]);
+      updateState("cashBacks", [
+        ...cashBacksTableProps.dataSource,
+      ] as CashBackItem[]);
     }
   }, [cashBacksTableProps.dataSource, updateState]);
 
   useEffect(() => {
     if (discountsTableProps.dataSource) {
-      updateState("discounts", [...discountsTableProps.dataSource] as DiscountOrCashBackItem[]);
+      updateState("discounts", [
+        ...discountsTableProps.dataSource,
+      ] as DiscountOrCashBackItem[]);
     }
   }, [discountsTableProps.dataSource, updateState]);
 
@@ -108,7 +117,13 @@ export const GoodsProcessingCreate = memo(() => {
   );
 
   const setHasBagNumber = useCallback(
-    (hasBagNumber: { id: number; has: boolean }[] | ((prev: { id: number; has: boolean }[]) => { id: number; has: boolean }[])) => {
+    (
+      hasBagNumber:
+        | { id: number; has: boolean }[]
+        | ((
+            prev: { id: number; has: boolean }[]
+          ) => { id: number; has: boolean }[])
+    ) => {
       updateState("hasBagNumber", hasBagNumber);
     },
     [updateState]
@@ -122,7 +137,13 @@ export const GoodsProcessingCreate = memo(() => {
   );
 
   const setCheckTimeouts = useCallback(
-    (timeouts: { [key: number]: NodeJS.Timeout } | ((prev: { [key: number]: NodeJS.Timeout }) => { [key: number]: NodeJS.Timeout })) => {
+    (
+      timeouts:
+        | { [key: number]: NodeJS.Timeout }
+        | ((prev: { [key: number]: NodeJS.Timeout }) => {
+            [key: number]: NodeJS.Timeout;
+          })
+    ) => {
       updateState("checkTimeouts", timeouts);
     },
     [updateState]
@@ -136,21 +157,24 @@ export const GoodsProcessingCreate = memo(() => {
   );
 
   const rawValues: any = Form.useWatch([], form);
-  
-  const stableValues = useMemo(() => ({
-    sender_id: rawValues?.sender_id,
-    recipient_id: rawValues?.recipient_id,
-    destination_id: rawValues?.destination_id,
-    declared_value: rawValues?.declared_value,
-    commission: rawValues?.commission,
-  }), [
-    rawValues?.sender_id,
-    rawValues?.recipient_id, 
-    rawValues?.destination_id,
-    rawValues?.declared_value,
-    rawValues?.commission
-  ]);
-  
+
+  const stableValues = useMemo(
+    () => ({
+      sender_id: rawValues?.sender_id,
+      recipient_id: rawValues?.recipient_id,
+      destination_id: rawValues?.destination_id,
+      declared_value: rawValues?.declared_value,
+      commission: rawValues?.commission,
+    }),
+    [
+      rawValues?.sender_id,
+      rawValues?.recipient_id,
+      rawValues?.destination_id,
+      rawValues?.declared_value,
+      rawValues?.commission,
+    ]
+  );
+
   const values = useMemo(() => rawValues, [rawValues]);
   const currentDateDayjs = useMemo(() => dayjs().utc().tz("Asia/Bishkek"), []);
 
@@ -212,10 +236,12 @@ export const GoodsProcessingCreate = memo(() => {
         return;
       }
 
-      // if (state.hasBagNumber.length > 0) {
-      //   message.error("Обнаружены дублированные номера мешков. Исправьте перед отправкой.");
-      //   return;
-      // }
+      if (state.hasBagNumber.length > 0) {
+        message.error(
+          "Обнаружены дублированные номера мешков. Исправьте перед отправкой."
+        );
+        return;
+      }
 
       const invalidServices = state.services.filter((service) => {
         return !service.type_id || !service.weight || service.weight <= 0;
@@ -228,16 +254,18 @@ export const GoodsProcessingCreate = memo(() => {
           if (!service.type_id) missingFields.push("Тип товара");
           if (!service.weight || service.weight <= 0) missingFields.push("Вес");
           message.warning(
-            `Услуга #${serviceIndex + 1}: Заполните все обязательные поля (${missingFields.join(", ")})`
+            `Услуга #${
+              serviceIndex + 1
+            }: Заполните все обязательные поля (${missingFields.join(", ")})`
           );
         });
         return;
       }
 
-      // if (state.isCheckingBagNumbers) {
-      //   message.warning("Дождитесь завершения проверки номеров мешков");
-      //   return;
-      // }
+      if (state.isCheckingBagNumbers) {
+        message.warning("Дождитесь завершения проверки номеров мешков");
+        return;
+      }
 
       const requiredFields = [
         { field: "destination_id", message: "Выберите город назначения" },
@@ -283,13 +311,16 @@ export const GoodsProcessingCreate = memo(() => {
           })),
         amount: Math.round(finalAmount * 100) / 100,
         sent_back_id:
-          state.sentCityData.find((item: any) => item.id === values.sent_back_id)?.sent_city_id || null,
+          state.sentCityData.find(
+            (item: any) => item.id === values.sent_back_id
+          )?.sent_city_id || null,
       };
 
       if (submitValues.created_at) {
         if (typeof submitValues.created_at === "object") {
           if (submitValues.created_at.$d) {
-            submitValues.created_at = submitValues.created_at.format("YYYY-MM-DDTHH:mm:ss") + ".100Z";
+            submitValues.created_at =
+              submitValues.created_at.format("YYYY-MM-DDTHH:mm:ss") + ".100Z";
           } else if (submitValues.created_at instanceof Date) {
             submitValues.created_at = submitValues.created_at.toISOString();
           }
@@ -367,7 +398,20 @@ export const GoodsProcessingCreate = memo(() => {
           branchProducts={branchProducts}
           {...sharedProps}
         />
-        <GoodsProcessingCreateOthers values={values} form={formProps.form} />
+        <Flex gap={10} align="center" style={{ marginTop: 10 }}>
+          <Title style={{ marginTop: 5 }} level={5}>
+            Прочее
+          </Title>
+          <Tooltip title="Показывать прочее">
+            <Checkbox
+              checked={showOthers}
+              onChange={(e) => setShowOthers(e.target.checked)}
+            />
+          </Tooltip>
+        </Flex>
+        {showOthers && (
+          <GoodsProcessingCreateOthers values={values} form={formProps.form} />
+        )}
       </Form>
     </Create>
   );

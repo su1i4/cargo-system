@@ -7,6 +7,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   FileAddOutlined,
+  PrinterOutlined,
 } from "@ant-design/icons";
 import { CounterpartyEditModal } from "./modal/edit-modal";
 import { SearchFilter } from "../../shared/search-input";
@@ -42,6 +43,13 @@ export const CounterpartyList: React.FC = () => {
     { label: "Имени", field: "name" },
     { label: "Коду клиента", field: "clientCode" },
   ];
+
+  // Simple currency conversion function (you may need to implement proper rates)
+  const convertAmount = (amount: number, currency: string, createdAt: string): number => {
+    // Add your currency conversion logic here
+    // For now, returning the amount as is
+    return amount;
+  };
 
   const handleDelete = async () => {
     try {

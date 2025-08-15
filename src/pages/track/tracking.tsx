@@ -793,10 +793,9 @@ const TrackingResults = memo<TrackingResultsProps>(
                                               {bag.status}
                                             </Tag>
                                           </div>
-                                          <div
-                                            style={{ display: "flex", gap: 2 }}
-                                          ></div>
+                                          
                                         </div>
+                                        <p>Фио отправителя: {bag.sender_name}</p>
                                         <Row
                                           gutter={8}
                                           style={{ marginTop: 4 }}

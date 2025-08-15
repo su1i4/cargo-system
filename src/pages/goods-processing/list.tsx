@@ -103,13 +103,13 @@ export const GoogsProcessingList = () => {
     },
   });
 
-  useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: "smooth",
-    });
-  }, [currentPage]);
+  // useEffect(() => {
+  //   window.scrollTo({
+  //     top: 0,
+  //     left: 0,
+  //     behavior: "smooth",
+  //   });
+  // }, [currentPage]);
 
   const [sorterVisible, setSorterVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -135,8 +135,9 @@ export const GoogsProcessingList = () => {
     if (value) {
       setSearchFilter({
         $or: [
-          { "counterparty.clientCode": { $contL: value } },
-          { "counterparty.name": { $contL: value } },
+          { "sender.clientCode": { $contL: value } },
+          { "sender.name": { $contL: value } },
+          { "invoice_number": { $contL: value } },
         ],
       });
     }

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import {
   type ITreeMenu,
-  CanAccess,
   useIsExistAuthentication,
   useTranslate,
   useLogout,
@@ -223,7 +222,7 @@ export const CustomSider: typeof Sider = ({ render }) => {
                 width: "110px",
               }}
               onClick={() => {
-                push("/accepted-goods");
+                push("/goods-processing");
                 setMobileDrawerVisible(false);
               }}
               src="../../public/cargo-system-logo.png"
@@ -300,7 +299,7 @@ export const CustomSider: typeof Sider = ({ render }) => {
           style={{
             width: "100px",
           }}
-          onClick={() => push("/accepted-goods")}
+          onClick={() => push("/goods-processing")}
           src="../../public/cargo-system-logo.png"
         />
       </div>

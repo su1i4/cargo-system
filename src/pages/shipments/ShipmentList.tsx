@@ -35,7 +35,7 @@ const ShipmentList = () => {
     },
     syncWithLocation: false,
     pagination: {
-      pageSize: 200,
+      pageSize: 500,
     },
   });
 
@@ -177,6 +177,9 @@ const ShipmentList = () => {
           };
         }}
         {...tableProps}
+        pagination={{
+          pageSize: 500,
+        }}
         rowKey="id"
       >
         <Table.Column
@@ -207,6 +210,7 @@ const ShipmentList = () => {
           width={50}
           title="Вес (кг)"
           dataIndex="totalServiceWeight"
+          render={(value) => value?.toFixed(2)}
         />
         <Table.Column
           width={50}

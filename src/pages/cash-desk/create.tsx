@@ -39,7 +39,7 @@ import utc from "dayjs/plugin/utc";
 import { useNavigate } from "react-router";
 import { useSearchParams } from "react-router";
 import { useReactToPrint } from "react-to-print";
-// import { PrintContent } from "./print-content";
+import { PrintContent } from "./print-content";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -82,7 +82,9 @@ export const CashDeskCreate: React.FC = () => {
   const [selectedCounterparty, setSelectedCounterparty] = useState<any>(null);
   const [isSubmit, setIsSubmit] = useState(false);
 
+  // Print functionality
   const printRef = useRef<HTMLDivElement>(null);
+  const [printData, setPrintData] = useState<any>(null);
 
   const reactToPrint = useReactToPrint({
     contentRef: printRef,
@@ -725,6 +727,28 @@ export const CashDeskCreate: React.FC = () => {
     setSelectedRows([]);
   }, [bolik]);
 
+  // Print handler
+  const handlePrint = () => {
+    if (!data || !data.data || !data.data.data) {
+      message.warning("Нет данных для печати");
+      return;
+    }
+
+    // Structure the data for PrintContent component
+    const printDataStructure = {
+      data: {
+        data: data.data.data
+      }
+    };
+
+    setPrintData(printDataStructure);
+
+    // Give time for state to update before printing
+    setTimeout(() => {
+      reactToPrint();
+    }, 300);
+  };
+
   console.log(isSubmit, "isSubmit");
 
   return (
@@ -1191,7 +1215,11 @@ export const CashDeskCreate: React.FC = () => {
               </Dropdown>
             </Col>
             <Col>
-              <Button icon={<PrinterOutlined />} onClick={() => reactToPrint()}>
+              <Button 
+                icon={<PrinterOutlined />} 
+                onClick={handlePrint}
+                title="Печать"
+              >
                 Печать
               </Button>
             </Col>
@@ -1323,15 +1351,19 @@ export const CashDeskCreate: React.FC = () => {
             />
             <Table.Column dataIndex="comments" title="Комментарий" />
           </Table>
-          {/* <div ref={printRef}>
-            <PrintContent
-              data={data}
-              pageSize={pageSize}
-              selectedCurrency={selectedCurrency}
-              convertAmount={convertAmount}
-              client={selectedCounterparty}
-            />
-          </div> */}
+
+          <div style={{ display: 'none' }}>
+            <div ref={printRef}>
+              {printData && selectedCounterparty && (
+                <PrintContent 
+                  data={printData} 
+                  selectedCurrency={selectedCurrency} 
+                  convertAmount={convertAmount} 
+                  client={selectedCounterparty} 
+                />
+              )}
+            </div>
+          </div>
         </>
       )}
     </Create>

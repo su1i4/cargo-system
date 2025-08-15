@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { useSelect } from "@refinedev/antd";
-import { Col, Form, Input, Row, Select } from "antd";
+import { Col, Form, Input, message, Row, Select } from "antd";
 import Title from "antd/es/typography/Title";
 
 interface GoodsProcessingCreateRequisitesProps {
@@ -182,7 +182,6 @@ export const GoodsProcessingCreateRequisites = React.memo(
       ]
     );
 
-    // Функция для автоматического выбора лучшего кешбека
     const selectBestCashBack = () => {
       if (cashBackOptions.length === 0) return null;
 
@@ -193,7 +192,6 @@ export const GoodsProcessingCreateRequisites = React.memo(
       return bestCashBack.value;
     };
 
-    // Функция для автоматического выбора лучшей скидки
     const selectBestDiscount = () => {
       if (discountOptions.length === 0) return null;
 
@@ -204,13 +202,11 @@ export const GoodsProcessingCreateRequisites = React.memo(
       return bestDiscount.value;
     };
 
-    // Автоматический выбор лучшего варианта при изменении отправителя или получателя
     useEffect(() => {
       if (values?.sender_id || values?.recipient_id) {
         const bestCashBack = selectBestCashBack();
         const bestDiscount = selectBestDiscount();
 
-        // Определяем, что выгоднее - кешбек или скидка
         let shouldSelectCashBack = false;
         let shouldSelectDiscount = false;
 
@@ -222,7 +218,6 @@ export const GoodsProcessingCreateRequisites = React.memo(
             discountOptions.find((d) => d.value === bestDiscount)?.discount ||
             0;
 
-          // Выбираем кешбек, если его сумма больше скидки (или можете изменить логику)
           shouldSelectCashBack = maxCashBack >= maxDiscount;
           shouldSelectDiscount = !shouldSelectCashBack;
         } else if (bestCashBack) {
@@ -284,10 +279,18 @@ export const GoodsProcessingCreateRequisites = React.memo(
                     const city = sentCityData.find(
                       (item: any) => item.sent_city_id === value
                     );
+                    if (city) {
                     form.setFieldsValue({
-                      destination_id: city?.city_id,
-                      sent_back_id: city?.id,
-                    });
+                        destination_id: city?.city_id,
+                        sent_back_id: city?.id,
+                      });
+                    } else {
+                      message.error("Не удалось найти главный город досыла. Попробуйте выбрать другой город");
+                      form.setFieldsValue({
+                        destination_id: null,
+                        sent_back_id: null,
+                      });
+                    }
                   }
                 }}
               />
