@@ -59,10 +59,10 @@ export const WarehouseStockGoodsReport = () => {
   const [showBags, setShowBags] = useState(false);
   const [selectedCity, setSelectedCity] = useState<number | null>(null);
   const [driverName, setDriverName] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
+  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("ASC");
   const [sortField, setSortField] = useState<
     "id" | "created_at" | "sender.name" | "recipient.name" | "bag_number"
-  >("id");
+  >("recipient.name");
   const [sorterVisible, setSorterVisible] = useState(false);
 
   // Загрузка данных городов
@@ -120,10 +120,12 @@ export const WarehouseStockGoodsReport = () => {
           ? String(record.weight).replace(".", ",").slice(0, 5)
           : "",
         "Кол-во мешков": record.services?.length || 0,
-        Сумма: record.amount || 0,
-        "Сумма за мешки": record.avgProductPrice || 0,
+        Сумма: Number(record.amount || 0).toFixed(2),
+        "Сумма за мешки": Number(record.avgProductPrice || 0).toFixed(2),
         Оплачено: record.paid_sum || 0,
-        Долг: Number(record.amount || 0) - Number(record.paid_sum || 0),
+        Долг: (
+          Number(record.amount || 0) - Number(record.paid_sum || 0)
+        ).toFixed(2),
         Статус: record.status || "",
       };
 
@@ -282,8 +284,7 @@ export const WarehouseStockGoodsReport = () => {
             }
           }
         }
-      } catch (styleError) {
-      }
+      } catch (styleError) {}
 
       // Create workbook and append worksheet
       const workbook = XLSX.utils.book_new();
@@ -294,9 +295,11 @@ export const WarehouseStockGoodsReport = () => {
           return item.id === shipmentData?.id;
         })?.truck_number || "report";
 
-      const fileName = `${truckNumber}_${
+      const fileName = `${
         shipmentData?.destination
-      }_${driverName}_${dayjs().format("DD-MM-YYYY_HH-mm")}.xlsx`;
+      } #${truckNumber} ${driverName} от (${dayjs().format(
+        "DD.MM.YYYY.HH-mm"
+      )}).xlsx`;
 
       // Write file to disk
       XLSX.writeFile(workbook, fileName);
@@ -346,9 +349,11 @@ export const WarehouseStockGoodsReport = () => {
 
       link.setAttribute(
         "download",
-        `${truckNumber}_${
+        `${
           shipmentData?.destination
-        }_${driverName}_${dayjs().format("DD-MM-YYYY_HH-mm")}.csv`
+        } #${truckNumber} ${driverName} от (${dayjs().format(
+          "DD.MM.YYYY.HH-mm"
+        )}).csv`
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -739,7 +744,7 @@ export const WarehouseStockGoodsReport = () => {
             dataIndex="id"
             title="Долг"
             render={(_, record) =>
-              `${Number(record?.amount) - Number(record?.paid_sum)}`
+              (Number(record?.amount) - Number(record?.paid_sum)).toFixed(2)
             }
           />
         </Table>
@@ -790,6 +795,7 @@ export const WarehouseStockGoodsReport = () => {
           width={50}
           title="Вес (кг)"
           dataIndex="totalServiceWeight"
+          render={(value) => value?.toFixed(2)}
         />
         <Table.Column
           width={50}
