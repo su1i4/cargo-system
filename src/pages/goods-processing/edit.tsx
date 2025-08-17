@@ -1110,6 +1110,10 @@ export const GoodsEdit = () => {
                     formProps.form?.setFieldsValue({
                       cash_back_target: null,
                     });
+                  } else {
+                    formProps.form?.setFieldsValue({
+                      discount_id: null,
+                    });
                   }
                 }}
                 options={discounts

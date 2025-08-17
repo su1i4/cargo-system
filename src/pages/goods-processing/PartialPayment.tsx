@@ -51,11 +51,6 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     method: "get",
   });
 
-  const { data: selectedCounterpartyData } = useOne({
-    resource: "counterparty",
-    id: record?.sender?.id ?? "",
-  });
-
   const { formProps, form, formLoading } = useForm({
     onMutationSuccess(data: any) {
       const id = data?.data?.id;
