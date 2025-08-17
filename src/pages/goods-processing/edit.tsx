@@ -553,6 +553,51 @@ export const GoodsEdit = () => {
   };
 
   useEffect(() => {
+    const applyInitialDiscounts = async () => {
+      if (record && record.services && values?.destination_id && values?.discount_id && tariffs.length > 0) {
+        const updatedServices = await Promise.all(
+          services.map(async (item) => {
+            if (item.type_id) {
+              const { discount: individualDiscount, discountId } =
+                await checkIndividualDiscount(
+                  values.destination_id,
+                  Number(item.type_id),
+                  values.discount_id
+                );
+  
+              const newItem = { ...item };
+              newItem.individual_discount = individualDiscount;
+              newItem.discount_id = discountId;
+  
+              const selectedType = tariffTableProps?.dataSource?.find(
+                (type: any) =>
+                  type.branch_id === values?.destination_id &&
+                  type.product_type_id === Number(item.type_id)
+              );
+  
+              if (selectedType && !item.is_price_editable) {
+                const discountToApply = individualDiscount || 0;
+                newItem.price = Number(selectedType.tariff) - discountToApply;
+  
+                if (newItem.weight) {
+                  newItem.sum = calculateSum(newItem.weight, newItem.price);
+                }
+              }
+  
+              return newItem;
+            }
+            return item;
+          })
+        );
+  
+        setServices(updatedServices);
+      }
+    };
+  
+    applyInitialDiscounts();
+  }, [record, values?.destination_id, values?.discount_id, tariffs.length]);
+
+  useEffect(() => {
     const updateServicesWithTariffs = async () => {
       if (values?.destination_id && services.length > 0) {
         const branchId = Number(values.destination_id);
@@ -1109,6 +1154,7 @@ export const GoodsEdit = () => {
                   if (value) {
                     formProps.form?.setFieldsValue({
                       cash_back_target: null,
+                      discount_id: value,
                     });
                   } else {
                     formProps.form?.setFieldsValue({

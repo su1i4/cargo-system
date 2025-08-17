@@ -34,6 +34,7 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
   refetch,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { mutate: updateManyGoods } = useUpdateMany({
     resource: "goods-processing",
@@ -41,8 +42,12 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
       onSuccess: () => {
         refetch();
         setIsModalOpen(false);
+        setIsSubmitting(false);
         message.success("Частичная оплата создана успешно");
       },
+      onError: () => {
+        setIsSubmitting(false);
+      }
     },
   });
 
@@ -90,13 +95,28 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
       0
     ) || 0;
 
+  // Получаем сумму уже оплаченную
+  const paidSum = Number(record?.paid_sum || 0);
+  
+  // Проверяем, полностью ли оплачен товар
+  const isFullyPaid = paidSum >= totalProductAmount;
+  
+  // Оставшаяся сумма для оплаты
+  const remainingAmount = Math.max(0, totalProductAmount - paidSum);
+
   useEffect(() => {
     const currency = currencyData?.data?.find(
       (c: any) => c.name === values?.type_currency
     );
     const rate = getHistoricalRate(currency, record?.created_at);
-    form.setFieldValue("amount", Number(totalProductAmount * rate).toFixed(2));
-  }, [values?.type_currency, record?.created_at]);
+    
+    // Устанавливаем оставшуюся сумму вместо полной
+    const amountToSet = remainingAmount > 0 
+      ? Number(remainingAmount * rate).toFixed(2)
+      : "0";
+    
+    form.setFieldValue("amount", amountToSet);
+  }, [values?.type_currency, record?.created_at, remainingAmount]);
 
   useEffect(() => {
     if (form && record) {
@@ -104,12 +124,17 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
         (c: any) => c.name === values?.type_currency
       );
       const rate = getHistoricalRate(currency, record?.created_at);
+      
+      const amountToSet = remainingAmount > 0 
+        ? Number(remainingAmount * rate).toFixed(2)
+        : "0";
+
       const defaults: any = {
         type: "income",
         date: dayjs(),
         type_currency: "Сом",
         method_payment: "Оплата наличными",
-        amount: Number(totalProductAmount * rate).toFixed(2),
+        amount: amountToSet,
       };
 
       if (
@@ -122,12 +147,29 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
 
       form.setFieldsValue(defaults);
     }
-  }, [form, record, bankSelectProps.options, totalProductAmount]);
+  }, [form, record, bankSelectProps.options, remainingAmount]);
 
   const handleFormSubmit = async (values: any) => {
+    if (isSubmitting || formLoading) {
+      return; // Предотвращаем повторную отправку
+    }
+
     if (!values.type_currency || !values.method_payment || !values.amount) {
       return message.error("Пожалуйста, заполните все обязательные поля");
     }
+
+    const paymentAmount = Number(values.amount);
+    
+    // Проверяем, не превышает ли сумма оплаты оставшуюся сумму
+    if (paymentAmount > remainingAmount) {
+      return message.error(`Сумма оплаты не может превышать оставшуюся сумму: ${remainingAmount.toFixed(2)}`);
+    }
+
+    if (paymentAmount <= 0) {
+      return message.error("Сумма оплаты должна быть больше 0");
+    }
+
+    setIsSubmitting(true);
 
     const payload = {
       ...values,
@@ -135,21 +177,46 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
       type_operation: "Контрагент частично",
       counterparty_id: record?.sender?.id,
       good_id: record?.id,
-      paid_sum: values.amount,
+      paid_sum: paymentAmount,
       date: dayjs(),
     };
 
     formProps?.onFinish?.(payload);
   };
 
+  // Определяем, заблокирована ли кнопка
+  const isButtonDisabled = isFullyPaid || isSubmitting || formLoading;
+
   return (
     <Dropdown
       trigger={["click"]}
       open={isModalOpen}
-      onOpenChange={setIsModalOpen}
+      onOpenChange={(open) => {
+        // Не позволяем открыть dropdown если идет процесс оплаты или товар полностью оплачен
+        if (!isButtonDisabled) {
+          setIsModalOpen(open);
+        }
+      }}
       overlay={
         <Card size="small" style={{ width: 480 }}>
           <Form {...formProps} layout="vertical" onFinish={handleFormSubmit}>
+            {/* Информация о платеже */}
+            <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+              <Col span={24}>
+                <div style={{ 
+                  padding: "8px 12px", 
+                  backgroundColor: "#f6ffed", 
+                  border: "1px solid #b7eb8f",
+                  borderRadius: "6px",
+                  fontSize: "12px"
+                }}>
+                  <div>Общая сумма: <strong>{totalProductAmount.toFixed(2)}</strong></div>
+                  <div>Оплачено: <strong>{paidSum.toFixed(2)}</strong></div>
+                  <div>К доплате: <strong>{remainingAmount.toFixed(2)}</strong></div>
+                </div>
+              </Col>
+            </Row>
+
             <Row gutter={[16, 0]}>
               <Col span={12}>
                 <Form.Item
@@ -195,9 +262,28 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
                 <Form.Item
                   label="Сумма"
                   name="amount"
-                  rules={[{ required: true, message: "Укажите сумму" }]}
+                  rules={[
+                    { required: true, message: "Укажите сумму" },
+                    {
+                      validator: (_, value) => {
+                        const amount = Number(value);
+                        if (amount <= 0) {
+                          return Promise.reject(new Error('Сумма должна быть больше 0'));
+                        }
+                        if (amount > remainingAmount) {
+                          return Promise.reject(new Error(`Сумма не может превышать ${remainingAmount.toFixed(2)}`));
+                        }
+                        return Promise.resolve();
+                      }
+                    }
+                  ]}
                 >
-                  <Input type="number" min={0} />
+                  <Input 
+                    type="number" 
+                    min={0} 
+                    max={remainingAmount}
+                    step="0.01"
+                  />
                 </Form.Item>
               </Col>
 
@@ -213,16 +299,17 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
                     onClick={() => {
                       setIsModalOpen(false);
                     }}
-                    disabled={formLoading}
+                    disabled={isSubmitting || formLoading}
                   >
                     Закрыть
                   </Button>
                   <Button
                     type="primary"
                     htmlType="submit"
-                    loading={formLoading}
+                    loading={isSubmitting || formLoading}
+                    disabled={remainingAmount <= 0}
                   >
-                    {formLoading ? "Создание..." : "Создать частичную оплату"}
+                    {isSubmitting || formLoading ? "Создание..." : "Создать частичную оплату"}
                   </Button>
                 </div>
               </Col>
@@ -233,9 +320,14 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     >
       <Button
         type="default"
-        style={{ backgroundColor: "#f0f8ff", borderColor: "#1890ff" }}
+        style={{ 
+          backgroundColor: isFullyPaid ? "#f5f5f5" : "#f0f8ff", 
+          borderColor: isFullyPaid ? "#d9d9d9" : "#1890ff",
+          color: isFullyPaid ? "#00000040" : undefined
+        }}
+        disabled={isButtonDisabled}
       >
-        💳 Частичная оплата
+        💳 {isFullyPaid ? "Полностью оплачено" : "Частичная оплата"}
       </Button>
     </Dropdown>
   );
