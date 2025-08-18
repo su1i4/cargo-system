@@ -57,6 +57,10 @@ export const StockReport = () => {
   const [to, setTo] = useState(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
   const [downloadLoading, setDownloadLoading] = useState(false);
 
+  // Добавляем состояние для контроля выполнения запроса
+  const [shouldFetch, setShouldFetch] = useState(true); // Первоначальная загрузка
+  const [queryParams, setQueryParams] = useState<any>({});
+
   // Стили для инпутов дат
   const inputStyle: React.CSSProperties = {
     padding: "4px 8px",
@@ -95,9 +99,32 @@ export const StockReport = () => {
     url: `${API_URL}/goods-processing`,
     method: "get",
     config: {
-      query: buildQueryParams(),
+      query: queryParams,
+    },
+    queryOptions: {
+      enabled: shouldFetch, // Запрос выполняется только когда shouldFetch = true
     },
   });
+
+  // Инициализация первоначального запроса
+  useEffect(() => {
+    const initialParams = buildQueryParams();
+    setQueryParams(initialParams);
+  }, []); // Выполняется только при монтировании компонента
+
+  // Сбрасываем shouldFetch после выполнения запроса
+  useEffect(() => {
+    if (shouldFetch && !isLoading) {
+      setShouldFetch(false);
+    }
+  }, [shouldFetch, isLoading]);
+
+  // Функция для применения фильтров
+  const handleApplyFilters = () => {
+    const params = buildQueryParams();
+    setQueryParams(params);
+    setShouldFetch(true);
+  };
 
   const [sorterVisible, setSorterVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -235,11 +262,6 @@ export const StockReport = () => {
     }
   };
 
-  // Обновляем данные при изменении дат
-  useEffect(() => {
-    refetch();
-  }, [from, to, refetch]);
-
   const filterContent = (
     <Card style={{ width: 300, padding: "0px !important" }}>
       <Select
@@ -252,16 +274,20 @@ export const StockReport = () => {
         allowClear
         mode="multiple"
         onChange={(value) => {
-          setFilters(
-            [
-              {
-                $or: value.map((item: any) => ({
-                  destination_id: { $eq: item },
-                })),
-              },
-            ],
-            "replace"
-          );
+          if (!value || value.length === 0) {
+            setFilters([], "replace");
+          } else {
+            setFilters(
+              [
+                {
+                  $or: value.map((item: any) => ({
+                    destination_id: { $eq: item },
+                  })),
+                },
+              ],
+              "replace"
+            );
+          }
         }}
         style={{ width: "100%", marginBottom: 20 }}
       />
@@ -435,13 +461,13 @@ export const StockReport = () => {
           value={search}
           onChange={(e) => {
             const value = e.target.value;
+            setSearch(value);
+            
             if (!value) {
-              setFilters([{ trackCode: { $contL: "" } }], "replace");
-              setSearch("");
+              setFilters([], "replace");
               return;
             }
 
-            setSearch(value);
             setFilters(
               [
                 {
@@ -459,12 +485,16 @@ export const StockReport = () => {
         />
         <Select
           {...branchSelectProps}
-          onChange={(value) =>
-            setFilters(
-              [{ "employee.under_branch_id": { $eq: value } }],
-              "replace"
-            )
-          }
+          onChange={(value) => {
+            if (value) {
+              setFilters(
+                [{ "employee.under_branch_id": { $eq: value } }],
+                "replace"
+              );
+            } else {
+              setFilters([], "replace");
+            }
+          }}
           style={{ width: "300px", minWidth: "300px" }}
         />
         <Button
@@ -539,6 +569,9 @@ export const StockReport = () => {
             />
           </div>
         </div>
+        <Button type="primary" onClick={handleApplyFilters} loading={isLoading}>
+          Применить
+        </Button>
       </Flex>
       <Table
         dataSource={dataSource}

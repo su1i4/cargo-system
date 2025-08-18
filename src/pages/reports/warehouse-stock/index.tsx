@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useApiUrl, useCustom } from "@refinedev/core";
 import { List, useSelect } from "@refinedev/antd";
 import { Table, Button, Space, message, Select } from "antd";
-import { FileExcelOutlined, FileOutlined } from "@ant-design/icons";
+import { FileExcelOutlined, FileOutlined, SearchOutlined } from "@ant-design/icons";
 
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
@@ -24,6 +24,8 @@ export const WarehouseStockReport = () => {
   const apiUrl = useApiUrl();
 
   const [branchIds, setBranchIds] = useState<number[]>([]);
+  const [shouldFetch, setShouldFetch] = useState(true); // Первоначальная загрузка
+  const [currentUrl, setCurrentUrl] = useState("");
 
   // Формируем URL с параметрами branch_ids
   const buildUrl = () => {
@@ -36,10 +38,18 @@ export const WarehouseStockReport = () => {
   };
 
   const { data, isLoading, refetch } = useCustom<WarehouseReportItem[]>({
-    url: buildUrl(),
+    url: currentUrl,
     method: "get",
-    queryOptions: {},
+    queryOptions: {
+      enabled: shouldFetch && currentUrl !== "", // Запрос выполняется только при shouldFetch = true и наличии URL
+    },
   });
+
+  // Инициализация первоначального запроса
+  useEffect(() => {
+    const initialUrl = buildUrl();
+    setCurrentUrl(initialUrl);
+  }, []); // Выполняется только при монтировании компонента
 
   useEffect(() => {
     if (data?.data) {
@@ -47,9 +57,19 @@ export const WarehouseStockReport = () => {
     }
   }, [data]);
 
+  // Сбрасываем shouldFetch после выполнения запроса
   useEffect(() => {
-    refetch();
-  }, [branchIds]);
+    if (shouldFetch && !isLoading) {
+      setShouldFetch(false);
+    }
+  }, [shouldFetch, isLoading]);
+
+  // Функция для применения фильтров и выполнения запроса
+  const handleApplyFilters = () => {
+    const url = buildUrl();
+    setCurrentUrl(url);
+    setShouldFetch(true);
+  };
 
   // Функция для скачивания CSV
   const downloadCSV = () => {
@@ -134,6 +154,7 @@ export const WarehouseStockReport = () => {
 
       // Настройка ширины колонок
       const columnWidths = [
+        { wch: 5 },  // №
         { wch: 50 }, // Наименование
         { wch: 15 }, // Количество
         { wch: 15 }, // Вес
@@ -183,6 +204,14 @@ export const WarehouseStockReport = () => {
               }}
               allowClear
             />
+            <Button
+              type="primary"
+              icon={<SearchOutlined />}
+              onClick={handleApplyFilters}
+              loading={isLoading}
+            >
+              Применить
+            </Button>
             <Button
               icon={<FileExcelOutlined />}
               type="primary"

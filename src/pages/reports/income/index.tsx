@@ -70,7 +70,7 @@ export const IncomeReport = () => {
   const [downloadLoading, setDownloadLoading] = useState(false);
 
   // Добавляем состояние для контроля выполнения запроса
-  const [shouldFetch, setShouldFetch] = useState(false);
+  const [shouldFetch, setShouldFetch] = useState(true); // Первоначальная загрузка
   const [queryParams, setQueryParams] = useState<any>({});
 
   // Стили для инпутов дат
@@ -122,6 +122,12 @@ export const IncomeReport = () => {
       enabled: shouldFetch, // Запрос выполняется только когда shouldFetch = true
     },
   });
+
+  // Инициализация первоначального запроса
+  useEffect(() => {
+    const initialParams = buildQueryParams();
+    setQueryParams(initialParams);
+  }, []); // Выполняется только при монтировании компонента
 
   const [sorterVisible, setSorterVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -661,7 +667,7 @@ export const IncomeReport = () => {
           </div>
         </Col>
         <Col>
-          <Button type="primary" onClick={handleApplyFilters}>
+          <Button type="primary" onClick={handleApplyFilters} loading={isLoading}>
             Применить
           </Button>
         </Col>

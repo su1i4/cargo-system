@@ -94,7 +94,14 @@ export const IssueReport = () => {
     config: {
       query: buildQueryParams(),
     },
+    queryOptions: {
+      enabled: false, // Prevent automatic query on mount
+    },
   });
+
+  const handleApply = () => {
+    refetch();
+  };
 
   const [sorterVisible, setSorterVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -117,14 +124,14 @@ export const IssueReport = () => {
 
   const prepareExportData = () => {
     const dataSource = data?.data?.data || [];
-  
+
     return dataSource.map((record: any, index: number) => ({
       "№": index + 1,
       "Дата получения": record.created_at
         ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
         : "",
       "№ накладной": record.invoice_number || "",
-      "Пункт приема": record.employee?.branch?.name 
+      "Пункт приема": record.employee?.branch?.name
         ? `${record.employee.branch.name}, ${record.employee.under_branch?.address || ""}`
         : "",
       "Код отправителя": record.sender
@@ -140,8 +147,8 @@ export const IssueReport = () => {
       "Вес": record.totalServiceWeight
         ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5) + " кг"
         : "",
-      "Номер мешков": record.services?.map((item: any) => item.bag_number_numeric).join(', ') || "",
-      "Кол-во мешков": record.services?.length 
+      "Номер мешков": record.services?.map((item: any) => item.bag_number_numeric).join(", ") || "",
+      "Кол-во мешков": record.services?.length
         ? record.services.length + " шт"
         : "0 шт",
       "Сумма": `${
@@ -155,7 +162,7 @@ export const IssueReport = () => {
         }
         return "Не оплачено";
       })(),
-      "Сотрудник": record.employee 
+      "Сотрудник": record.employee
         ? `${record.employee.firstName}-${record.employee.lastName}`
         : "",
       "Комментарий": record.comments || "",
@@ -196,7 +203,6 @@ export const IssueReport = () => {
           headers
             .map((header) => {
               const value = row[header];
-              // Экранируем запятые в значениях
               return typeof value === "string" && value.includes(",")
                 ? `"${value}"`
                 : value;
@@ -225,14 +231,10 @@ export const IssueReport = () => {
     }
   };
 
-  useEffect(() => {
-    refetch();
-  }, [from, to, refetch]);
-
   const filterContent = (
     <Card style={{ width: 300, padding: "0px !important" }}>
       <Select
-        title="Выберите  пункт назначения"
+        title="Выберите пункт назначения"
         placeholder="Выберите пункт назначения"
         options={branch?.data?.map((branch: any) => ({
           label: branch.name,
@@ -525,6 +527,9 @@ export const IssueReport = () => {
             />
           </div>
         </div>
+        <Button type="primary" onClick={handleApply}>
+          Применить
+        </Button>
       </Flex>
       <Table
         dataSource={dataSource}
@@ -592,7 +597,7 @@ export const IssueReport = () => {
         <Table.Column
           dataIndex="services"
           title="Номер мешков"
-          render={(value) => value?.map((item: any) => item.bag_number_numeric).join(', ')}
+          render={(value) => value?.map((item: any) => item.bag_number_numeric).join(", ")}
         />
         <Table.Column
           dataIndex="services"
