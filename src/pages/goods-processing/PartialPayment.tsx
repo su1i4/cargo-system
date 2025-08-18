@@ -89,17 +89,14 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     optionLabel: "name",
   });
 
-  // Функция для конвертации суммы в базовую валюту (Сом)
   const convertToBaseCurrency = (amount: number, currencyName: string, createdAt: string): number => {
     const currency = currencyData?.data?.find((c: any) => c.name === currencyName);
     const rate = getHistoricalRate(currency, createdAt);
     
-    // Если валюта "Сом" или курс равен 1, возвращаем как есть
     if (currencyName === "Сом" || rate === 1) {
       return amount;
     }
     
-    // Конвертируем в базовую валюту (делим на курс)
     return amount / rate;
   };
 
@@ -109,37 +106,33 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
       0
     ) || 0;
 
-  // Получаем сумму уже оплаченную (может быть в разных валютах)
   const paidSum = Number(record?.paid_sum || 0);
   
-  // Конвертируем обе суммы в базовую валюту для корректного сравнения
   const totalProductAmountInBaseCurrency = convertToBaseCurrency(
     totalProductAmount, 
-    record?.currency || "Сом", // валюта товара
+    record?.currency || "Сом",
     record?.created_at
   );
   
   const paidSumInBaseCurrency = convertToBaseCurrency(
     paidSum,
-    record?.payment_currency || "Сом", // валюта оплаты (если есть поле)
+    record?.payment_currency || "Сом",
     record?.created_at
   );
   
-  // Проверяем, полностью ли оплачен товар (сравниваем в базовой валюте)
   const isFullyPaid = paidSumInBaseCurrency >= totalProductAmountInBaseCurrency;
   
-  // Оставшаяся сумма для оплаты (в базовой валюте)
   const remainingAmountInBaseCurrency = Math.max(0, totalProductAmountInBaseCurrency - paidSumInBaseCurrency);
   
-  // Оставшаяся сумма в валюте формы
   const getRemainingAmountInFormCurrency = (): number => {
     const currency = currencyData?.data?.find(
       (c: any) => c.name === values?.type_currency
     );
     const rate = getHistoricalRate(currency, record?.created_at);
-    
-    return remainingAmountInBaseCurrency * rate;
+  
+    return Math.ceil(remainingAmountInBaseCurrency * rate);
   };
+  
 
   const remainingAmount = getRemainingAmountInFormCurrency();
   
@@ -160,7 +153,6 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     );
     const rate = getHistoricalRate(currency, record?.created_at);
     
-    // Устанавливаем оставшуюся сумму в выбранной валюте
     const amountToSet = remainingAmountInBaseCurrency > 0 
       ? Number(remainingAmountInBaseCurrency * rate).toFixed(2)
       : "0";
@@ -201,7 +193,7 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
 
   const handleFormSubmit = async (values: any) => {
     if (isSubmitting || formLoading) {
-      return; // Предотвращаем повторную отправку
+      return;
     }
 
     if (!values.type_currency || !values.method_payment || !values.amount) {
@@ -211,7 +203,6 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     const paymentAmount = Number(values.amount);
     const currentRemainingAmount = getRemainingAmountInFormCurrency();
     
-    // Проверяем, не превышает ли сумма оплаты оставшуюся сумму
     if (paymentAmount > currentRemainingAmount) {
       return message.error(`Сумма оплаты не может превышать оставшуюся сумму: ${currentRemainingAmount.toFixed(2)} ${values.type_currency}`);
     }
@@ -235,7 +226,6 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     formProps?.onFinish?.(payload);
   };
 
-  // Определяем, заблокирована ли кнопка
   const isButtonDisabled = isFullyPaid || isSubmitting || formLoading;
 
   return (
@@ -243,31 +233,13 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
       trigger={["click"]}
       open={isModalOpen}
       onOpenChange={(open) => {
-        // Не позволяем открыть dropdown если идет процесс оплаты или товар полностью оплачен
-        if (!isButtonDisabled) {
+        // if (!isButtonDisabled) {
           setIsModalOpen(open);
-        }
+        // }
       }}
       overlay={
         <Card size="small" style={{ width: 480 }}>
           <Form {...formProps} layout="vertical" onFinish={handleFormSubmit}>
-            {/* Информация о платеже */}
-            <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
-              <Col span={24}>
-                <div style={{ 
-                  padding: "8px 12px", 
-                  backgroundColor: "#f6ffed", 
-                  border: "1px solid #b7eb8f",
-                  borderRadius: "6px",
-                  fontSize: "12px"
-                }}>
-                  <div>Общая сумма: <strong>{totalProductAmount.toFixed(2)} {record?.currency || "Сом"}</strong></div>
-                  <div>Оплачено: <strong>{paidSum.toFixed(2)} {record?.payment_currency || "Сом"}</strong></div>
-                  <div>К доплате: <strong>{remainingAmount.toFixed(2)} {values?.type_currency || "Сом"}</strong></div>
-                </div>
-              </Col>
-            </Row>
-
             <Row gutter={[16, 0]}>
               <Col span={12}>
                 <Form.Item
@@ -319,13 +291,15 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
                       validator: (_, value) => {
                         const amount = Number(value);
                         const currentRemainingAmount = getRemainingAmountInFormCurrency();
+
+                        console.log(amount, currentRemainingAmount);
                         
                         if (amount <= 0) {
                           return Promise.reject(new Error('Сумма должна быть больше 0'));
                         }
-                        if (amount > currentRemainingAmount) {
-                          return Promise.reject(new Error(`Сумма не может превышать ${currentRemainingAmount.toFixed(2)} ${values?.type_currency || 'Сом'}`));
-                        }
+                        // if (amount > record?.amount) {
+                        //   return Promise.reject(new Error(`Сумма не может превышать ${record?.amount} ${values?.type_currency || 'Сом'}`));
+                        // }
                         return Promise.resolve();
                       }
                     }
@@ -373,12 +347,12 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     >
       <Button
         type="default"
-        style={{ 
-          backgroundColor: isFullyPaid ? "#f5f5f5" : "#f0f8ff", 
-          borderColor: isFullyPaid ? "#d9d9d9" : "#1890ff",
-          color: isFullyPaid ? "#00000040" : undefined
-        }}
-        disabled={isButtonDisabled}
+        // style={{ 
+        //   backgroundColor: isFullyPaid ? "#f5f5f5" : "#f0f8ff", 
+        //   borderColor: isFullyPaid ? "#d9d9d9" : "#1890ff",
+        //   color: isFullyPaid ? "#00000040" : undefined
+        // }}
+        // disabled={isButtonDisabled}
       >
         💳 {record?.products?.length > 0 ? isFullyPaid ? "Оплачено" : "Оплатить" : "Отсутствуют товары"}
       </Button>
