@@ -69,6 +69,10 @@ export const IncomeReport = () => {
   const [to, setTo] = useState(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
   const [downloadLoading, setDownloadLoading] = useState(false);
 
+  // Добавляем состояние для контроля выполнения запроса
+  const [shouldFetch, setShouldFetch] = useState(false);
+  const [queryParams, setQueryParams] = useState<any>({});
+
   // Стили для инпутов дат
   const inputStyle: React.CSSProperties = {
     padding: "4px 8px",
@@ -107,11 +111,15 @@ export const IncomeReport = () => {
     };
   };
 
+  // Изменяем useCustom - теперь он не выполняется автоматически
   const { data, isLoading, refetch } = useCustom<any>({
     url: `${API_URL}/goods-processing`,
     method: "get",
     config: {
-      query: buildQueryParams(),
+      query: queryParams,
+    },
+    queryOptions: {
+      enabled: shouldFetch, // Запрос выполняется только когда shouldFetch = true
     },
   });
 
@@ -122,6 +130,20 @@ export const IncomeReport = () => {
     url: `${API_URL}/branch`,
     method: "get",
   });
+
+  // Функция для применения фильтров
+  const handleApplyFilters = () => {
+    const params = buildQueryParams();
+    setQueryParams(params);
+    setShouldFetch(true);
+  };
+
+  // Сбрасываем shouldFetch после выполнения запроса
+  useEffect(() => {
+    if (shouldFetch && !isLoading) {
+      setShouldFetch(false);
+    }
+  }, [shouldFetch, isLoading]);
 
   // Функция для подготовки данных для экспорта
   const prepareExportData = () => {
@@ -294,19 +316,6 @@ export const IncomeReport = () => {
       console.error("CSV download error:", error);
     }
   };
-
-  // Обновляем данные при изменении дат и фильтров
-  useEffect(() => {
-    refetch();
-  }, [
-    from,
-    to,
-    destinationFilter,
-    paymentFilter,
-    statusFilter,
-    searchFilter,
-    refetch,
-  ]);
 
   const filterContent = (
     <Card style={{ width: 300, padding: "0px !important" }}>
@@ -545,13 +554,13 @@ export const IncomeReport = () => {
             value={search}
             onChange={(e) => {
               const value = e.target.value;
+              setSearch(value);
+              
               if (!value) {
                 setSearchFilter([]);
-                setSearch("");
                 return;
               }
 
-              setSearch(value);
               setSearchFilter([
                 {
                   $or: [
@@ -650,6 +659,11 @@ export const IncomeReport = () => {
               />
             </div>
           </div>
+        </Col>
+        <Col>
+          <Button type="primary" onClick={handleApplyFilters}>
+            Применить
+          </Button>
         </Col>
       </Row>
       <Table

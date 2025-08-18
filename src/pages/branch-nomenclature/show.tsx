@@ -33,7 +33,7 @@ export const BranchNomenclatureShow = () => {
                 {record.product_types.map((product: any, index: number) => (
                   <Tag key={index} color="blue" style={{ marginBottom: 8 }}>
                     {typeof product === "object"
-                      ? `${product.name} (${product.tariff || 0} за кг)`
+                      ? `${product.name}`
                       : `ID: ${product}`}
                   </Tag>
                 ))}
