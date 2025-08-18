@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useForm, useSelect } from "@refinedev/antd";
-import { useUpdateMany, useOne, useCustom } from "@refinedev/core";
+import { useUpdateMany, useCustom } from "@refinedev/core";
 import {
   Button,
   Card,
@@ -89,20 +89,70 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     optionLabel: "name",
   });
 
+  // Функция для конвертации суммы в базовую валюту (Сом)
+  const convertToBaseCurrency = (amount: number, currencyName: string, createdAt: string): number => {
+    const currency = currencyData?.data?.find((c: any) => c.name === currencyName);
+    const rate = getHistoricalRate(currency, createdAt);
+    
+    // Если валюта "Сом" или курс равен 1, возвращаем как есть
+    if (currencyName === "Сом" || rate === 1) {
+      return amount;
+    }
+    
+    // Конвертируем в базовую валюту (делим на курс)
+    return amount / rate;
+  };
+
   const totalProductAmount =
     record?.products?.reduce(
       (acc: number, p: any) => acc + Number(p.sum || 0),
       0
     ) || 0;
 
-  // Получаем сумму уже оплаченную
+  // Получаем сумму уже оплаченную (может быть в разных валютах)
   const paidSum = Number(record?.paid_sum || 0);
   
-  // Проверяем, полностью ли оплачен товар
-  const isFullyPaid = paidSum >= totalProductAmount;
+  // Конвертируем обе суммы в базовую валюту для корректного сравнения
+  const totalProductAmountInBaseCurrency = convertToBaseCurrency(
+    totalProductAmount, 
+    record?.currency || "Сом", // валюта товара
+    record?.created_at
+  );
   
-  // Оставшаяся сумма для оплаты
-  const remainingAmount = Math.max(0, totalProductAmount - paidSum);
+  const paidSumInBaseCurrency = convertToBaseCurrency(
+    paidSum,
+    record?.payment_currency || "Сом", // валюта оплаты (если есть поле)
+    record?.created_at
+  );
+  
+  // Проверяем, полностью ли оплачен товар (сравниваем в базовой валюте)
+  const isFullyPaid = paidSumInBaseCurrency >= totalProductAmountInBaseCurrency;
+  
+  // Оставшаяся сумма для оплаты (в базовой валюте)
+  const remainingAmountInBaseCurrency = Math.max(0, totalProductAmountInBaseCurrency - paidSumInBaseCurrency);
+  
+  // Оставшаяся сумма в валюте формы
+  const getRemainingAmountInFormCurrency = (): number => {
+    const currency = currencyData?.data?.find(
+      (c: any) => c.name === values?.type_currency
+    );
+    const rate = getHistoricalRate(currency, record?.created_at);
+    
+    return remainingAmountInBaseCurrency * rate;
+  };
+
+  const remainingAmount = getRemainingAmountInFormCurrency();
+  
+  console.log({
+    paidSum, 
+    totalProductAmount, 
+    paidSumInBaseCurrency,
+    totalProductAmountInBaseCurrency,
+    remainingAmountInBaseCurrency,
+    remainingAmount,
+    isFullyPaid,
+    formCurrency: values?.type_currency
+  });
 
   useEffect(() => {
     const currency = currencyData?.data?.find(
@@ -110,13 +160,13 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     );
     const rate = getHistoricalRate(currency, record?.created_at);
     
-    // Устанавливаем оставшуюся сумму вместо полной
-    const amountToSet = remainingAmount > 0 
-      ? Number(remainingAmount * rate).toFixed(2)
+    // Устанавливаем оставшуюся сумму в выбранной валюте
+    const amountToSet = remainingAmountInBaseCurrency > 0 
+      ? Number(remainingAmountInBaseCurrency * rate).toFixed(2)
       : "0";
     
     form.setFieldValue("amount", amountToSet);
-  }, [values?.type_currency, record?.created_at, remainingAmount]);
+  }, [values?.type_currency, record?.created_at, remainingAmountInBaseCurrency]);
 
   useEffect(() => {
     if (form && record) {
@@ -125,8 +175,8 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
       );
       const rate = getHistoricalRate(currency, record?.created_at);
       
-      const amountToSet = remainingAmount > 0 
-        ? Number(remainingAmount * rate).toFixed(2)
+      const amountToSet = remainingAmountInBaseCurrency > 0 
+        ? Number(remainingAmountInBaseCurrency * rate).toFixed(2)
         : "0";
 
       const defaults: any = {
@@ -147,7 +197,7 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
 
       form.setFieldsValue(defaults);
     }
-  }, [form, record, bankSelectProps.options, remainingAmount]);
+  }, [form, record, bankSelectProps.options, remainingAmountInBaseCurrency]);
 
   const handleFormSubmit = async (values: any) => {
     if (isSubmitting || formLoading) {
@@ -159,10 +209,11 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     }
 
     const paymentAmount = Number(values.amount);
+    const currentRemainingAmount = getRemainingAmountInFormCurrency();
     
     // Проверяем, не превышает ли сумма оплаты оставшуюся сумму
-    if (paymentAmount > remainingAmount) {
-      return message.error(`Сумма оплаты не может превышать оставшуюся сумму: ${remainingAmount.toFixed(2)}`);
+    if (paymentAmount > currentRemainingAmount) {
+      return message.error(`Сумма оплаты не может превышать оставшуюся сумму: ${currentRemainingAmount.toFixed(2)} ${values.type_currency}`);
     }
 
     if (paymentAmount <= 0) {
@@ -210,9 +261,9 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
                   borderRadius: "6px",
                   fontSize: "12px"
                 }}>
-                  <div>Общая сумма: <strong>{totalProductAmount.toFixed(2)}</strong></div>
-                  <div>Оплачено: <strong>{paidSum.toFixed(2)}</strong></div>
-                  <div>К доплате: <strong>{remainingAmount.toFixed(2)}</strong></div>
+                  <div>Общая сумма: <strong>{totalProductAmount.toFixed(2)} {record?.currency || "Сом"}</strong></div>
+                  <div>Оплачено: <strong>{paidSum.toFixed(2)} {record?.payment_currency || "Сом"}</strong></div>
+                  <div>К доплате: <strong>{remainingAmount.toFixed(2)} {values?.type_currency || "Сом"}</strong></div>
                 </div>
               </Col>
             </Row>
@@ -267,11 +318,13 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
                     {
                       validator: (_, value) => {
                         const amount = Number(value);
+                        const currentRemainingAmount = getRemainingAmountInFormCurrency();
+                        
                         if (amount <= 0) {
                           return Promise.reject(new Error('Сумма должна быть больше 0'));
                         }
-                        if (amount > remainingAmount) {
-                          return Promise.reject(new Error(`Сумма не может превышать ${remainingAmount.toFixed(2)}`));
+                        if (amount > currentRemainingAmount) {
+                          return Promise.reject(new Error(`Сумма не может превышать ${currentRemainingAmount.toFixed(2)} ${values?.type_currency || 'Сом'}`));
                         }
                         return Promise.resolve();
                       }
@@ -307,7 +360,7 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
                     type="primary"
                     htmlType="submit"
                     loading={isSubmitting || formLoading}
-                    disabled={remainingAmount <= 0}
+                    disabled={remainingAmountInBaseCurrency <= 0}
                   >
                     {isSubmitting || formLoading ? "Создание..." : "Создать частичную оплату"}
                   </Button>
@@ -327,7 +380,7 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
         }}
         disabled={isButtonDisabled}
       >
-        💳 {isFullyPaid ? "Полностью оплачено" : "Частичная оплата"}
+        💳 {record?.products?.length > 0 ? isFullyPaid ? "Оплачено" : "Оплатить" : "Отсутствуют товары"}
       </Button>
     </Dropdown>
   );
