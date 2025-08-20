@@ -113,6 +113,9 @@ export const GoodsEdit = () => {
 
   const { tableProps } = useTable({
     resource: "products",
+    pagination: {
+      pageSize: 100,
+    },
   });
 
   const { tableProps: tariffTableProps } = useTable({

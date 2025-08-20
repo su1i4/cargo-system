@@ -8,9 +8,34 @@ import { API_URL } from "../../App";
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
+const actionsTypes = {
+  insert: "Создание",
+  update: "Обновление",
+  remove: "Удаление",
+};
+
+const entitiesTypes = {
+  GoodsReception: "Спецификация",
+  ProductRelEntity: "Товар",
+  ServiceEntity: "Мешок",
+  TrackingStatusEntity: "Отслеживание",
+  Operation: "Операция",
+  BankEntity: "Банк",
+  Counterparty: "Контрагент",
+  CurrencyEntity: "Валюта",
+  CashBack: "Кэшбек",
+  Endpoint: "Эндпоинт",
+  DiscountEntity: "Скидка",
+};
+
 const columns = [
   { dataIndex: "id", title: "ID" },
-  { dataIndex: "entity", title: "Entity" },
+  {
+    dataIndex: "entity",
+    title: "Раздел",
+    render: (value: string) =>
+      entitiesTypes[value as keyof typeof entitiesTypes] || value,
+  },
   { dataIndex: "entityId", title: "Entity ID" },
   {
     dataIndex: "changes",
@@ -31,11 +56,16 @@ const columns = [
       ));
     },
   },
-  { dataIndex: "action", title: "Действие" },
+  {
+    dataIndex: "action",
+    title: "Действие",
+    render: (value: string) =>
+      actionsTypes[value as keyof typeof actionsTypes] || value,
+  },
   { dataIndex: "userId", title: "Пользователь" },
   {
     dataIndex: "createdAt",
-    title: "Дата создания",
+    title: "Дата",
     render: (value: string) => dayjs(value).utc().format("DD.MM.YYYY HH:mm"),
   },
 ];
@@ -52,16 +82,20 @@ export const Audit = () => {
 
   const getAudit = async () => {
     try {
-      const response = await fetch(`${API_URL}/audit?${new URLSearchParams(filters).toString()}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
-        },
-      });
+      const response = await fetch(
+        `${API_URL}/audit?${new URLSearchParams(filters).toString()}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem(
+              "cargo-system-token"
+            )}`,
+          },
+        }
+      );
       const data = await response.json();
       setData(data);
-
     } catch (error) {
       console.error(error);
     }
@@ -94,13 +128,15 @@ export const Audit = () => {
           <Select
             placeholder="Действие"
             value={filters.action || undefined}
-            onChange={(value) => setFilters({ ...filters, action: value ?? "" })}
+            onChange={(value) =>
+              setFilters({ ...filters, action: value ?? "" })
+            }
             style={{ width: 120 }}
             allowClear
           >
-            <Option value="insert">insert</Option>
-            <Option value="update">update</Option>
-            <Option value="remove">remove</Option>
+            <Option value={actionsTypes.insert}>{actionsTypes.insert}</Option>
+            <Option value={actionsTypes.update}>{actionsTypes.update}</Option>
+            <Option value={actionsTypes.remove}>{actionsTypes.remove}</Option>
           </Select>
         </Col>
         <Col>

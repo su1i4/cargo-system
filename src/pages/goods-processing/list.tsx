@@ -66,6 +66,7 @@ export const GoogsProcessingList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
+  const [selectedDateRange, setSelectedDateRange] = useState(null);
   // Функция для объединения всех фильтров
   useEffect(() => {
     const allFilters = [
@@ -102,14 +103,6 @@ export const GoogsProcessingList = () => {
       query: buildQueryParams(),
     },
   });
-
-  // useEffect(() => {
-  //   window.scrollTo({
-  //     top: 0,
-  //     left: 0,
-  //     behavior: "smooth",
-  //   });
-  // }, [currentPage]);
 
   const [sorterVisible, setSorterVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -241,12 +234,19 @@ export const GoogsProcessingList = () => {
       style={{ width: "280px" }}
       placeholder={["Начальная дата", "Конечная дата"]}
       showTime={{ format: "HH:mm" }}
-      onChange={(dates, dateStrings) => {
-        if (dates && dateStrings[0] && dateStrings[1]) {
+      format="DD.MM.YYYY HH:mm"
+      value={selectedDateRange}
+      onChange={(dates: any, dateStrings: any) => {
+        setSelectedDateRange(dates);
+        
+        if (dates && dates[0] && dates[1]) {
+          const startDate = dates[0].format('YYYY-MM-DD HH:mm:ss');
+          const endDate = dates[1].format('YYYY-MM-DD HH:mm:ss');
+          
           setDateFilter({
             created_at: {
-              $gte: dateStrings[0],
-              $lte: dateStrings[1],
+              $gte: startDate,
+              $lte: endDate,
             },
           });
         } else {
@@ -255,6 +255,7 @@ export const GoogsProcessingList = () => {
       }}
     />
   );
+  
 
   const sortContent = (
     <Card style={{ width: 200, padding: "0px !important" }}>
