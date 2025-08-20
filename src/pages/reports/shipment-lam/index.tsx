@@ -108,7 +108,7 @@ export const WarehouseStockGoodsReport = () => {
     let totalWeight = 0;
     dataSource.forEach((record: any, index: number) => {
       const isTagan = record.products?.some(
-        (item: any) => item.branch?.name === "Таганский рынок"
+        (item: any) => item.branch?.name.includes("Таганский рынок")
       );
 
       const canTagan = isTagan && showTagan;
@@ -137,7 +137,7 @@ export const WarehouseStockGoodsReport = () => {
           .toFixed(2)
           .toString()
           .replace(".", ","),
-        "Сумма за мешки - (Таганский рынок)": Number(
+        "Сумма за мешки без Таганского рынка": Number(
           record.avgProductPrice - (canTagan ? 400 : 0) || 0
         )
           .toFixed(2)
@@ -154,7 +154,7 @@ export const WarehouseStockGoodsReport = () => {
           .toFixed(2)
           .toString()
           .replace(".", ","),
-        "Долг - (Таганский рынок)": (
+        "Долг без Таганского рынка": (
           Number(record.amount || 0) -
           Number(record.paid_sum - (canTagan ? 400 : 0) || 0)
         )
@@ -791,7 +791,7 @@ export const WarehouseStockGoodsReport = () => {
           />
           <Table.Column
             dataIndex="avgProductPrice"
-            title="Сумма за мешки - (Таганский рынок)"
+            title="Сумма за мешки без Таганского рынка"
             render={(value, record) => {
               const isTagan = record.products?.some((item: any) =>
                 item.branch?.name.includes("Таганский рынок")
@@ -820,7 +820,7 @@ export const WarehouseStockGoodsReport = () => {
 
           <Table.Column
             dataIndex="id"
-            title="Долг - (Таганский рынок)"
+            title="Долг без Таганского рынка"
             render={(_, record) => {
               const isTagan = record.products?.some((item: any) =>
                 item.branch?.name.includes("Таганский рынок")
