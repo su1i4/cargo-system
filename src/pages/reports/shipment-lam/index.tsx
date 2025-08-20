@@ -66,7 +66,6 @@ export const WarehouseStockGoodsReport = () => {
   >("recipient.name");
   const [sorterVisible, setSorterVisible] = useState(false);
 
-  // Загрузка данных городов
   const { selectProps: branchSelectProps } = useSelect({
     resource: "branch",
     optionLabel: "name",
@@ -140,7 +139,9 @@ export const WarehouseStockGoodsReport = () => {
           .toFixed(2)
           .toString()
           .replace(".", ","),
-        "Долг без Таганского рынка": (Number(record.amount || 0) - Number(record.paid_sum || 0))
+        "Долг без Таганского рынка": (
+          Number(record.amount || 0) - Number(record.paid_sum || 0)
+        )
           .toFixed(2)
           .toString()
           .replace(".", ","),
@@ -162,7 +163,6 @@ export const WarehouseStockGoodsReport = () => {
           .replace(".", ",");
       }
 
-      // суммирование
       totalSum += Number(record.amount || 0);
       totalBagSum +=
         record.products?.reduce(
@@ -176,7 +176,6 @@ export const WarehouseStockGoodsReport = () => {
 
       exportData.push(mainRow);
 
-      // детализация по мешкам
       if (showBags && record.services && record.services.length > 0) {
         record.services.forEach((service: any) => {
           const serviceRow = {
@@ -292,13 +291,10 @@ export const WarehouseStockGoodsReport = () => {
         return;
       }
 
-      // Convert data to worksheet
       const worksheet = XLSX.utils.json_to_sheet(exportData);
 
-      // Получаем диапазон ячеек
       const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
 
-      // Автоматическая ширина колонок
       const colWidths: any[] = [];
       const headers = Object.keys(exportData[0] || {});
 
@@ -315,15 +311,12 @@ export const WarehouseStockGoodsReport = () => {
 
       worksheet["!cols"] = colWidths;
 
-      // Создаем стили для ячеек (базовая версия без расширенных стилей)
       try {
-        // Применяем базовое форматирование только если поддерживается
         for (let R = range.s.r; R <= range.e.r; ++R) {
           for (let C = range.s.c; C <= range.e.c; ++C) {
             const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
             if (!worksheet[cellAddress]) continue;
 
-            // Базовое форматирование текста
             if (typeof worksheet[cellAddress].v === "number") {
               worksheet[cellAddress].z = "#,##0.00";
             }
@@ -331,7 +324,6 @@ export const WarehouseStockGoodsReport = () => {
         }
       } catch (styleError) {}
 
-      // Create workbook and append worksheet
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
 
@@ -346,7 +338,6 @@ export const WarehouseStockGoodsReport = () => {
         "DD.MM.YYYY.HH-mm"
       )}).xlsx`;
 
-      // Write file to disk
       XLSX.writeFile(workbook, fileName);
 
       message.success("Файл XLSX успешно скачан");
@@ -790,19 +781,24 @@ export const WarehouseStockGoodsReport = () => {
               return value.toFixed(2).toString().replace(".", ",");
             }}
           />
-          <Table.Column
-            dataIndex="avgProductPrice"
-            title="Сумма за Таганский рынок"
-            render={(value, record) => {
-              const taganSum = record.products?.filter((item: any) =>
-                item.name.includes("Таганский рынок")
-              )?.reduce((acc: number, item: any) => acc + Number(item.sum), 0) || 0;
-              return taganSum
-                .toFixed(2)
-                .toString()
-                .replace(".", ",");
-            }}
-          />
+          {showTagan && (
+            <Table.Column
+              dataIndex="avgProductPrice"
+              title="Сумма за Таганский рынок"
+              render={(value, record) => {
+                const taganSum =
+                  record.products
+                    ?.filter((item: any) =>
+                      item.name.includes("Таганский рынок")
+                    )
+                    ?.reduce(
+                      (acc: number, item: any) => acc + Number(item.sum),
+                      0
+                    ) || 0;
+                return taganSum.toFixed(2).toString().replace(".", ",");
+              }}
+            />
+          )}
           <Table.Column dataIndex="paid_sum" title="Оплачено" />
 
           <Table.Column
@@ -818,22 +814,29 @@ export const WarehouseStockGoodsReport = () => {
             }}
           />
 
-          <Table.Column
-            dataIndex="id"
-            title="Долг с Таганским рынком"
-            render={(_, record) => {
-              const taganSum = record.products?.filter((item: any) =>
-                item.name.includes("Таганский рынок")
-              )?.reduce((acc: number, item: any) => acc + Number(item.sum), 0) || 0;
-              return (
-                Number(record?.amount) -
-                Number(record?.paid_sum - taganSum)
-              )
-                .toFixed(2)
-                .toString()
-                .replace(".", ",");
-            }}
-          />
+          {showTagan && (
+            <Table.Column
+              dataIndex="id"
+              title="Долг с Таганским рынком"
+              render={(_, record) => {
+                const taganSum =
+                  record.products
+                    ?.filter((item: any) =>
+                      item.name.includes("Таганский рынок")
+                    )
+                    ?.reduce(
+                      (acc: number, item: any) => acc + Number(item.sum),
+                      0
+                    ) || 0;
+                return (
+                  Number(record?.amount) - Number(record?.paid_sum - taganSum)
+                )
+                  .toFixed(2)
+                  .toString()
+                  .replace(".", ",");
+              }}
+            />
+          )}
         </Table>
       </Modal>
       <Table
