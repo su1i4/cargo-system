@@ -166,7 +166,7 @@ export const WarehouseStockGoodsReport = () => {
 
         (mainRow["Долг с Таганским рынком"] = (
           Number(record.amount || 0) -
-          (Number(record.paid_sum || 0) + Number(taganSum || 0))
+          (Number(record.paid_sum || 0))
         )
           .toFixed(2)
           .toString()
