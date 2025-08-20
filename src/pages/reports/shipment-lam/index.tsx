@@ -115,7 +115,8 @@ export const WarehouseStockGoodsReport = () => {
               item.name.includes("Таганский рынок") ||
               item.name === "Таганский рынок"
           )
-          ?.reduce((acc: number, item: any) => acc + (item.quantity * 400), 0) || 0;
+          ?.reduce((acc: number, item: any) => acc + item.quantity * 400, 0) ||
+        0;
 
       const mainRow: any = {
         "№": index + 1,
@@ -145,14 +146,17 @@ export const WarehouseStockGoodsReport = () => {
           .toFixed(2)
           .toString()
           .replace(".", ","),
-        "Долг без Таганского рынка": (
+        Статус: record.status || "",
+      };
+
+      if (!showTagan) {
+        mainRow["Долг"] = (
           Number(record.amount || 0) - Number(record.paid_sum || 0)
         )
           .toFixed(2)
           .toString()
-          .replace(".", ","),
-        Статус: record.status || "",
-      };
+          .replace(".", ",");
+      }
 
       if (showTagan) {
         mainRow["Сумма за Таганский рынок"] = Number(taganSum)
@@ -160,13 +164,20 @@ export const WarehouseStockGoodsReport = () => {
           .toString()
           .replace(".", ",");
 
-        mainRow["Долг с Таганским рынком"] = (
+        (mainRow["Долг с Таганским рынком"] = (
           Number(record.amount || 0) -
           (Number(record.paid_sum || 0) + Number(taganSum || 0))
         )
           .toFixed(2)
           .toString()
-          .replace(".", ",");
+          .replace(".", ",")),
+          (mainRow["Долг без Таганского рынка"] = (
+            Number(record.amount || 0) -
+            (Number(record.paid_sum || 0) + Number(taganSum || 0))
+          )
+            .toFixed(2)
+            .toString()
+            .replace(".", ","));
       }
 
       totalSum += Number(record.amount || 0);
@@ -786,8 +797,15 @@ export const WarehouseStockGoodsReport = () => {
             render={(value, record) => {
               const taganSum =
                 record.products
-                  ?.filter((item: any) => item.name.includes("Таганский рынок") || item.name === "Таганский рынок")
-                  ?.reduce((acc: number, item: any) => acc + (item.quantity * 400), 0) || 0;
+                  ?.filter(
+                    (item: any) =>
+                      item.name.includes("Таганский рынок") ||
+                      item.name === "Таганский рынок"
+                  )
+                  ?.reduce(
+                    (acc: number, item: any) => acc + item.quantity * 400,
+                    0
+                  ) || 0;
 
               return (value - (showTagan ? taganSum : 0))
                 .toFixed(2)
@@ -802,11 +820,15 @@ export const WarehouseStockGoodsReport = () => {
               render={(value, record) => {
                 const taganSum =
                   record.products
-                    ?.filter((item: any) =>
-                      item.name.includes("Таганский рынок") ||
-                      item.name === "Таганский рынок"
+                    ?.filter(
+                      (item: any) =>
+                        item.name.includes("Таганский рынок") ||
+                        item.name === "Таганский рынок"
                     )
-                    ?.reduce((acc: number, item: any) => acc + (item.quantity * 400), 0) || 0;
+                    ?.reduce(
+                      (acc: number, item: any) => acc + item.quantity * 400,
+                      0
+                    ) || 0;
                 return taganSum.toFixed(2).toString().replace(".", ",");
               }}
             />
@@ -815,7 +837,7 @@ export const WarehouseStockGoodsReport = () => {
 
           <Table.Column
             dataIndex="id"
-            title="Долг без Таганского рынка"
+            title="Долг с Таганским рынком"
             render={(_, record) => {
               return (
                 Number(record?.amount || 0) - Number(record?.paid_sum || 0)
@@ -829,15 +851,19 @@ export const WarehouseStockGoodsReport = () => {
           {showTagan && (
             <Table.Column
               dataIndex="id"
-              title="Долг с Таганским рынком"
+              title="Долг без Таганского рынка"
               render={(_, record) => {
                 const taganSum =
                   record.products
-                    ?.filter((item: any) =>
-                      item.name.includes("Таганский рынок") ||
-                      item.name === "Таганский рынок"
+                    ?.filter(
+                      (item: any) =>
+                        item.name.includes("Таганский рынок") ||
+                        item.name === "Таганский рынок"
                     )
-                    ?.reduce((acc: number, item: any) => acc + (item.quantity * 400), 0) || 0;
+                    ?.reduce(
+                      (acc: number, item: any) => acc + item.quantity * 400,
+                      0
+                    ) || 0;
 
                 return (
                   Number(record?.amount) -
