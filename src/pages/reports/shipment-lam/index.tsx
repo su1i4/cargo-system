@@ -117,15 +117,15 @@ export const WarehouseStockGoodsReport = () => {
             ?.map((item: any) => item.bag_number_numeric)
             .join(", ") || "",
         "Вес, кг": record.weight
-          ? String(record.weight).replace(".", ",").slice(0, 5)
+          ? Number(record.weight).toFixed(2).toString().replace(".", ",")
           : "",
         "Кол-во мешков": record.services?.length || 0,
-        Сумма: Number(record.amount || 0).toFixed(2),
-        "Сумма за мешки": Number(record.avgProductPrice || 0).toFixed(2),
-        Оплачено: record.paid_sum || 0,
+        Сумма: Number(record.amount || 0).toFixed(2).toString().replace(".", ","),
+        "Сумма за мешки": Number(record.avgProductPrice || 0).toFixed(2).toString().replace(".", ","),
+        Оплачено: Number(record.paid_sum || 0).toFixed(2).toString().replace(".", ","),
         Долг: (
           Number(record.amount || 0) - Number(record.paid_sum || 0)
-        ).toFixed(2),
+        ).toFixed(2).toString().replace(".", ","),
         Статус: record.status || "",
       };
 
@@ -151,7 +151,7 @@ export const WarehouseStockGoodsReport = () => {
             "Номер получателя": "",
             "Номера мешков": service.bag_number_numeric || "",
             "Вес, кг": service.weight
-              ? String(service.weight).replace(".", ",").slice(0, 5)
+              ? Number(service.weight).toFixed(2).toString().replace(".", ",")
               : "",
             "Кол-во мешков": 1,
             Сумма: service.sum || 0,
