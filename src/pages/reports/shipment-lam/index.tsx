@@ -140,7 +140,7 @@ export const WarehouseStockGoodsReport = () => {
           .toFixed(2)
           .toString()
           .replace(".", ","),
-        Долг: (Number(record.amount || 0) - Number(record.paid_sum || 0))
+        "Долг без Таганского рынка": (Number(record.amount || 0) - Number(record.paid_sum || 0))
           .toFixed(2)
           .toString()
           .replace(".", ","),
@@ -807,7 +807,7 @@ export const WarehouseStockGoodsReport = () => {
 
           <Table.Column
             dataIndex="id"
-            title="Долг"
+            title="Долг без Таганского рынка"
             render={(_, record) => {
               return (
                 Number(record?.amount || 0) - Number(record?.paid_sum || 0)
