@@ -110,8 +110,12 @@ export const WarehouseStockGoodsReport = () => {
     dataSource.forEach((record: any, index: number) => {
       const taganSum =
         record.products
-          ?.filter((item: any) => item.name.includes("Таганский рынок"))
-          ?.reduce((acc: number, item: any) => acc + 400, 0) || 0;
+          ?.filter(
+            (item: any) =>
+              item.name.includes("Таганский рынок") ||
+              item.name === "Таганский рынок"
+          )
+          ?.reduce((acc: number, item: any) => acc + (item.quantity * 400), 0) || 0;
 
       const mainRow: any = {
         "№": index + 1,
@@ -782,11 +786,13 @@ export const WarehouseStockGoodsReport = () => {
             render={(value, record) => {
               const taganSum =
                 record.products
-                  ?.filter((item: any) => item.name.includes("Таганский рынок"))
-                  ?.reduce((acc: number, item: any) => acc + 400, 0) || 0;
+                  ?.filter((item: any) => item.name.includes("Таганский рынок") || item.name === "Таганский рынок")
+                  ?.reduce((acc: number, item: any) => acc + (item.quantity * 400), 0) || 0;
 
-              return (value - (showTagan ? taganSum : 0)).toFixed(2).toString().replace(".", ",");
-              return value.toFixed(2).toString().replace(".", ",");
+              return (value - (showTagan ? taganSum : 0))
+                .toFixed(2)
+                .toString()
+                .replace(".", ",");
             }}
           />
           {showTagan && (
@@ -797,12 +803,10 @@ export const WarehouseStockGoodsReport = () => {
                 const taganSum =
                   record.products
                     ?.filter((item: any) =>
-                      item.name.includes("Таганский рынок")
+                      item.name.includes("Таганский рынок") ||
+                      item.name === "Таганский рынок"
                     )
-                    ?.reduce(
-                      (acc: number, item: any) => acc + 400,
-                      0
-                    ) || 0;
+                    ?.reduce((acc: number, item: any) => acc + (item.quantity * 400), 0) || 0;
                 return taganSum.toFixed(2).toString().replace(".", ",");
               }}
             />
@@ -830,12 +834,10 @@ export const WarehouseStockGoodsReport = () => {
                 const taganSum =
                   record.products
                     ?.filter((item: any) =>
-                      item.name.includes("Таганский рынок")
+                      item.name.includes("Таганский рынок") ||
+                      item.name === "Таганский рынок"
                     )
-                    ?.reduce(
-                      (acc: number, item: any) => acc + 400,
-                      0
-                    ) || 0;
+                    ?.reduce((acc: number, item: any) => acc + (item.quantity * 400), 0) || 0;
 
                 return (
                   Number(record?.amount) -
