@@ -137,11 +137,24 @@ export const WarehouseStockGoodsReport = () => {
           .toFixed(2)
           .toString()
           .replace(".", ","),
+        "Сумма за мешки - (Таганский рынок)": Number(
+          record.avgProductPrice - (canTagan ? 400 : 0) || 0
+        )
+          .toFixed(2)
+          .toString()
+          .replace(".", ","),
         Оплачено: Number(record.paid_sum || 0)
           .toFixed(2)
           .toString()
           .replace(".", ","),
         Долг: (
+          Number(record.amount || 0) -
+          Number(record.paid_sum - (canTagan ? 400 : 0) || 0)
+        )
+          .toFixed(2)
+          .toString()
+          .replace(".", ","),
+        "Долг - (Таганский рынок)": (
           Number(record.amount || 0) -
           Number(record.paid_sum - (canTagan ? 400 : 0) || 0)
         )
@@ -772,9 +785,16 @@ export const WarehouseStockGoodsReport = () => {
           <Table.Column
             dataIndex="avgProductPrice"
             title="Сумма за мешки"
+            render={(value) => {
+              return value.toFixed(2).toString().replace(".", ",");
+            }}
+          />
+          <Table.Column
+            dataIndex="avgProductPrice"
+            title="Сумма за мешки - (Таганский рынок)"
             render={(value, record) => {
-              const isTagan = record.products?.some(
-                (item: any) => item.branch?.name === "Таганский рынок"
+              const isTagan = record.products?.some((item: any) =>
+                item.branch?.name.includes("Таганский рынок")
               );
               const canTagan = isTagan && showTagan;
               return (value - (canTagan ? 400 : 0))
@@ -784,12 +804,26 @@ export const WarehouseStockGoodsReport = () => {
             }}
           />
           <Table.Column dataIndex="paid_sum" title="Оплачено" />
+
           <Table.Column
             dataIndex="id"
             title="Долг"
             render={(_, record) => {
-              const isTagan = record.products?.some(
-                (item: any) => item.branch?.name === "Таганский рынок"
+              return (
+                Number(record?.amount || 0) - Number(record?.paid_sum || 0)
+              )
+                .toFixed(2)
+                .toString()
+                .replace(".", ",");
+            }}
+          />
+
+          <Table.Column
+            dataIndex="id"
+            title="Долг - (Таганский рынок)"
+            render={(_, record) => {
+              const isTagan = record.products?.some((item: any) =>
+                item.branch?.name.includes("Таганский рынок")
               );
               const canTagan = isTagan && showTagan;
               return (
