@@ -156,7 +156,7 @@ export const WarehouseStockGoodsReport = () => {
 
         mainRow["Долг с Таганским рынком"] = (
           Number(record.amount || 0) -
-          (Number(record.paid_sum || 0) - taganSum)
+          (Number(record.paid_sum || 0) + (taganSum || 0))
         )
           .toFixed(2)
           .toString()
@@ -829,7 +829,8 @@ export const WarehouseStockGoodsReport = () => {
                       0
                     ) || 0;
                 return (
-                  Number(record?.amount) - Number(record?.paid_sum - taganSum)
+                  Number(record?.amount) -
+                  Number(record?.paid_sum + (taganSum || 0))
                 )
                   .toFixed(2)
                   .toString()
