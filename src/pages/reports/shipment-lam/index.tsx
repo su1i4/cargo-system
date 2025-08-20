@@ -132,7 +132,7 @@ export const WarehouseStockGoodsReport = () => {
           .toString()
           .replace(".", ","),
         "Сумма за мешки": Number(
-          record.avgProductPrice - (canTagan ? 400 : 0) || 0
+          record.avgProductPrice || 0
         )
           .toFixed(2)
           .toString()
@@ -149,7 +149,7 @@ export const WarehouseStockGoodsReport = () => {
           .replace(".", ","),
         Долг: (
           Number(record.amount || 0) -
-          Number(record.paid_sum - (canTagan ? 400 : 0) || 0)
+          Number(record.paid_sum || 0)
         )
           .toFixed(2)
           .toString()
