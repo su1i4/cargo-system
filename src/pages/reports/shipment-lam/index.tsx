@@ -108,7 +108,7 @@ export const WarehouseStockGoodsReport = () => {
     let totalWeight = 0;
     dataSource.forEach((record: any, index: number) => {
       const isTagan = record.products?.some(
-        (item: any) => item.branch?.name.includes("Таганский рынок")
+        (item: any) => item.name.includes("Таганский рынок")
       );
 
       const canTagan = isTagan && showTagan;
@@ -794,7 +794,7 @@ export const WarehouseStockGoodsReport = () => {
             title="Сумма за мешки без Таганского рынка"
             render={(value, record) => {
               const isTagan = record.products?.some((item: any) =>
-                item.branch?.name.includes("Таганский рынок")
+                item.name.includes("Таганский рынок")
               );
               const canTagan = isTagan && showTagan;
               return (value - (canTagan ? 400 : 0))
@@ -823,8 +823,9 @@ export const WarehouseStockGoodsReport = () => {
             title="Долг без Таганского рынка"
             render={(_, record) => {
               const isTagan = record.products?.some((item: any) =>
-                item.branch?.name.includes("Таганский рынок")
+                item.name.includes("Таганский рынок")
               );
+              console.log(isTagan);
               const canTagan = isTagan && showTagan;
               return (
                 Number(record?.amount) -
