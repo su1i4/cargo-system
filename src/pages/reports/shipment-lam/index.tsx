@@ -57,6 +57,7 @@ export const WarehouseStockGoodsReport = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [shipmentData, setShipmentData] = useState<Shipment | null>(null);
   const [showBags, setShowBags] = useState(false);
+  const [showTagan, setShowTagan] = useState(false);
   const [selectedCity, setSelectedCity] = useState<number | null>(null);
   const [driverName, setDriverName] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("ASC");
@@ -106,6 +107,12 @@ export const WarehouseStockGoodsReport = () => {
     let totalBagsCount = 0;
     let totalWeight = 0;
     dataSource.forEach((record: any, index: number) => {
+      const isTagan = record.products?.some(
+        (item: any) => item.branch?.name === "Таганский рынок"
+      );
+
+      const canTagan = isTagan && showTagan;
+
       const mainRow = {
         "№": index + 1,
         "Фио отправителя": record.sender?.name || "",
@@ -120,12 +127,27 @@ export const WarehouseStockGoodsReport = () => {
           ? Number(record.weight).toFixed(2).toString().replace(".", ",")
           : "",
         "Кол-во мешков": record.services?.length || 0,
-        Сумма: Number(record.amount || 0).toFixed(2).toString().replace(".", ","),
-        "Сумма за мешки": Number(record.avgProductPrice || 0).toFixed(2).toString().replace(".", ","),
-        Оплачено: Number(record.paid_sum || 0).toFixed(2).toString().replace(".", ","),
+        Сумма: Number(record.amount || 0)
+          .toFixed(2)
+          .toString()
+          .replace(".", ","),
+        "Сумма за мешки": Number(
+          record.avgProductPrice - (canTagan ? 400 : 0) || 0
+        )
+          .toFixed(2)
+          .toString()
+          .replace(".", ","),
+        Оплачено: Number(record.paid_sum || 0)
+          .toFixed(2)
+          .toString()
+          .replace(".", ","),
         Долг: (
-          Number(record.amount || 0) - Number(record.paid_sum || 0)
-        ).toFixed(2).toString().replace(".", ","),
+          Number(record.amount || 0) -
+          Number(record.paid_sum - (canTagan ? 400 : 0) || 0)
+        )
+          .toFixed(2)
+          .toString()
+          .replace(".", ","),
         Статус: record.status || "",
       };
 
@@ -154,10 +176,19 @@ export const WarehouseStockGoodsReport = () => {
               ? Number(service.weight).toFixed(2).toString().replace(".", ",")
               : "",
             "Кол-во мешков": 1,
-            Сумма: service.sum || 0,
+            Сумма: Number(service.sum || 0)
+              .toFixed(2)
+              .toString()
+              .replace(".", ","),
             "Сумма за мешки": 0,
-            Оплачено: 0,
-            Долг: 0,
+            Оплачено: Number(service.paid_sum || 0)
+              .toFixed(2)
+              .toString()
+              .replace(".", ","),
+            Долг: (Number(service.sum || 0) - Number(service.paid_sum || 0))
+              .toFixed(2)
+              .toString()
+              .replace(".", ","),
           };
 
           totalSum += service.sum || 0;
@@ -561,6 +592,15 @@ export const WarehouseStockGoodsReport = () => {
             </Checkbox>
           </Col>
           <Col>
+            <Checkbox
+              checked={showTagan}
+              onChange={(e) => setShowTagan(e.target.checked)}
+              style={{ marginRight: 8 }}
+            >
+              Таганский рынок
+            </Checkbox>
+          </Col>
+          <Col>
             <Button
               icon={<FileExcelOutlined />}
               type="primary"
@@ -732,20 +772,34 @@ export const WarehouseStockGoodsReport = () => {
           <Table.Column
             dataIndex="avgProductPrice"
             title="Сумма за мешки"
-            // render={(value) =>
-            //   value?.reduce(
-            //     (acc: number, item: any) => acc + Number(item.sum),
-            //     0
-            //   )
-            // }
+            render={(value, record) => {
+              const isTagan = record.products?.some(
+                (item: any) => item.branch?.name === "Таганский рынок"
+              );
+              const canTagan = isTagan && showTagan;
+              return (value - (canTagan ? 400 : 0))
+                .toFixed(2)
+                .toString()
+                .replace(".", ",");
+            }}
           />
           <Table.Column dataIndex="paid_sum" title="Оплачено" />
           <Table.Column
             dataIndex="id"
             title="Долг"
-            render={(_, record) =>
-              (Number(record?.amount) - Number(record?.paid_sum)).toFixed(2)
-            }
+            render={(_, record) => {
+              const isTagan = record.products?.some(
+                (item: any) => item.branch?.name === "Таганский рынок"
+              );
+              const canTagan = isTagan && showTagan;
+              return (
+                Number(record?.amount) -
+                Number(record?.paid_sum - (canTagan ? 400 : 0))
+              )
+                .toFixed(2)
+                .toString()
+                .replace(".", ",");
+            }}
           />
         </Table>
       </Modal>
