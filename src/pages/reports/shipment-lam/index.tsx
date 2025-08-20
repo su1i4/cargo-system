@@ -828,9 +828,10 @@ export const WarehouseStockGoodsReport = () => {
                       (acc: number, item: any) => acc + Number(item.sum),
                       0
                     ) || 0;
+
                 return (
                   Number(record?.amount) -
-                  Number(record?.paid_sum + (taganSum || 0))
+                  Number(Number(record?.paid_sum) + taganSum)
                 )
                   .toFixed(2)
                   .toString()
