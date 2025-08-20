@@ -111,7 +111,7 @@ export const WarehouseStockGoodsReport = () => {
       const taganSum =
         record.products
           ?.filter((item: any) => item.name.includes("Таганский рынок"))
-          ?.reduce((acc: number, item: any) => acc + Number(item.sum), 0) || 0;
+          ?.reduce((acc: number, item: any) => acc + 400, 0) || 0;
 
       const mainRow: any = {
         "№": index + 1,
@@ -131,7 +131,9 @@ export const WarehouseStockGoodsReport = () => {
           .toFixed(2)
           .toString()
           .replace(".", ","),
-        "Сумма за мешки": Number(record.avgProductPrice || 0)
+        "Сумма за мешки": Number(
+          record.avgProductPrice - (showTagan ? taganSum : 0) || 0
+        )
           .toFixed(2)
           .toString()
           .replace(".", ","),
@@ -156,7 +158,7 @@ export const WarehouseStockGoodsReport = () => {
 
         mainRow["Долг с Таганским рынком"] = (
           Number(record.amount || 0) -
-          (Number(record.paid_sum || 0) + (taganSum || 0))
+          (Number(record.paid_sum || 0) + Number(taganSum || 0))
         )
           .toFixed(2)
           .toString()
@@ -777,7 +779,13 @@ export const WarehouseStockGoodsReport = () => {
           <Table.Column
             dataIndex="avgProductPrice"
             title="Сумма за мешки"
-            render={(value) => {
+            render={(value, record) => {
+              const taganSum =
+                record.products
+                  ?.filter((item: any) => item.name.includes("Таганский рынок"))
+                  ?.reduce((acc: number, item: any) => acc + 400, 0) || 0;
+
+              return (value - (showTagan ? taganSum : 0)).toFixed(2).toString().replace(".", ",");
               return value.toFixed(2).toString().replace(".", ",");
             }}
           />
@@ -792,7 +800,7 @@ export const WarehouseStockGoodsReport = () => {
                       item.name.includes("Таганский рынок")
                     )
                     ?.reduce(
-                      (acc: number, item: any) => acc + Number(item.sum),
+                      (acc: number, item: any) => acc + 400,
                       0
                     ) || 0;
                 return taganSum.toFixed(2).toString().replace(".", ",");
@@ -825,7 +833,7 @@ export const WarehouseStockGoodsReport = () => {
                       item.name.includes("Таганский рынок")
                     )
                     ?.reduce(
-                      (acc: number, item: any) => acc + Number(item.sum),
+                      (acc: number, item: any) => acc + 400,
                       0
                     ) || 0;
 
