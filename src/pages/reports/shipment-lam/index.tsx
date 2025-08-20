@@ -837,7 +837,7 @@ export const WarehouseStockGoodsReport = () => {
 
           <Table.Column
             dataIndex="id"
-            title="Долг с Таганским рынком"
+            title={showTagan ? "Долг с Таганским рынком" : "Долг"}
             render={(_, record) => {
               return (
                 Number(record?.amount || 0) - Number(record?.paid_sum || 0)
