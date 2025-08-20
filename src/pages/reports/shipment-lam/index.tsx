@@ -146,7 +146,6 @@ export const WarehouseStockGoodsReport = () => {
           .toFixed(2)
           .toString()
           .replace(".", ","),
-        Статус: record.status || "",
       };
 
       if (!showTagan) {
@@ -242,7 +241,6 @@ export const WarehouseStockGoodsReport = () => {
       "Сумма за мешки": totalBagSum,
       Оплачено: totalPaid,
       Долг: totalDebt,
-      Статус: "",
     };
 
     const totalRow2 = {
@@ -258,7 +256,6 @@ export const WarehouseStockGoodsReport = () => {
       "Сумма за мешки": "",
       Оплачено: "",
       Долг: "",
-      Статус: "",
     };
 
     const totalRow3 = {
@@ -290,7 +287,6 @@ export const WarehouseStockGoodsReport = () => {
       "Сумма за мешки": "",
       Оплачено: "",
       Долг: "",
-      Статус: "",
     };
 
     exportData.push(totalRow, totalRow2, totalRow3, totalRow4);
