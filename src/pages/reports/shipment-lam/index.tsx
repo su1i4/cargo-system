@@ -164,8 +164,7 @@ export const WarehouseStockGoodsReport = () => {
           .replace(".", ",");
 
         (mainRow["Долг с Таганским рынком"] = (
-          Number(record.amount || 0) -
-          (Number(record.paid_sum || 0))
+          Number(record.amount || 0) - Number(record.paid_sum || 0)
         )
           .toFixed(2)
           .toString()
@@ -351,6 +350,451 @@ export const WarehouseStockGoodsReport = () => {
         "DD.MM.YYYY.HH-mm"
       )}).xlsx`;
 
+      XLSX.writeFile(workbook, fileName);
+
+      message.success("Файл XLSX успешно скачан");
+    } catch (error) {
+      console.error("Ошибка при скачивании XLSX файла:", error);
+      message.error("Ошибка при скачивании XLSX файла");
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
+
+  const downloadXLSX2 = async () => {
+    try {
+      setDownloadLoading(true);
+      const exportData = prepareExportData();
+
+      if (!exportData || exportData.length === 0) {
+        message.warning("Нет данных для экспорта");
+        return;
+      }
+
+      // ===== 1. Создаем новую рабочую книгу =====
+      const workbook = XLSX.utils.book_new();
+
+      // ===== 2. Определяем заголовки в зависимости от showTagan =====
+      const baseHeaders = [
+        "Отправитель",
+        "",
+        "Получатель",
+        "",
+        "№ Сумки",
+        "Наименование",
+        "Кол-во",
+        "Вес сумки",
+        "К оплате",
+        "Сумма",
+      ];
+
+      const taganHeaders = showTagan
+        ? ["Сумма за Таганский рынок", "Сумма за мешки"]
+        : [];
+      const mainHeaders = [...baseHeaders, ...taganHeaders];
+
+      // ===== 3. Шапка документа =====
+      const headerData = [
+        [
+          "",
+          "",
+          "ОТПРАВКА №",
+          shipmentData?.id || "",
+          "",
+          dayjs().format("DD.MM.YYYY"),
+        ],
+        [
+          "город направление:",
+          shipmentData?.destination || "",
+          "",
+          "",
+          "РОССкарго",
+          "",
+        ],
+        [], // пустая строка
+        mainHeaders,
+        [
+          "Ф.И.О",
+          "Номер тел.",
+          "Ф.И.О",
+          "Номер тел",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+        ].concat(showTagan ? ["", ""] : []),
+      ];
+
+      // ===== 4. Подготовка данных для таблицы =====
+      const tableData = [];
+
+      // Инициализация итогов
+      let totalWeight = 0;
+      let totalBagsCount = 0;
+      let totalToPaySum = 0;
+      let totalSum = 0;
+      let totalTaganSum = 0;
+      let total200Sum = 0;
+
+      const dataSource = selectedCity
+        ? sortedData.filter(
+            (item: any) => item.destination?.id === selectedCity
+          )
+        : sortedData;
+
+      dataSource.forEach((record: any) => {
+        const senderName = record.sender?.name || "";
+        const senderPhone = record.sender?.phoneNumber || "";
+        const recipientName = record.recipient?.name || "";
+        const recipientPhone = record.recipient?.phoneNumber || "";
+
+        // Группируем услуги по отправлению
+        const services = record.services || [];
+
+        // Расчет Таганского рынка для этого отправления
+        const taganSum =
+          record.products
+            ?.filter(
+              (item: any) =>
+                item.name.includes("Таганский рынок") ||
+                item.name === "Таганский рынок"
+            )
+            ?.reduce(
+              (acc: number, item: any) => acc + item.quantity * 400,
+              0
+            ) || 0;
+
+        // Общая сумма услуг для этого отправления
+        const totalServicesSum = services.reduce(
+          (acc: number, item: any) => acc + Number(item.sum || 0),
+          0
+        );
+
+        // К оплате = общая сумма отправления
+        const debtAmount = record.services?.reduce(
+          (acc: number, item: any) => acc + Number(item.sum || 0),
+          0
+        );
+
+        // Основная сумма отправления
+        const mainAmount = Number(record.amount || 0);
+
+        if (services.length === 0) {
+          // Если нет услуг, добавляем одну строку с основной информацией
+          const weight = Number(record.weight || 0);
+
+          const row = [
+            senderName,
+            senderPhone,
+            recipientName,
+            recipientPhone,
+            "",
+            "",
+            "",
+            weight > 0 ? weight.toFixed(2).replace(".", ",") : "",
+            debtAmount > 0 ? debtAmount.toFixed(0) : "",
+            mainAmount > 0 ? mainAmount.toFixed(0) : "",
+          ];
+
+          if (showTagan) {
+            row.push(record?.avgProductPrice);
+          }
+
+          tableData.push(row);
+
+          // Обновляем итоги
+          totalWeight += weight;
+          totalBagsCount += 1; // Считаем как один мешок если нет услуг
+          totalToPaySum += debtAmount;
+          totalSum += mainAmount;
+          totalTaganSum += taganSum;
+        } else {
+          // Для каждой услуги создаем строку
+          services.forEach((service: any, serviceIndex: number) => {
+            const bagNumber = service.bag_number_numeric || "";
+            const description = service.nomenclature?.name || "";
+            const quantity = Number(service.quantity || 0);
+            const weight = Number(service.weight || 0);
+            const serviceSum = Number(service.sum || 0);
+
+            // Отправитель и получатель только в первой строке группы
+            const isFirstService = serviceIndex === 0;
+
+            const row = [
+              isFirstService ? senderName : "",
+              isFirstService ? senderPhone : "",
+              isFirstService ? recipientName : "",
+              isFirstService ? recipientPhone : "",
+              bagNumber,
+              description,
+              quantity > 0 ? quantity.toString() : "",
+              weight > 0 ? weight.toFixed(2).replace(".", ",") : "",
+              isFirstService && debtAmount > 0 ? debtAmount.toFixed(0) : "", // К оплате только в первой строке
+              serviceSum > 0 ? serviceSum.toFixed(0) : "", // Сумма услуги
+            ];
+
+            if (showTagan) {
+              row.push(
+                isFirstService && record?.avgProductPrice > 0 ? record?.avgProductPrice.toFixed(0) : "" // Таганский только в первой строке
+              );
+            }
+
+            tableData.push(row);
+
+            // Обновляем итоги для каждой услуги
+            totalWeight += weight;
+            totalBagsCount += quantity;
+            totalSum += serviceSum;
+
+            // К оплате и Таганский считаем только один раз для отправления
+            if (isFirstService) {
+              totalToPaySum += debtAmount;
+              totalTaganSum += taganSum;
+            }
+          });
+        }
+      });
+
+      // Добавляем итоговую строку
+      const totalRow = [
+        "ИТОГО:",
+        "",
+        "",
+        "",
+        "",
+        "",
+        totalBagsCount.toString(), // Итого количество
+        totalWeight > 0 ? totalWeight.toFixed(2).replace(".", ",") : "0", // Итого вес
+        totalToPaySum > 0 ? totalToPaySum.toFixed(0) : "0", // Итого к оплате
+        totalSum > 0 ? totalSum.toFixed(0) : "0", // Итого сумма
+      ];
+
+      if (showTagan) {
+        totalRow.push(
+          totalTaganSum > 0 ? totalTaganSum.toFixed(0) : "0", // Итого 400 руб
+          total200Sum > 0 ? total200Sum.toFixed(0) : "0" // Итого 200 руб
+        );
+      }
+
+      tableData.push(totalRow);
+
+      // ===== 5. Объединяем все данные =====
+      const allData = [...headerData, ...tableData];
+
+      // ===== 6. Создаем лист =====
+      const worksheet = XLSX.utils.aoa_to_sheet(allData);
+
+      // ===== 7. Настройка ширины колонок =====
+      const colWidths = [
+        { wch: 15 }, // Ф.И.О отправителя
+        { wch: 12 }, // Номер тел. отправителя
+        { wch: 15 }, // Ф.И.О получателя
+        { wch: 12 }, // Номер тел. получателя
+        { wch: 8 }, // № Сумки
+        { wch: 20 }, // Наименование
+        { wch: 8 }, // Кол-во
+        { wch: 10 }, // Вес сумки
+        { wch: 10 }, // К оплате
+        { wch: 10 }, // Сумма
+      ];
+
+      if (showTagan) {
+        colWidths.push(
+          { wch: 10 }, // 400 руб
+          { wch: 8 } // 200 руб
+        );
+      }
+
+      worksheet["!cols"] = colWidths;
+
+      // ===== 8. Стилизация =====
+      const createCellStyle = (options: any = {}) => ({
+        font: {
+          name: "Arial",
+          sz: options.fontSize || 10,
+          bold: options.bold || true,
+          color: options.fontColor ? { rgb: options.fontColor } : undefined,
+        },
+        alignment: {
+          horizontal: options.align || "left",
+          vertical: "center",
+          wrapText: options.wrapText || false,
+          indent: options.indent || 0,
+        },
+        fill: options.bgColor
+          ? { fgColor: { rgb: options.bgColor } }
+          : undefined,
+        border: options.border
+          ? {
+              top: { style: "thin", color: { rgb: "000000" } },
+              bottom: { style: "thin", color: { rgb: "000000" } },
+              left: { style: "thin", color: { rgb: "000000" } },
+              right: { style: "thin", color: { rgb: "000000" } },
+            }
+          : undefined,
+      });
+
+      // Стили
+      const headerTitleStyle = createCellStyle({
+        fontSize: 12,
+        bold: true,
+        align: "left",
+      });
+      const headerValueStyle = createCellStyle({
+        fontSize: 12,
+        bold: true,
+        align: "left",
+      });
+      const headerDateStyle = createCellStyle({
+        fontSize: 12,
+        bold: true,
+        align: "right",
+      });
+      const cityLabelStyle = createCellStyle({
+        fontSize: 11,
+        bold: true,
+        align: "left",
+      });
+      const cityValueStyle = createCellStyle({
+        fontSize: 11,
+        bold: true,
+        align: "left",
+      });
+      const companyStyle = createCellStyle({
+        fontSize: 11,
+        bold: true,
+        align: "right",
+      });
+      const tableHeaderMainStyle = createCellStyle({
+        fontSize: 10,
+        bold: true,
+        align: "center",
+        border: true,
+        bgColor: "E6E6FA",
+      });
+      const tableHeaderSubStyle = createCellStyle({
+        fontSize: 9,
+        bold: true,
+        align: "center",
+        border: true,
+        bgColor: "F0F8FF",
+      });
+      const tableCellStyle = createCellStyle({
+        fontSize: 10,
+        bold: false,
+        border: true,
+        align: "center",
+      });
+      const tableCellLeftStyle = createCellStyle({
+        fontSize: 10,
+        bold: false,
+        border: true,
+        align: "left",
+        indent: 1,
+      });
+      const totalRowStyle = createCellStyle({
+        fontSize: 10,
+        bold: true,
+        border: true,
+        align: "center",
+        bgColor: "FFE4B5",
+      });
+
+      // ===== 9. Применение стилей =====
+      const setCellStyle = (address: any, style: any) => {
+        if (!worksheet[address]) worksheet[address] = { t: "s", v: "" };
+        worksheet[address].s = style;
+      };
+
+      // Шапка документа
+      setCellStyle("C1", headerTitleStyle);
+      setCellStyle("D1", headerValueStyle);
+      setCellStyle("F1", headerDateStyle);
+      setCellStyle("A2", cityLabelStyle);
+      setCellStyle("B2", cityValueStyle);
+      setCellStyle("E2", companyStyle);
+
+      // Заголовки таблицы
+      const headerRow1 = 3; // 0-based index для строки 4
+      const headerRow2 = 4; // 0-based index для строки 5
+      const totalCols = showTagan ? 12 : 10;
+
+      // Главные заголовки (строка 4)
+      for (let col = 0; col < totalCols; col++) {
+        const addr1 = XLSX.utils.encode_cell({ r: headerRow1, c: col });
+        setCellStyle(addr1, tableHeaderMainStyle);
+      }
+
+      // Подзаголовки (строка 5)
+      for (let col = 0; col < totalCols; col++) {
+        const addr2 = XLSX.utils.encode_cell({ r: headerRow2, c: col });
+        setCellStyle(addr2, tableHeaderSubStyle);
+      }
+
+      // Данные таблицы
+      const totalRowIndex = allData.length - 1; // Индекс итоговой строки
+
+      for (let row = 5; row < allData.length; row++) {
+        for (let col = 0; col < totalCols; col++) {
+          const addr = XLSX.utils.encode_cell({ r: row, c: col });
+
+          // Стиль для итоговой строки
+          if (row === totalRowIndex) {
+            setCellStyle(addr, totalRowStyle);
+          } else {
+            // Левое выравнивание для ФИО и наименований
+            if (col === 0 || col === 2 || col === 5) {
+              setCellStyle(addr, tableCellLeftStyle);
+            } else {
+              setCellStyle(addr, tableCellStyle);
+            }
+          }
+        }
+      }
+
+      // ===== 10. Объединение ячеек =====
+      worksheet["!merges"] = [
+        // Заголовок "ОТПРАВКА №"
+        { s: { r: 0, c: 2 }, e: { r: 0, c: 3 } },
+        // Город направления
+        { s: { r: 1, c: 1 }, e: { r: 1, c: 3 } },
+        // Заголовки таблицы - основные группы
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 1 } }, // Отправитель
+        { s: { r: 3, c: 2 }, e: { r: 3, c: 3 } }, // Получатель
+      ];
+
+      // ===== 11. Установка высоты строк =====
+      worksheet["!rows"] = [
+        { hpt: 18 }, // Строка 1
+        { hpt: 16 }, // Строка 2
+        { hpt: 12 }, // Пустая строка
+        { hpt: 20 }, // Заголовки 1
+        { hpt: 18 }, // Заголовки 2 (подзаголовки)
+      ];
+
+      // Добавляем высоту для строк данных
+      for (let i = 5; i < allData.length; i++) {
+        if (!worksheet["!rows"]) worksheet["!rows"] = [];
+        // Итоговая строка чуть выше
+        worksheet["!rows"][i] = { hpt: i === totalRowIndex ? 18 : 15 };
+      }
+
+      // ===== 12. Генерация имени файла =====
+      const truckNumber =
+        tableShipmentProps.dataSource?.find(
+          (item) => item.id === shipmentData?.id
+        )?.truck_number || "report";
+
+      const fileName = `${
+        shipmentData?.destination || "Export"
+      } #${truckNumber} ${driverName || ""} от (${dayjs().format(
+        "DD.MM.YYYY.HH-mm"
+      )}).xlsx`;
+
+      // ===== 13. Сохранение файла =====
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
       XLSX.writeFile(workbook, fileName);
 
       message.success("Файл XLSX успешно скачан");
@@ -549,6 +993,13 @@ export const WarehouseStockGoodsReport = () => {
     </Card>
   );
 
+  const chooseExport = () => {
+    if (showBags) {
+      return downloadXLSX2();
+    }
+    return downloadXLSX();
+  };
+
   return (
     <List
       title="Отчет по задолженности представительств по рейсам"
@@ -629,7 +1080,7 @@ export const WarehouseStockGoodsReport = () => {
                 color: "#28a745",
               }}
               loading={downloadLoading}
-              onClick={downloadXLSX}
+              onClick={chooseExport}
             >
               XLSX
             </Button>
