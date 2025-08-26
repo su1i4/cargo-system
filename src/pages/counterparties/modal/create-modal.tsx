@@ -3,6 +3,8 @@ import { Form, Input, message, Modal, Select, Flex } from "antd";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { API_URL } from "../../../App";
+import { useSelect } from "@refinedev/antd";
+import { useCustom } from "@refinedev/core";
 
 export const MyCreateModal: React.FC<{
   open: boolean;
@@ -10,6 +12,7 @@ export const MyCreateModal: React.FC<{
   onSuccess?: () => void;
 }> = ({ open, onClose, onSuccess }) => {
   const [form] = Form.useForm();
+  const values = Form.useWatch([], form);
 
   const typeCounterparty = [
     { label: "Отправитель", value: "sender" },
@@ -45,6 +48,29 @@ export const MyCreateModal: React.FC<{
     }
   };
 
+  const buildQueryParams = () => {
+    return {
+      s: JSON.stringify({ city_id: values?.branch_id }),
+    };
+  };
+
+  const { selectProps } = useSelect({
+    resource: "branch",
+    optionLabel: "name",
+    optionValue: "id",
+  });
+
+  const { data: sentCityData } = useCustom({
+    url: `${API_URL}/sent-the-city`,
+    method: "get",
+    config: {
+      query: buildQueryParams(),
+    },
+    queryOptions: {
+      enabled: !!values?.branch_id,
+    },
+  });
+
   return (
     <Modal
       title="Создать контрагента"
@@ -57,10 +83,7 @@ export const MyCreateModal: React.FC<{
       okText="Добавить"
       width={800}
     >
-      <Form
-        form={form}
-        layout="vertical"
-      >
+      <Form form={form} layout="vertical">
         <Flex style={{ width: "100%" }} gap={10}>
           <Form.Item
             style={{ width: "100%" }}
@@ -118,6 +141,39 @@ export const MyCreateModal: React.FC<{
             initialValue={typeCounterparty[0].value}
           >
             <Select options={typeCounterparty} />
+          </Form.Item>
+        </Flex>
+        <Flex style={{ width: "100%" }} gap={10}>
+          <Form.Item style={{ width: "100%" }} label="Город" name="branch_id">
+            <Select
+              onChange={(value) => {
+                form.setFieldsValue({
+                  sent_city_id: null,
+                  branch_id: value || null,
+                });
+              }}
+              {...selectProps}
+              allowClear
+            />
+          </Form.Item>
+
+          <Form.Item
+            style={{ width: "100%" }}
+            label="Досыльный город"
+            name="sent_city_id"
+          >
+            <Select
+              options={sentCityData?.data?.map((item: any) => ({
+                label: item.sent_city.name,
+                value: item.id,
+              }))}
+              allowClear
+              onChange={(value) => {
+                form.setFieldsValue({
+                  sent_city_id: value || null,
+                });
+              }}
+            />
           </Form.Item>
         </Flex>
 

@@ -73,7 +73,7 @@ const counterpartyReceiverSelectConfig = {
   optionLabel: (record: any) =>
     `${record?.clientPrefix || ""}-${record?.clientCode || ""}, ${
       record?.name || ""
-    }`,
+    }, |${record?.branch?.id || ""}|${record?.sent_city?.id || ""}`,
   filters: [
     {
       field: "type",
@@ -252,6 +252,8 @@ export const GoodsProcessingCreateRequisites = React.memo(
       }
     }, [values?.sender_id, values?.recipient_id]);
 
+    console.log(values?.destination_id, values?.sent_back_id)
+
     return (
       <>
         <Title level={5} style={{ margin: 0 }}>
@@ -280,12 +282,14 @@ export const GoodsProcessingCreateRequisites = React.memo(
                       (item: any) => item.sent_city_id === value
                     );
                     if (city) {
-                    form.setFieldsValue({
+                      form.setFieldsValue({
                         destination_id: city?.city_id,
                         sent_back_id: city?.id,
                       });
                     } else {
-                      message.error("Не удалось найти главный город досыла. Попробуйте выбрать другой город");
+                      message.error(
+                        "Не удалось найти главный город досыла. Попробуйте выбрать другой город"
+                      );
                       form.setFieldsValue({
                         destination_id: null,
                         sent_back_id: null,
@@ -323,6 +327,30 @@ export const GoodsProcessingCreateRequisites = React.memo(
                 placeholder="Выберите получателя"
                 showSearch
                 allowClear
+                onChange={(value, record: any) => {
+                  const sentBackId = record?.label.split("|")[2] || null;
+                  const branchId = record?.label.split("|")[1] || null;
+
+                  if (branchId) {
+                    form.setFieldsValue({
+                      destination_id: Number(branchId),
+                    });
+                  } else {
+                    form.setFieldsValue({
+                      sent_back_id: null,
+                    });
+                  }
+
+                  if (sentBackId) {
+                    form.setFieldsValue({
+                      sent_back_id: Number(sentBackId),
+                    });
+                  }
+
+                  form.setFieldsValue({
+                    recipient_id: value || null,
+                  });
+                }}
               />
             </Form.Item>
           </Col>

@@ -3,6 +3,8 @@ import { Modal, Form, Input, Select, message, Spin, Flex } from "antd";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { API_URL } from "../../../App";
+import { useSelect } from "@refinedev/antd";
+import { useCustom } from "@refinedev/core";
 
 interface Props {
   open: boolean;
@@ -20,6 +22,7 @@ export const CounterpartyEditModal: React.FC<Props> = ({
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const values = Form.useWatch([], form);
 
   const typeCounterparty = [
     { label: "Отправитель", value: "sender" },
@@ -85,6 +88,29 @@ export const CounterpartyEditModal: React.FC<Props> = ({
       setSaving(false);
     }
   };
+
+  const buildQueryParams = () => {
+    return {
+      s: JSON.stringify({ city_id: values?.branch_id }),
+    };
+  };
+
+  const { selectProps } = useSelect({
+    resource: "branch",
+    optionLabel: "name",
+    optionValue: "id",
+  });
+
+  const { data: sentCityData } = useCustom({
+    url: `${API_URL}/sent-the-city`,
+    method: "get",
+    config: {
+      query: buildQueryParams(),
+    },
+    queryOptions: {
+      enabled: !!values?.branch_id,
+    },
+  });
 
   return (
     <Modal
@@ -163,6 +189,38 @@ export const CounterpartyEditModal: React.FC<Props> = ({
             </Form.Item>
           </Flex>
 
+          <Flex style={{ width: "100%" }} gap={10}>
+            <Form.Item style={{ width: "100%" }} label="Город" name="branch_id">
+              <Select
+                onChange={(value) => {
+                  form.setFieldsValue({
+                    sent_city_id: null,
+                    branch_id: value || null,
+                  });
+                }}
+                {...selectProps}
+                allowClear
+              />
+            </Form.Item>
+            <Form.Item
+              style={{ width: "100%" }}
+              label="Досыльный город"
+              name="sent_city_id"
+            >
+              <Select
+                options={sentCityData?.data?.map((item: any) => ({
+                  label: item.sent_city.name,
+                  value: item.id,
+                }))}
+                onChange={(value) => {
+                  form.setFieldsValue({
+                    sent_city_id: value || null,
+                  });
+                }}
+                allowClear
+              />
+            </Form.Item>
+          </Flex>
           <Form.Item label="Комментарий" name="comment">
             <Input.TextArea rows={4} />
           </Form.Item>
