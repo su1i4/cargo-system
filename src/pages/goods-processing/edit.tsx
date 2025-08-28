@@ -419,26 +419,28 @@ export const GoodsEdit = () => {
       message.warning("Выберите товары для удаления");
       return;
     }
-    const selectedItems = services.filter(
+
+    const remainingItems = services.filter(
       (item) => !selectedRowKeys.includes(item.id)
     );
 
-    const deletedItems = services
-      .filter(
-        (item) =>
-          selectedRowKeys.includes(item.id) && item.hasOwnProperty("deleted")
-      )
+    const itemsToDelete = services.filter((item) =>
+      selectedRowKeys.includes(item.id)
+    );
+
+    const existingItemsToDelete = itemsToDelete
+      .filter((item) => !item.is_created)
       .map((item) => ({ ...item, deleted: true }));
 
-    setDeletedServices([...deletedServices, ...deletedItems]);
-    setServices(selectedItems);
+    setDeletedServices([...deletedServices, ...existingItemsToDelete]);
+    setServices(remainingItems);
     setSelectedRowKeys([]);
 
-    message.success(`Удалено ${selectedItems.length} товаров`);
+    message.success(`Удалено ${itemsToDelete.length} товаров`);
   };
 
   const removeItem = (record: any) => {
-    if (record.hasOwnProperty("deleted")) {
+    if (!record.is_created) {
       setDeletedServices([...deletedServices, { ...record, deleted: true }]);
     }
     setServices(services.filter((item) => item.id !== record.id));
@@ -557,7 +559,13 @@ export const GoodsEdit = () => {
 
   useEffect(() => {
     const applyInitialDiscounts = async () => {
-      if (record && record.services && values?.destination_id && values?.discount_id && tariffs.length > 0) {
+      if (
+        record &&
+        record.services &&
+        values?.destination_id &&
+        values?.discount_id &&
+        tariffs.length > 0
+      ) {
         const updatedServices = await Promise.all(
           services.map(async (item) => {
             if (item.type_id) {
@@ -567,36 +575,36 @@ export const GoodsEdit = () => {
                   Number(item.type_id),
                   values.discount_id
                 );
-  
+
               const newItem = { ...item };
               newItem.individual_discount = individualDiscount;
               newItem.discount_id = discountId;
-  
+
               const selectedType = tariffTableProps?.dataSource?.find(
                 (type: any) =>
                   type.branch_id === values?.destination_id &&
                   type.product_type_id === Number(item.type_id)
               );
-  
+
               if (selectedType && !item.is_price_editable) {
                 const discountToApply = individualDiscount || 0;
                 newItem.price = Number(selectedType.tariff) - discountToApply;
-  
+
                 if (newItem.weight) {
                   newItem.sum = calculateSum(newItem.weight, newItem.price);
                 }
               }
-  
+
               return newItem;
             }
             return item;
           })
         );
-  
+
         setServices(updatedServices);
       }
     };
-  
+
     applyInitialDiscounts();
   }, [record, values?.destination_id, values?.discount_id, tariffs.length]);
 
