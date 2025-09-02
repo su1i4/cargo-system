@@ -792,7 +792,7 @@ export const GoodsProcessingCreateServices = React.memo(
                         })
                       );
 
-                      checkBagNumberWithDebounce(newValue, record.id);
+                      checkBagNumberWithDebounce(String(newValue), record.id);
                     }}
                     style={{
                       width: 120,
@@ -804,6 +804,7 @@ export const GoodsProcessingCreateServices = React.memo(
                         : "1px solid #d9d9d9",
                     }}
                     value={value}
+                    type="number"
                   />
                 )
               );

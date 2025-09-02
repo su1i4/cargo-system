@@ -1345,7 +1345,7 @@ export const GoodsEdit = () => {
                           if (serviceIndex === index) {
                             return {
                               ...item,
-                              bag_number_numeric: e.target.value,
+                              bag_number_numeric: String(e.target.value),
                             };
                           } else {
                             return item;
@@ -1355,6 +1355,7 @@ export const GoodsEdit = () => {
                     }}
                     style={{ width: 120 }}
                     value={value}
+                    type="number"
                   />
                 )
               );
