@@ -62,10 +62,6 @@ const ShipmentCreate = () => {
     syncWithLocation: false,
   });
 
-  const { mutate: updateServices } = useUpdateMany({
-    resource: "service",
-  });
-
   const { selectProps: typeSelectProps } = useSelect({
     resource: "type-product",
     optionLabel: (record: any) => record.name,
@@ -109,7 +105,9 @@ const ShipmentCreate = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+            Authorization: `Bearer ${localStorage.getItem(
+              "cargo-system-token"
+            )}`,
           },
           body: JSON.stringify({
             shipment_id: shipmentId,
@@ -183,6 +181,7 @@ const ShipmentCreate = () => {
   const sortFields = [
     { key: "good.created_at", label: "Дата приемки" },
     { key: "bag_number_numeric", label: "Номер мешка" },
+    { key: "good.sender.clientCode", label: "По коду отправителя" },
   ] as const;
 
   type SortFieldKey = (typeof sortFields)[number]["key"];
