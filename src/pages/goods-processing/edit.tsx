@@ -981,6 +981,7 @@ export const GoodsEdit = () => {
 
   const { selectProps: branchSelectPropsIsSent } = useSelect({
     resource: "sent-the-city",
+    optionValue: (record) => record?.id,
     optionLabel: (record: any) => `${record?.sent_city?.name}`,
     filters: [
       {
@@ -1056,6 +1057,16 @@ export const GoodsEdit = () => {
     );
   };
 
+  useEffect(() => {
+    if (record?.sent_back_id) {
+      const newCity = sentCityData?.find(
+        (item) => item?.sent_city_id === record?.sent_back_id
+      );
+      form.setFieldValue("sent_back_id", newCity?.id);
+      console.log(sentCityData, newCity )
+    }
+  }, [record?.sent_back_id, sentCityData]);
+
   return (
     <Edit headerButtons={() => null} saveButtonProps={saveButtonProps}>
       {styleBlock}
@@ -1127,7 +1138,11 @@ export const GoodsEdit = () => {
             </Form.Item>
           </Col>
           <Col span={4}>
-            <Form.Item label="Досыльные города" name="sent_back_id">
+            <Form.Item
+              initialValue={5}
+              label="Досыльные города"
+              name="sent_back_id"
+            >
               <Select {...branchSelectPropsIsSent} allowClear />
             </Form.Item>
           </Col>
