@@ -122,16 +122,7 @@ export const CashDeskCreate: React.FC = () => {
         good.created_at
       );
 
-      const totalServiceAmount = good.services.reduce(
-        (acc: number, service: any) => acc + Number(service.sum || 0),
-        0
-      );
-      const totalProductAmount = good.products.reduce(
-        (acc: number, product: any) => acc + Number(product.sum || 0),
-        0
-      );
-
-      const totalGoodAmount = totalServiceAmount + totalProductAmount;
+      const totalGoodAmount = Number(good?.amount);
       const transformAmount =
         historicalRate > 0 ? historicalRate * totalGoodAmount : totalGoodAmount;
       const remainingToPay = transformAmount - (good?.paid_sum || 0);
@@ -362,15 +353,7 @@ export const CashDeskCreate: React.FC = () => {
             item.created_at
           );
 
-          const serviceAmount = item.services.reduce(
-            (acc: number, service: any) => acc + Number(service.sum || 0),
-            0
-          );
-          const productAmount = item.products.reduce(
-            (acc: number, product: any) => acc + Number(product.sum || 0),
-            0
-          );
-          const itemTotalAmount = serviceAmount + productAmount;
+          const itemTotalAmount = Number(item?.amount);
 
           const itemTransformedAmount =
             historicalRate > 0
@@ -737,8 +720,8 @@ export const CashDeskCreate: React.FC = () => {
     // Structure the data for PrintContent component
     const printDataStructure = {
       data: {
-        data: data.data.data
-      }
+        data: data.data.data,
+      },
     };
 
     setPrintData(printDataStructure);
@@ -797,16 +780,7 @@ export const CashDeskCreate: React.FC = () => {
                 )?.rate || 0;
             }
 
-            const totalGoodAmount =
-              selectedGood.services.reduce(
-                (acc: number, service: any) => acc + Number(service.sum || 0),
-                0
-              ) +
-              selectedGood.products.reduce(
-                (acc: number, product: any) => acc + Number(product.sum || 0),
-                0
-              );
-
+            const totalGoodAmount = Number(selectedGood?.amount);
             const remainingAmount =
               (rate > 0 ? rate * totalGoodAmount : totalGoodAmount) -
               (selectedGood?.paid_sum || 0);
@@ -1215,8 +1189,8 @@ export const CashDeskCreate: React.FC = () => {
               </Dropdown>
             </Col>
             <Col>
-              <Button 
-                icon={<PrinterOutlined />} 
+              <Button
+                icon={<PrinterOutlined />}
                 onClick={handlePrint}
                 title="Печать"
               >
@@ -1236,7 +1210,32 @@ export const CashDeskCreate: React.FC = () => {
             })}
           >
             <Table.Column
-              title=""
+              title={
+                <Checkbox
+                  checked={
+                    dataSource && 
+                    dataSource.length > 0 && 
+                    dataSource.every((item: any) => selectedRowKeys.includes(item.id))
+                  }
+                  indeterminate={
+                    selectedRowKeys.length > 0 && 
+                    dataSource && 
+                    !dataSource.every((item: any) => selectedRowKeys.includes(item.id))
+                  }
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      // Выбрать все
+                      const allIds = dataSource?.map((item: any) => item.id) || [];
+                      setSelectedRowKeys(allIds);
+                      setSelectedRows(dataSource || []);
+                    } else {
+                      // Снять выбор со всех
+                      setSelectedRowKeys([]);
+                      setSelectedRows([]);
+                    }
+                  }}
+                />
+              }
               dataIndex="id"
               render={(value) => (
                 <Checkbox checked={selectedRowKeys.includes(value)} />
@@ -1306,40 +1305,74 @@ export const CashDeskCreate: React.FC = () => {
               dataIndex="totalServiceAmountSum"
               title="Сумма"
               render={(_, record: any) => {
-                const totalAmount =
-                  Number(record.totalServiceAmountSum) +
-                  Number(record.totalProductAmountSum);
-                const convertedAmount = convertAmount(
-                  totalAmount,
-                  selectedCurrency,
+                const currentCurrency = formProps.form?.getFieldValue("type_currency") || selectedCurrency;
+                const selectedCurrencyData = currency.data?.find(
+                  (item: any) => item.name === currentCurrency
+                );
+                
+                const totalAmount = Number(record?.amount);
+                const historicalRate = getHistoricalRate(
+                  selectedCurrencyData,
                   record.created_at
                 );
+                
+                // Используем ту же логику, что и в расчетах
+                const transformedAmount = historicalRate > 0 ? historicalRate * totalAmount : totalAmount;
+                
                 const currencySymbol =
-                  selectedCurrency === "Доллар"
+                  currentCurrency === "Доллар"
                     ? "USD"
-                    : selectedCurrency === "Рубль"
+                    : currentCurrency === "Рубль"
                     ? "руб"
                     : "сом";
-                return `${convertedAmount.toFixed(2)} ${currencySymbol}`;
+                return `${transformedAmount.toFixed(2)} ${currencySymbol}`;
               }}
             />
             <Table.Column
               dataIndex="paid_sum"
               title="Оплачено"
               render={(value, record: any) => {
+                const currentCurrency = formProps.form?.getFieldValue("type_currency") || selectedCurrency;
                 const paidAmount = value || 0;
                 const convertedPaidAmount = convertAmount(
                   paidAmount,
-                  selectedCurrency,
+                  currentCurrency,
                   record.created_at
                 );
                 const currencySymbol =
-                  selectedCurrency === "Доллар"
+                  currentCurrency === "Доллар"
                     ? "USD"
-                    : selectedCurrency === "Рубль"
+                    : currentCurrency === "Рубль"
                     ? "руб"
                     : "сом";
                 return `${convertedPaidAmount.toFixed(2)} ${currencySymbol}`;
+              }}
+            />
+            <Table.Column
+              title="К доплате"
+              render={(_, record: any) => {
+                const currentCurrency = formProps.form?.getFieldValue("type_currency") || selectedCurrency;
+                const selectedCurrencyData = currency.data?.find(
+                  (item: any) => item.name === currentCurrency
+                );
+                
+                const totalAmount = Number(record?.amount);
+                const historicalRate = getHistoricalRate(
+                  selectedCurrencyData,
+                  record.created_at
+                );
+                
+                const transformedAmount = historicalRate > 0 ? historicalRate * totalAmount : totalAmount;
+                const paidAmount = record?.paid_sum || 0;
+                const remainingToPay = transformedAmount - paidAmount;
+                
+                const currencySymbol =
+                  currentCurrency === "Доллар"
+                    ? "USD"
+                    : currentCurrency === "Рубль"
+                    ? "руб"
+                    : "сом";
+                return `${remainingToPay.toFixed(2)} ${currencySymbol}`;
               }}
             />
             <Table.Column
@@ -1352,14 +1385,14 @@ export const CashDeskCreate: React.FC = () => {
             <Table.Column dataIndex="comments" title="Комментарий" />
           </Table>
 
-          <div style={{ display: 'none' }}>
+          <div style={{ display: "none" }}>
             <div ref={printRef}>
               {printData && selectedCounterparty && (
-                <PrintContent 
-                  data={printData} 
-                  selectedCurrency={selectedCurrency} 
-                  convertAmount={convertAmount} 
-                  client={selectedCounterparty} 
+                <PrintContent
+                  data={printData}
+                  selectedCurrency={selectedCurrency}
+                  convertAmount={convertAmount}
+                  client={selectedCounterparty}
                 />
               )}
             </div>
