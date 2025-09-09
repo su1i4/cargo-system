@@ -241,6 +241,11 @@ const ReceivingList = () => {
         />
         <Table.Column
           width={50}
+          title="Водитель"
+          dataIndex="driver"
+        />
+        <Table.Column
+          width={50}
           title="Пункт назначения"
           dataIndex="branch"
           render={(value, record) => value?.name || record?.send}
