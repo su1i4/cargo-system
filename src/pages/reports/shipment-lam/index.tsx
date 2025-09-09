@@ -19,7 +19,7 @@ import {
   ArrowUpOutlined,
   ArrowDownOutlined,
 } from "@ant-design/icons";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useDocumentTitle } from "@refinedev/react-router";
 import { useSelect } from "@refinedev/antd";
 import { API_URL } from "../../../App";
@@ -917,6 +917,12 @@ export const WarehouseStockGoodsReport = () => {
     return sortData(data, sortField, sortDirection);
   }, [data, sortField, sortDirection]);
 
+  const filteredData = useMemo(() => {
+    return selectedCity
+      ? sortedData.filter((item: any) => item.destination?.id === selectedCity)
+      : sortedData;
+  }, [sortedData, selectedCity]);
+
   const handleSort = (field: any) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
@@ -999,6 +1005,84 @@ export const WarehouseStockGoodsReport = () => {
     }
     return downloadXLSX();
   };
+
+  const expandedRowColumns = useMemo(() => [
+    {
+      title: "№",
+      key: "index",
+      render: (_: any, __: any, index: number) => index + 1,
+      width: 50,
+    },
+    {
+      title: "Номер мешка",
+      dataIndex: "bag_number_numeric",
+      key: "bag_number_numeric",
+      width: 120,
+    },
+    {
+      title: "Вес, кг",
+      dataIndex: "weight",
+      key: "weight",
+      render: (value: any) =>
+        value
+          ? String(value).replace(".", ",").slice(0, 5)
+          : "",
+      width: 100,
+    },
+    {
+      title: "Сумма",
+      dataIndex: "sum",
+      key: "sum",
+      width: 100,
+    },
+    {
+      title: "Описание",
+      dataIndex: "description",
+      key: "description",
+      render: (value: any) => value || "-",
+    },
+  ], []);
+
+  const renderExpandedRow = useCallback((record: any) => {
+    if (!record.services || record.services.length === 0) {
+      return (
+        <div 
+          key={`no-services-${record.id}`}
+          style={{ padding: "10px", color: "#666" }}
+        >
+          Нет информации о мешках
+        </div>
+      );
+    }
+
+    return (
+      <div key={`expanded-${record.id}`}>
+        <Table
+          columns={expandedRowColumns}
+          dataSource={record.services || []}
+          pagination={false}
+          rowKey={(item: any, index?: number) =>
+            `service-${record.id}-${item.bag_number_numeric || item.id || index || 0}`
+          }
+          size="small"
+          style={{ margin: "10px 0" }}
+        />
+      </div>
+    );
+  }, [expandedRowColumns]);
+
+  const renderExpandIcon = useCallback(({ expanded, onExpand, record }: any) => (
+    <Button
+      key={`expand-btn-${record.id}`}
+      type="text"
+      size="small"
+      icon={expanded ? <MinusOutlined /> : <PlusOutlined />}
+      onClick={(e) => {
+        e.stopPropagation();
+        onExpand(record, e);
+      }}
+    />
+  ), []);
 
   return (
     <List
@@ -1102,87 +1186,19 @@ export const WarehouseStockGoodsReport = () => {
           </Col>
         </Row>
         <Table
+          key={`main-table-${showBags ? 'with-bags' : 'no-bags'}-${selectedCity || 'all'}`}
           size="small"
-          dataSource={
-            selectedCity
-              ? sortedData.filter(
-                  (item: any) => item.destination?.id === selectedCity
-                )
-              : sortedData
-          }
+          dataSource={filteredData}
           pagination={false}
           rowKey="id"
           scroll={{ x: 1000 }}
           expandable={
             showBags
               ? {
-                  expandedRowRender: (record: any) => {
-                    if (!record.services || record.services.length === 0) {
-                      return (
-                        <div style={{ padding: "10px", color: "#666" }}>
-                          Нет информации о мешках
-                        </div>
-                      );
-                    }
-
-                    const columns = [
-                      {
-                        title: "№",
-                        key: "index",
-                        render: (_: any, __: any, index: number) => index + 1,
-                        width: 50,
-                      },
-                      {
-                        title: "Номер мешка",
-                        dataIndex: "bag_number_numeric",
-                        key: "bag_number_numeric",
-                        width: 120,
-                      },
-                      {
-                        title: "Вес, кг",
-                        dataIndex: "weight",
-                        key: "weight",
-                        render: (value: any) =>
-                          value
-                            ? String(value).replace(".", ",").slice(0, 5)
-                            : "",
-                        width: 100,
-                      },
-                      {
-                        title: "Сумма",
-                        dataIndex: "sum",
-                        key: "sum",
-                        width: 100,
-                      },
-                      {
-                        title: "Описание",
-                        dataIndex: "description",
-                        key: "description",
-                        render: (value: any) => value || "-",
-                      },
-                    ];
-
-                    return (
-                      <Table
-                        columns={columns}
-                        dataSource={record.services}
-                        pagination={false}
-                        rowKey={(item: any) =>
-                          `${record.id}-${item.bag_number_numeric}`
-                        }
-                        size="small"
-                        style={{ margin: "10px 0" }}
-                      />
-                    );
-                  },
-                  expandIcon: ({ expanded, onExpand, record }: any) => (
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={expanded ? <MinusOutlined /> : <PlusOutlined />}
-                      onClick={(e) => onExpand(record, e)}
-                    />
-                  ),
+                  expandedRowRender: renderExpandedRow,
+                  expandIcon: renderExpandIcon,
+                  expandRowByClick: false,
+                  defaultExpandAllRows: false,
                 }
               : undefined
           }
