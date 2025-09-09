@@ -48,7 +48,7 @@ export const WarehouseStockGoodsReport = () => {
     },
     syncWithLocation: false,
     pagination: {
-      pageSize: 1000,
+      pageSize: 100,
     },
   });
 
@@ -303,7 +303,32 @@ export const WarehouseStockGoodsReport = () => {
         return;
       }
 
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const shipmentRecordForHeader = tableShipmentProps.dataSource?.find((item: any) => {
+        return item.id === shipmentData?.id;
+      });
+      
+      const headerTruckNumber = shipmentRecordForHeader?.truck_number || "";
+      const headerDriver = driverName || "";
+      const shipmentDateForHeader = shipmentRecordForHeader?.created_at 
+        ? dayjs(shipmentRecordForHeader.created_at).utc().format("DD.MM.YYYY")
+        : dayjs().format("DD.MM.YYYY");
+
+      // Создаем шапку с информацией
+      const headerInfo = [
+        {
+          [Object.keys(exportData[0] || {})[0] || 'info']: `ЛОГО | РЕЙС: ${headerTruckNumber} | ВОДИТЕЛЬ: ${headerDriver} | ДАТА: ${shipmentDateForHeader}`,
+          ...Object.fromEntries(
+            Object.keys(exportData[0] || {}).slice(1).map(key => [key, ''])
+          )
+        },
+        // Пустая строка
+        Object.fromEntries(
+          Object.keys(exportData[0] || {}).map(key => [key, ''])
+        ),
+      ];
+
+      const dataWithHeader = [...headerInfo, ...exportData];
+      const worksheet = XLSX.utils.json_to_sheet(dataWithHeader);
 
       const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
 
@@ -339,16 +364,18 @@ export const WarehouseStockGoodsReport = () => {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
 
-      const truckNumber =
-        tableShipmentProps.dataSource?.find((item: any) => {
-          return item.id === shipmentData?.id;
-        })?.truck_number || "report";
+      const shipmentRecordForFile = tableShipmentProps.dataSource?.find((item: any) => {
+        return item.id === shipmentData?.id;
+      });
+      
+      const truckNumber = shipmentRecordForFile?.truck_number || "report";
+      const shipmentDate = shipmentRecordForFile?.created_at 
+        ? dayjs(shipmentRecordForFile.created_at).utc().format("DD.MM.YYYY.HH-mm")
+        : dayjs().format("DD.MM.YYYY.HH-mm");
 
       const fileName = `${
         shipmentData?.destination
-      } #${truckNumber} ${driverName} от (${dayjs().format(
-        "DD.MM.YYYY.HH-mm"
-      )}).xlsx`;
+      } #${truckNumber} ${driverName} от (${shipmentDate}).xlsx`;
 
       XLSX.writeFile(workbook, fileName);
 
@@ -370,6 +397,11 @@ export const WarehouseStockGoodsReport = () => {
         message.warning("Нет данных для экспорта");
         return;
       }
+
+      // Получаем данные об отправке для генерации имени файла и заголовков
+      const shipmentRecord = tableShipmentProps.dataSource?.find(
+        (item) => item.id === shipmentData?.id
+      );
 
       // ===== 1. Создаем новую рабочую книгу =====
       const workbook = XLSX.utils.book_new();
@@ -394,14 +426,28 @@ export const WarehouseStockGoodsReport = () => {
       const mainHeaders = [...baseHeaders, ...taganHeaders];
 
       // ===== 3. Шапка документа =====
+      const headerTruckNumber = shipmentRecord?.truck_number || "";
+      const headerDriver = driverName || "";
+      const shipmentDateForHeader = shipmentRecord?.created_at 
+        ? dayjs(shipmentRecord.created_at).utc().format("DD.MM.YYYY")
+        : dayjs().format("DD.MM.YYYY");
+
       const headerData = [
+        [
+          "ЛОГО",
+          `РЕЙС: ${headerTruckNumber}`,
+          `ВОДИТЕЛЬ: ${headerDriver}`,
+          `ДАТА: ${shipmentDateForHeader}`,
+          "",
+          "",
+        ],
         [
           "",
           "",
           "ОТПРАВКА №",
           shipmentData?.id || "",
           "",
-          dayjs().format("DD.MM.YYYY"),
+          "",
         ],
         [
           "город направление:",
@@ -708,17 +754,24 @@ export const WarehouseStockGoodsReport = () => {
         worksheet[address].s = style;
       };
 
-      // Шапка документа
-      setCellStyle("C1", headerTitleStyle);
-      setCellStyle("D1", headerValueStyle);
-      setCellStyle("F1", headerDateStyle);
-      setCellStyle("A2", cityLabelStyle);
-      setCellStyle("B2", cityValueStyle);
-      setCellStyle("E2", companyStyle);
+      // Шапка документа - новая первая строка с логотипом, рейсом, водителем и датой
+      setCellStyle("A1", headerTitleStyle); // ЛОГО
+      setCellStyle("B1", headerValueStyle); // РЕЙС
+      setCellStyle("C1", headerValueStyle); // ВОДИТЕЛЬ
+      setCellStyle("D1", headerDateStyle);  // ДАТА
+      
+      // Вторая строка - номер отправки
+      setCellStyle("C2", headerTitleStyle);
+      setCellStyle("D2", headerValueStyle);
+      
+      // Третья строка - город и компания
+      setCellStyle("A3", cityLabelStyle);
+      setCellStyle("B3", cityValueStyle);
+      setCellStyle("E3", companyStyle);
 
       // Заголовки таблицы
-      const headerRow1 = 3; // 0-based index для строки 4
-      const headerRow2 = 4; // 0-based index для строки 5
+      const headerRow1 = 4; // 0-based index для строки 5
+      const headerRow2 = 5; // 0-based index для строки 6
       const totalCols = showTagan ? 12 : 10;
 
       // Главные заголовки (строка 4)
@@ -736,7 +789,7 @@ export const WarehouseStockGoodsReport = () => {
       // Данные таблицы
       const totalRowIndex = allData.length - 1; // Индекс итоговой строки
 
-      for (let row = 5; row < allData.length; row++) {
+      for (let row = 6; row < allData.length; row++) {
         for (let col = 0; col < totalCols; col++) {
           const addr = XLSX.utils.encode_cell({ r: row, c: col });
 
@@ -756,42 +809,41 @@ export const WarehouseStockGoodsReport = () => {
 
       // ===== 10. Объединение ячеек =====
       worksheet["!merges"] = [
-        // Заголовок "ОТПРАВКА №"
-        { s: { r: 0, c: 2 }, e: { r: 0, c: 3 } },
-        // Город направления
-        { s: { r: 1, c: 1 }, e: { r: 1, c: 3 } },
+        // Заголовок "ОТПРАВКА №" во второй строке
+        { s: { r: 1, c: 2 }, e: { r: 1, c: 3 } },
+        // Город направления в третьей строке
+        { s: { r: 2, c: 1 }, e: { r: 2, c: 3 } },
         // Заголовки таблицы - основные группы
-        { s: { r: 3, c: 0 }, e: { r: 3, c: 1 } }, // Отправитель
-        { s: { r: 3, c: 2 }, e: { r: 3, c: 3 } }, // Получатель
+        { s: { r: 4, c: 0 }, e: { r: 4, c: 1 } }, // Отправитель
+        { s: { r: 4, c: 2 }, e: { r: 4, c: 3 } }, // Получатель
       ];
 
       // ===== 11. Установка высоты строк =====
       worksheet["!rows"] = [
-        { hpt: 18 }, // Строка 1
-        { hpt: 16 }, // Строка 2
+        { hpt: 20 }, // Строка 1 - ЛОГО, РЕЙС, ВОДИТЕЛЬ, ДАТА
+        { hpt: 18 }, // Строка 2 - ОТПРАВКА №
+        { hpt: 16 }, // Строка 3 - город направления
         { hpt: 12 }, // Пустая строка
         { hpt: 20 }, // Заголовки 1
         { hpt: 18 }, // Заголовки 2 (подзаголовки)
       ];
 
       // Добавляем высоту для строк данных
-      for (let i = 5; i < allData.length; i++) {
+      for (let i = 6; i < allData.length; i++) {
         if (!worksheet["!rows"]) worksheet["!rows"] = [];
         // Итоговая строка чуть выше
         worksheet["!rows"][i] = { hpt: i === totalRowIndex ? 18 : 15 };
       }
 
       // ===== 12. Генерация имени файла =====
-      const truckNumber =
-        tableShipmentProps.dataSource?.find(
-          (item) => item.id === shipmentData?.id
-        )?.truck_number || "report";
+      const truckNumber = shipmentRecord?.truck_number || "report";
+      const shipmentDate = shipmentRecord?.created_at 
+        ? dayjs(shipmentRecord.created_at).utc().format("DD.MM.YYYY.HH-mm")
+        : dayjs().format("DD.MM.YYYY.HH-mm");
 
       const fileName = `${
         shipmentData?.destination || "Export"
-      } #${truckNumber} ${driverName || ""} от (${dayjs().format(
-        "DD.MM.YYYY.HH-mm"
-      )}).xlsx`;
+      } #${truckNumber} ${driverName || ""} от (${shipmentDate}).xlsx`;
 
       // ===== 13. Сохранение файла =====
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
@@ -835,18 +887,20 @@ export const WarehouseStockGoodsReport = () => {
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
 
-      const truckNumber =
-        tableShipmentProps.dataSource?.find((item: any) => {
-          return item.id === shipmentData?.id;
-        })?.truck_number || "report";
+      const shipmentRecordForCSV = tableShipmentProps.dataSource?.find((item: any) => {
+        return item.id === shipmentData?.id;
+      });
+      
+      const truckNumber = shipmentRecordForCSV?.truck_number || "report";
+      const shipmentDate = shipmentRecordForCSV?.created_at 
+        ? dayjs(shipmentRecordForCSV.created_at).utc().format("DD.MM.YYYY.HH-mm")
+        : dayjs().format("DD.MM.YYYY.HH-mm");
 
       link.setAttribute(
         "download",
         `${
           shipmentData?.destination
-        } #${truckNumber} ${driverName} от (${dayjs().format(
-          "DD.MM.YYYY.HH-mm"
-        )}).csv`
+        } #${truckNumber} ${driverName} от (${shipmentDate}).csv`
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
