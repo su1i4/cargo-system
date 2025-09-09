@@ -771,18 +771,19 @@ export const CashDeskCreate: React.FC = () => {
 
           if (bolik && selectedRows.length === 1) {
             const selectedGood = selectedRows[0];
-            let rate = 0;
             const selectedCurrency = values.type_currency;
-            if (selectedCurrency) {
-              rate =
-                currency.data?.find(
-                  (item: any) => item.name === selectedCurrency
-                )?.rate || 0;
-            }
+            const selectedCurrencyData = currency.data?.find(
+              (item: any) => item.name === selectedCurrency
+            );
+            
+            const historicalRate = getHistoricalRate(
+              selectedCurrencyData,
+              selectedGood.created_at
+            );
 
             const totalGoodAmount = Number(selectedGood?.amount);
             const remainingAmount =
-              (rate > 0 ? rate * totalGoodAmount : totalGoodAmount) -
+              (historicalRate > 0 ? historicalRate * totalGoodAmount : totalGoodAmount) -
               (selectedGood?.paid_sum || 0);
 
             if (values.amount > remainingAmount) {
