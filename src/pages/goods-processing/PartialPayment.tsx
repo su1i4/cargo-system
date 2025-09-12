@@ -201,12 +201,7 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     }
 
     const paymentAmount = Number(values.amount);
-    const currentRemainingAmount = getRemainingAmountInFormCurrency();
     
-    if (paymentAmount > currentRemainingAmount) {
-      return message.error(`Сумма оплаты не может превышать оставшуюся сумму: ${currentRemainingAmount.toFixed(2)} ${values.type_currency}`);
-    }
-
     if (paymentAmount <= 0) {
       return message.error("Сумма оплаты должна быть больше 0");
     }
@@ -308,7 +303,6 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
                   <Input 
                     type="number" 
                     min={0} 
-                    max={remainingAmount}
                     step="0.01"
                   />
                 </Form.Item>
