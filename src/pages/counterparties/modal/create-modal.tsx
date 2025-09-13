@@ -29,7 +29,11 @@ export const MyCreateModal: React.FC<{
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          sent_city_id: data.sent_city_id || null,
+          branch_id: data.branch_id || null,
+        }),
       });
 
       const result = await response.json();
@@ -68,6 +72,15 @@ export const MyCreateModal: React.FC<{
     },
     queryOptions: {
       enabled: !!values?.branch_id,
+    },
+  });
+
+  // Загрузка всех досыльных городов для случаев без основного города
+  const { data: allSentCityData } = useCustom({
+    url: `${API_URL}/sent-the-city`,
+    method: "get",
+    queryOptions: {
+      enabled: !values?.branch_id && open,
     },
   });
 
@@ -146,12 +159,6 @@ export const MyCreateModal: React.FC<{
         <Flex style={{ width: "100%" }} gap={10}>
           <Form.Item style={{ width: "100%" }} label="Город" name="branch_id">
             <Select
-              onChange={(value) => {
-                form.setFieldsValue({
-                  sent_city_id: null,
-                  branch_id: value || null,
-                });
-              }}
               {...selectProps}
               allowClear
             />
@@ -163,16 +170,17 @@ export const MyCreateModal: React.FC<{
             name="sent_city_id"
           >
             <Select
-              options={sentCityData?.data?.map((item: any) => ({
-                label: item.sent_city.name,
-                value: item.id,
-              }))}
+              options={
+                (values?.branch_id ? sentCityData?.data : allSentCityData?.data)?.map((item: any) => ({
+                  label: item.sent_city.name,
+                  value: item.id,
+                })) || []
+              }
               allowClear
-              onChange={(value) => {
-                form.setFieldsValue({
-                  sent_city_id: value || null,
-                });
-              }}
+              showSearch
+              filterOption={(input: string, option: any) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
             />
           </Form.Item>
         </Flex>

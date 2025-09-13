@@ -70,7 +70,11 @@ export const CounterpartyEditModal: React.FC<Props> = ({
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          sent_city_id: values.sent_city_id || null,
+          branch_id: values.branch_id || null,
+        }),
       });
 
       const result = await res.json();
@@ -109,6 +113,15 @@ export const CounterpartyEditModal: React.FC<Props> = ({
     },
     queryOptions: {
       enabled: !!values?.branch_id,
+    },
+  });
+
+  // Загрузка всех досыльных городов для случаев без основного города
+  const { data: allSentCityData } = useCustom({
+    url: `${API_URL}/sent-the-city`,
+    method: "get",
+    queryOptions: {
+      enabled: !values?.branch_id && open,
     },
   });
 
@@ -192,12 +205,7 @@ export const CounterpartyEditModal: React.FC<Props> = ({
           <Flex style={{ width: "100%" }} gap={10}>
             <Form.Item style={{ width: "100%" }} label="Город" name="branch_id">
               <Select
-                onChange={(value) => {
-                  form.setFieldsValue({
-                    sent_city_id: null,
-                    branch_id: value || null,
-                  });
-                }}
+               
                 {...selectProps}
                 allowClear
               />
@@ -212,12 +220,11 @@ export const CounterpartyEditModal: React.FC<Props> = ({
                   label: item.sent_city.name,
                   value: item.id,
                 }))}
-                onChange={(value) => {
-                  form.setFieldsValue({
-                    sent_city_id: value || null,
-                  });
-                }}
                 allowClear
+                showSearch
+                filterOption={(input: string, option: any) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
               />
             </Form.Item>
           </Flex>
