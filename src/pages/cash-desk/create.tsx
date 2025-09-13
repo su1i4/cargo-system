@@ -1351,7 +1351,7 @@ export const CashDeskCreate: React.FC = () => {
                     <div style={{ fontSize: "11px", lineHeight: "1.2" }}>
                       {services.map((service: any, index: number) => (
                         <div key={index} style={{ marginBottom: "2px" }}>
-                          <strong>Мешок {index + 1}:</strong> {service.weight}кг, <span style={{ marginLeft: "5px" }}>{service.price} {selectedCurrency}</span>
+                          <strong> номер:{service?.bag_number_numeric}</strong> {service.weight}кг, <span style={{ marginLeft: "5px" }}>{service.price} {selectedCurrency}</span>
                         </div>
                       ))}
                     </div>
