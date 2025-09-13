@@ -81,6 +81,7 @@ export const CashDeskCreate: React.FC = () => {
   const [preselectedGoodsIds, setPreselectedGoodsIds] = useState<number[]>([]);
   const [selectedCounterparty, setSelectedCounterparty] = useState<any>(null);
   const [isSubmit, setIsSubmit] = useState(false);
+  const [showBagDetails, setShowBagDetails] = useState(false);
 
   // Print functionality
   const printRef = useRef<HTMLDivElement>(null);
@@ -215,6 +216,13 @@ export const CashDeskCreate: React.FC = () => {
       url: `${API_URL}/currency`,
       method: "get",
     });
+
+  // Добавляем select для городов
+  const { selectProps: branchSelectProps } = useSelect({
+    resource: "branch",
+    optionLabel: "name",
+    optionValue: "id",
+  });
 
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedReceipientId, setSelectedReceipientId] = useState<
@@ -1150,6 +1158,27 @@ export const CashDeskCreate: React.FC = () => {
                 </Dropdown>
               </Space>
             </Col>
+            <Col>
+              <Select
+                placeholder="Выберите город"
+                style={{ width: 200 }}
+                allowClear
+                {...branchSelectProps}
+                onChange={(value) => {
+                  if (value) {
+                    setFilters([
+                      {
+                        "employee.branch.id": {
+                          $eq: value,
+                        },
+                      },
+                    ]);
+                  } else {
+                    setFilters([]);
+                  }
+                }}
+              />
+            </Col>
             <Col flex="auto">
               <Input
                 placeholder="Поиск по номеру накладной"
@@ -1188,6 +1217,14 @@ export const CashDeskCreate: React.FC = () => {
                   Дата
                 </Button>
               </Dropdown>
+            </Col>
+            <Col>
+              <Checkbox
+                checked={showBagDetails}
+                onChange={(e) => setShowBagDetails(e.target.checked)}
+              >
+                Показать мешки
+              </Checkbox>
             </Col>
             <Col>
               <Button
@@ -1302,6 +1339,26 @@ export const CashDeskCreate: React.FC = () => {
               title="Кол-во мешков"
               render={(value) => value?.length + " шт"}
             />
+            {showBagDetails && (
+              <Table.Column
+                dataIndex="services"
+                title="Детали мешков"
+                width={300}
+                render={(services: any[]) => {
+                  if (!services || services.length === 0) return "-";
+                  
+                  return (
+                    <div style={{ fontSize: "11px", lineHeight: "1.2" }}>
+                      {services.map((service: any, index: number) => (
+                        <div key={index} style={{ marginBottom: "2px" }}>
+                          <strong>Мешок {index + 1}:</strong> {service.weight}кг, <span style={{ marginLeft: "5px" }}>{service.price} {selectedCurrency}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }}
+              />
+            )}
             <Table.Column
               dataIndex="totalServiceAmountSum"
               title="Сумма"
@@ -1394,6 +1451,7 @@ export const CashDeskCreate: React.FC = () => {
                   selectedCurrency={selectedCurrency}
                   convertAmount={convertAmount}
                   client={selectedCounterparty}
+                  showBagDetails={showBagDetails}
                 />
               )}
             </div>

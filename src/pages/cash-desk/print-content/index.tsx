@@ -10,6 +10,7 @@ export const PrintContent = ({
   selectedCurrency,
   convertAmount,
   client,
+  showBagDetails = false,
 }: {
   data: any;
   selectedCurrency: string;
@@ -19,6 +20,7 @@ export const PrintContent = ({
     createdAt: string
   ) => number;
   client: any;
+  showBagDetails?: boolean;
 }) => {
   const records = data?.data?.data || [];
   
@@ -143,6 +145,7 @@ export const PrintContent = ({
             <th style={thStyle}>Пункт назначения</th>
             <th style={thStyle}>Вес</th>
             <th style={thStyle}>Кол-во мешков</th>
+            {showBagDetails && <th style={thStyle}>Детали мешков</th>}
             <th style={thStyle}>Сумма</th>
             <th style={thStyle}>Оплачено</th>
             <th style={thStyle}>К доплате</th>
@@ -192,6 +195,26 @@ export const PrintContent = ({
                   {record.totalServiceWeight ? `${record.totalServiceWeight.toFixed(2)} кг` : "0.00 кг"}
                 </td>
                 <td style={tdStyle}>{record.services?.length || 0} шт</td>
+                {showBagDetails && (
+                  <td style={tdStyle}>
+                    {record.services && record.services.length > 0 ? (
+                      <div style={{ fontSize: "10px", lineHeight: "1.1" }}>
+                        {record.services.map((service: any, index: number) => (
+                          <div key={index} style={{ marginBottom: "1px" }}>
+                            <strong>М{index + 1}:</strong> {service.weight}кг
+                            {service.comment && (
+                              <div style={{ color: "#666", fontSize: "9px" }}>
+                                {service.comment}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                )}
                 <td style={tdStyle}>
                   {convertedTotalAmount.toFixed(2)} {currencySymbol}
                 </td>
@@ -210,6 +233,7 @@ export const PrintContent = ({
             <td style={{ ...tdStyle, fontWeight: "bold" }} colSpan={9}>ИТОГО:</td>
             <td style={{ ...tdStyle, fontWeight: "bold" }}>{totalWeight.toFixed(2)} кг</td>
             <td style={{ ...tdStyle, fontWeight: "bold" }}>{totalItems} шт</td>
+            {showBagDetails && <td style={{ ...tdStyle, fontWeight: "bold" }}>-</td>}
             <td style={{ ...tdStyle, fontWeight: "bold" }}>{totalAmount.toFixed(2)} {currencySymbol}</td>
             <td style={{ ...tdStyle, fontWeight: "bold" }}>{totalPaidAmount.toFixed(2)} {currencySymbol}</td>
             <td style={{ ...tdStyle, fontWeight: "bold", color: "#d32f2f" }}>
