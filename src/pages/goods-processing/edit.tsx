@@ -15,6 +15,7 @@ import {
   Tooltip,
   Checkbox,
   Flex,
+  Modal,
 } from "antd";
 import dayjs from "dayjs";
 
@@ -129,7 +130,6 @@ export const GoodsEdit = () => {
   const [nextId, setNextId] = useState(1);
   const [typeProducts, setTypeProducts] = useState<TypeProduct[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [deletedServices, setDeletedServices] = useState<GoodItem[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [tariffs, setTariffs] = useState<TariffItem[]>([]);
   const [copyCount, setCopyCount] = useState(0);
@@ -414,36 +414,92 @@ export const GoodsEdit = () => {
     message.success(`Скопировано ${selectedItems.length} товаров`);
   };
 
+  const deleteServiceFromAPI = async (serviceId: number) => {
+    try {
+      const response = await fetch(`${apiUrl}/service/${serviceId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка при удалении");
+      }
+
+      return true;
+    } catch (error) {
+      message.error("Не удалось удалить товар");
+      return false;
+    }
+  };
+
   const removeSelectedItems = () => {
     if (selectedRowKeys.length === 0) {
       message.warning("Выберите товары для удаления");
       return;
     }
 
-    const remainingItems = services.filter(
-      (item) => !selectedRowKeys.includes(item.id)
-    );
-
     const itemsToDelete = services.filter((item) =>
       selectedRowKeys.includes(item.id)
     );
 
-    const existingItemsToDelete = itemsToDelete
-      .filter((item) => !item.is_created)
-      .map((item) => ({ ...item, deleted: true }));
+    Modal.confirm({
+      title: "Подтверждение удаления",
+      content: `Вы уверены, что хотите удалить ${itemsToDelete.length} товар(ов)? Это действие нельзя отменить.`,
+      okText: "Да, удалить",
+      cancelText: "Отмена",
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        const existingItemsToDelete = itemsToDelete.filter((item) => !item.is_created);
+        const newItemsToDelete = itemsToDelete.filter((item) => item.is_created);
 
-    setDeletedServices([...deletedServices, ...existingItemsToDelete]);
-    setServices(remainingItems);
-    setSelectedRowKeys([]);
+        // Удаляем существующие товары через API
+        let deletionSuccess = true;
+        for (const item of existingItemsToDelete) {
+          const success = await deleteServiceFromAPI(item.id);
+          if (!success) {
+            deletionSuccess = false;
+            break;
+          }
+        }
 
-    message.success(`Удалено ${itemsToDelete.length} товаров`);
+        if (deletionSuccess) {
+          // Удаляем все товары из локального состояния
+          const remainingItems = services.filter(
+            (item) => !selectedRowKeys.includes(item.id)
+          );
+          
+          setServices(remainingItems);
+          setSelectedRowKeys([]);
+          message.success(`Удалено ${itemsToDelete.length} товаров`);
+        }
+      },
+    });
   };
 
   const removeItem = (record: any) => {
-    if (!record.is_created) {
-      setDeletedServices([...deletedServices, { ...record, deleted: true }]);
-    }
-    setServices(services.filter((item) => item.id !== record.id));
+    Modal.confirm({
+      title: "Подтверждение удаления",
+      content: "Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.",
+      okText: "Да, удалить",
+      cancelText: "Отмена",
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        if (!record.is_created) {
+          // Удаляем через API если товар уже существует в базе
+          const success = await deleteServiceFromAPI(record.id);
+          if (!success) {
+            return;
+          }
+        }
+        
+        // Удаляем из локального состояния
+        setServices(services.filter((item) => item.id !== record.id));
+        message.success("Товар удален");
+      },
+    });
   };
 
   const calculateSum = (weight: number = 0, tariff: number = 0): number => {
@@ -792,7 +848,7 @@ export const GoodsEdit = () => {
 
     const submitValues = {
       ...values,
-      services: [...services, ...deletedServices].map((service) => ({
+      services: services.map((service) => ({
         ...service,
         is_updated: service.updated === true && !service.is_created,
         is_created: service.is_created === true,
@@ -1063,7 +1119,6 @@ export const GoodsEdit = () => {
         (item) => item?.sent_city_id === record?.sent_back_id
       );
       form.setFieldValue("sent_back_id", newCity?.id);
-      console.log(sentCityData, newCity )
     }
   }, [record?.sent_back_id, sentCityData]);
 
@@ -1453,7 +1508,7 @@ export const GoodsEdit = () => {
                     type="text"
                     danger
                     icon={<DeleteOutlined />}
-                    onClick={() => removeItem(record.id)}
+                    onClick={() => removeItem(record)}
                   />
                   <Button
                     type="text"
