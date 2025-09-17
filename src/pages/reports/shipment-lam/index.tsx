@@ -123,6 +123,7 @@ export const WarehouseStockGoodsReport = () => {
         "Фио отправителя": record.sender?.name || "",
         "Фио получателя": record.recipient?.name || "",
         Город: record.destination?.name || "",
+        Досыл: record.sent_back?.name || "",
         "Номер получателя": record.recipient?.phoneNumber || "",
         "Номера мешков":
           record.services
@@ -198,6 +199,7 @@ export const WarehouseStockGoodsReport = () => {
             "Фио отправителя": "",
             "Фио получателя": "",
             Город: "",
+            Досыл: "",
             "Номер получателя": "",
             "Номера мешков": service.bag_number_numeric || "",
             "Вес, кг": service.weight
@@ -232,6 +234,7 @@ export const WarehouseStockGoodsReport = () => {
       "Фио отправителя": "",
       "Фио получателя": "",
       Город: "",
+      Досыл: "",
       "Номер получателя": "",
       "Номера мешков": "",
       "Вес, кг": totalWeight,
@@ -247,6 +250,7 @@ export const WarehouseStockGoodsReport = () => {
       "Фио отправителя": "",
       "Фио получателя": "",
       Город: "",
+      Досыл: "",
       "Номер получателя": "",
       "Номера мешков": "",
       "Вес, кг": "",
@@ -262,6 +266,7 @@ export const WarehouseStockGoodsReport = () => {
       "Фио отправителя": "",
       "Фио получателя": "",
       Город: "",
+      Досыл: "",
       "Номер получателя": "",
       "Номера мешков": "",
       "Вес, кг": "",
@@ -278,6 +283,7 @@ export const WarehouseStockGoodsReport = () => {
       "Фио отправителя": "",
       "Фио получателя": "",
       Город: "",
+      Досыл: "",
       "Номер получателя": "",
       "Номера мешков": "",
       "Вес, кг": "",
@@ -412,6 +418,7 @@ export const WarehouseStockGoodsReport = () => {
         "",
         "Получатель",
         "",
+        "Досыл",
         "№ Сумки",
         "Наименование",
         "Кол-во",
@@ -464,6 +471,7 @@ export const WarehouseStockGoodsReport = () => {
           "Номер тел.",
           "Ф.И.О",
           "Номер тел",
+          "",
           "",
           "",
           "",
@@ -536,6 +544,7 @@ export const WarehouseStockGoodsReport = () => {
             senderPhone,
             recipientName,
             recipientPhone,
+            record.sent_back?.name || "",
             "",
             "",
             "",
@@ -573,6 +582,7 @@ export const WarehouseStockGoodsReport = () => {
               isFirstService ? senderPhone : "",
               isFirstService ? recipientName : "",
               isFirstService ? recipientPhone : "",
+              isFirstService ? (record.sent_back?.name || "") : "",
               bagNumber,
               description,
               quantity > 0 ? quantity.toString() : "",
@@ -611,6 +621,7 @@ export const WarehouseStockGoodsReport = () => {
         "",
         "",
         "",
+        "",
         totalBagsCount.toString(), // Итого количество
         totalWeight > 0 ? totalWeight.toFixed(2).replace(".", ",") : "0", // Итого вес
         totalToPaySum > 0 ? totalToPaySum.toFixed(0) : "0", // Итого к оплате
@@ -638,6 +649,7 @@ export const WarehouseStockGoodsReport = () => {
         { wch: 12 }, // Номер тел. отправителя
         { wch: 15 }, // Ф.И.О получателя
         { wch: 12 }, // Номер тел. получателя
+        { wch: 10 }, // Досыл
         { wch: 8 }, // № Сумки
         { wch: 20 }, // Наименование
         { wch: 8 }, // Кол-во
@@ -772,7 +784,7 @@ export const WarehouseStockGoodsReport = () => {
       // Заголовки таблицы
       const headerRow1 = 4; // 0-based index для строки 5
       const headerRow2 = 5; // 0-based index для строки 6
-      const totalCols = showTagan ? 12 : 10;
+      const totalCols = showTagan ? 13 : 11;
 
       // Главные заголовки (строка 4)
       for (let col = 0; col < totalCols; col++) {
@@ -797,8 +809,8 @@ export const WarehouseStockGoodsReport = () => {
           if (row === totalRowIndex) {
             setCellStyle(addr, totalRowStyle);
           } else {
-            // Левое выравнивание для ФИО и наименований
-            if (col === 0 || col === 2 || col === 5) {
+            // Левое выравнивание для ФИО, досыла и наименований
+            if (col === 0 || col === 2 || col === 4 || col === 6) {
               setCellStyle(addr, tableCellLeftStyle);
             } else {
               setCellStyle(addr, tableCellStyle);
@@ -1281,6 +1293,11 @@ export const WarehouseStockGoodsReport = () => {
             dataIndex="destination"
             render={(value) => value?.name}
             title="Город"
+          />
+          <Table.Column
+            dataIndex="sent_back"
+            render={(value) => value?.name || ""}
+            title="Досыл"
           />
           <Table.Column
             dataIndex="services"
