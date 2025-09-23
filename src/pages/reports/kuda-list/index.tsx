@@ -38,13 +38,13 @@ export const KudaList = () => {
   // Преобразование данных для экспорта
   const prepareData = () => {
     return (tableShipmentProps?.dataSource || []).map((item: any, index: number) => ({
-      "№": index + 1,
+      "№": String(index + 1),
       "Номер рейса": item.truck_number || "",
       "Пункт направления": item.branch?.name || "",
       "Водитель": item.driver || "",
       "Дата отправки": dayjs(item.created_at).utc().format("DD.MM.YYYY HH:mm"),
-      "Вес (кг)": item.totalServiceWeight?.toFixed(2) || 0,
-      "Сумма рейса (руб)": (item.services || []).reduce((acc: number, s: any) => acc + Number(s.sum || 0), 0),
+      "Вес (кг)": item.totalServiceWeight ? String(item.totalServiceWeight.toFixed(2)) : "0",
+      "Сумма рейса (руб)": String((item.services || []).reduce((acc: number, s: any) => acc + Number(s.sum || 0), 0)),
       "Расходы рейса": "", // Можешь заполнить если есть данные
       "Прибыль рейса": "",
       "Фрахт": "",

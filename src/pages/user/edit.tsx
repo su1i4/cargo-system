@@ -213,6 +213,16 @@ export const UserEdit = () => {
               <Select {...underBranchSelectProps} />
             </Form.Item>
           </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Form.Item
+              label="Представитель"
+              name="representative"
+              valuePropName="checked"
+            >
+              <Checkbox>Является представителем</Checkbox>
+            </Form.Item>
+          </Col>
         </Row>
 
         <Table

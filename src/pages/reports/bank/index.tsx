@@ -237,14 +237,14 @@ export const BankReport = () => {
         : "";
 
       return {
-        "№": index + 1,
+        "№": String(index + 1),
         "Дата оплаты": op.date
           ? dayjs(op.date).format("DD.MM.YYYY HH:mm")
           : "-",
         "Код клиента": clientCode,
         "Номер накладной": op.good?.invoice_number || "-",
         Валюта: op.type_currency || "-",
-        Сумма: `${op.amount?.toLocaleString() || 0}`,
+        Сумма: String(op.amount || 0),
         "Тип операции": op.type === "income" ? "Приход" : "Расход",
         "Вид прихода": typeOperationMap[op.type_operation] ?? op.type_operation,
         Комментарий: op.comment || "",
@@ -275,16 +275,14 @@ export const BankReport = () => {
         : "";
 
       return {
-        "№": index + 1,
+        "№": String(index + 1),
         "Дата оплаты": op.date
           ? dayjs(op.date).format("DD.MM.YYYY HH:mm")
           : "-",
         "Код клиента": clientCode,
         "Номер накладной": op.good?.invoice_number || "-",
         Валюта: op.type_currency || "-",
-        Сумма: `${op.type === "income" ? "+" : "-"}${
-          op.amount?.toLocaleString() || 0
-        } ${op.type_currency || ""}`,
+        Сумма: `${op.type === "income" ? "+" : "-"}${String(op.amount || 0)} ${op.type_currency || ""}`,
         "Тип операции": op.type === "income" ? "Приход" : "Расход",
         "Вид прихода": typeOperationMap[op.type_operation] ?? op.type_operation,
         Комментарий: op.comment || "",

@@ -170,7 +170,7 @@ export const IncomeReport = () => {
       }, []);
 
       const mainRow = {
-        "№": index + 1,
+        "№": String(index + 1),
         "Дата приемки": record.created_at
           ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
           : "",
@@ -209,14 +209,15 @@ export const IncomeReport = () => {
         "Вес, кг": record.totalServiceWeight
           ? String(record.totalServiceWeight).replace(".", ",").slice(0, 5)
           : "",
-        "Кол-во мешков": record.services?.length || 0,
-        Сумма: record.totalServiceAmountSum || 0,
-        "Сумма за мешки": record.totalProductAmountSum || 0,
-        Оплачено: record.paid_sum || 0,
-        Долг:
+        "Кол-во мешков": String(record.services?.length || 0),
+        Сумма: String(record.totalServiceAmountSum || 0),
+        "Сумма за мешки": String(record.totalProductAmountSum || 0),
+        Оплачено: String(record.paid_sum || 0),
+        Долг: String(
           Number(record.totalServiceAmountSum || 0) +
           Number(record.totalProductAmountSum || 0) -
-          Number(record.paid_sum || 0),
+          Number(record.paid_sum || 0)
+        ),
         "Тип строки": "Основная",
       };
 
@@ -243,11 +244,11 @@ export const IncomeReport = () => {
             "Вес, кг": service.weight
               ? String(service.weight).replace(".", ",").slice(0, 5)
               : "",
-            "Кол-во мешков": 1,
-            Сумма: service.sum || 0,
-            "Сумма за мешки": 0,
-            Оплачено: 0,
-            Долг: 0,
+            "Кол-во мешков": "1",
+            Сумма: String(service.sum || 0),
+            "Сумма за мешки": "0",
+            Оплачено: "0",
+            Долг: "0",
             "Тип строки": "Детали мешка",
           };
           exportData.push(serviceRow);

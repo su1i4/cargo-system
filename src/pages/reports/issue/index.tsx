@@ -126,7 +126,7 @@ export const IssueReport = () => {
     const dataSource = data?.data?.data || [];
 
     return dataSource.map((record: any, index: number) => ({
-      "№": index + 1,
+      "№": String(index + 1),
       "Дата получения": record.created_at
         ? dayjs(record.created_at).utc().format("DD.MM.YYYY HH:mm")
         : "",
@@ -149,12 +149,12 @@ export const IssueReport = () => {
         : "",
       "Номер мешков": record.services?.map((item: any) => item.bag_number_numeric).join(", ") || "",
       "Кол-во мешков": record.services?.length
-        ? record.services.length + " шт"
+        ? String(record.services.length) + " шт"
         : "0 шт",
-      "Сумма": `${
+      "Сумма": String(
         Number(record.totalServiceAmountSum || 0) +
         Number(record.totalProductAmountSum || 0)
-      } руб`,
+      ) + " руб",
       "Способ оплаты": record.payment_method || "",
       "Статус операции": (() => {
         if (record.operation_id) {

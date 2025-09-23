@@ -90,11 +90,11 @@ export const WarehouseStockReport = () => {
       headers.join(";"),
       ...nomenclatures.map((item, index) =>
         [
-          `${index + 1}`,
+          String(index + 1),
           `"${item.name}"`,
-          item.totalQuantity,
-          item.totalWeight,
-          item.packageCount,
+          String(item.totalQuantity),
+          String(item.totalWeight),
+          String(item.packageCount),
         ].join(";")
       ),
     ].join("\n");
@@ -142,11 +142,11 @@ export const WarehouseStockReport = () => {
           "Количество мест, коробки, мешки",
         ],
         ...nomenclatures.map((item, index) => [
-          index + 1,
+          String(index + 1),
           item.name,
-          item.totalQuantity,
-          item.totalWeight,
-          item.packageCount,
+          String(item.totalQuantity),
+          String(item.totalWeight),
+          String(item.packageCount),
         ]),
       ];
 

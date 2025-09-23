@@ -1,6 +1,6 @@
 import { DeleteButton, EditButton, Show, TextField } from "@refinedev/antd";
 import { useOne, useShow } from "@refinedev/core";
-import { Typography } from "antd";
+import { Typography, Checkbox } from "antd";
 
 const { Title } = Typography;
 
@@ -42,6 +42,9 @@ export const UserShow = () => {
 
       <Title level={5}>{"Должность"}</Title>
       <TextField value={record?.position} />
+
+      <Title level={5}>{"Представитель"}</Title>
+      <Checkbox checked={record?.representative} disabled />
 
       <Title level={5}>{"Фото"}</Title>
       <TextField value={record?.photo} />

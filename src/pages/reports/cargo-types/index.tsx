@@ -141,11 +141,11 @@ export const CargoTypesReport = () => {
       headers.join(";"),
       ...nomenclatures.map((item, index) =>
         [
-          `${index + 1}`,
+          String(index + 1),
           `"${item.name}"`,
-          item.quantity,
-          item.totalWeight,
-          item.count,
+          String(item.quantity),
+          String(item.totalWeight),
+          String(item.count),
         ].join(";")
       ),
     ].join("\n");
@@ -195,11 +195,11 @@ export const CargoTypesReport = () => {
           "Количество мест, коробки, мешки",
         ],
         ...nomenclatures.map((item, index) => [
-          index + 1,
+          String(index + 1),
           item.name,
-          item.quantity,
-          item.totalWeight,
-          item.count,
+          String(item.quantity),
+          String(item.totalWeight),
+          String(item.count),
         ]),
       ];
 

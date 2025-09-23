@@ -1,6 +1,6 @@
 import { List, useTable } from "@refinedev/antd";
 import { useNavigation } from "@refinedev/core";
-import { Table } from "antd";
+import { Table, Checkbox } from "antd";
 
 export const UserList = () => {
   const { tableProps } = useTable({
@@ -29,6 +29,11 @@ export const UserList = () => {
         <Table.Column dataIndex="firstName" title={"Имя"} />
         <Table.Column dataIndex="lastName" title={"Фамилия"} />
         <Table.Column dataIndex="position" title={"Должность"} />
+        <Table.Column 
+          dataIndex="representative" 
+          title={"Представитель"} 
+          render={(value) => <Checkbox checked={value} disabled />}
+        />
         <Table.Column dataIndex="photo" title={"Фото"} />
       </Table>
     </List>

@@ -66,11 +66,7 @@ const getHistoricalRate = (currency: any, targetDate: string) => {
   return sortedHistory[sortedHistory.length - 1]?.rate || currency?.rate || 1;
 };
 
-export enum CurrencyType {
-  Usd = "Доллар",
-  Rub = "Рубль",
-  Som = "Сом",
-}
+
 
 export const CashDeskCreate: React.FC = () => {
   const { push } = useNavigation();
@@ -337,12 +333,17 @@ export const CashDeskCreate: React.FC = () => {
   });
 
   useEffect(() => {
-    if (form) {
+    if (form && currency.data && currency.data.length > 0) {
       form.setFieldValue("type", "income");
-      form.setFieldValue("type_currency", "Сом");
-      setSelectedCurrency("Сом");
+      
+      // Ищем "Сом" в списке валют, если нет - берем "Рубль"
+      const hasSom = currency.data.some((item: any) => item.name === "Сом");
+      const defaultCurrency = hasSom ? "Сом" : "Рубль";
+      
+      form.setFieldValue("type_currency", defaultCurrency);
+      setSelectedCurrency(defaultCurrency);
     }
-  }, [form]);
+  }, [form, currency.data]);
 
   useEffect(() => {
     if (formProps.form) {
@@ -1002,7 +1003,7 @@ export const CashDeskCreate: React.FC = () => {
                 disabled={currencyLoading || isBalanceOperation}
                 placeholder="Выберите валюту"
                 filterOption={(input, option) =>
-                  (option?.label ?? "")
+                  String(option?.label ?? "")
                     .toLowerCase()
                     .includes(input.toLowerCase())
                 }
@@ -1013,10 +1014,10 @@ export const CashDeskCreate: React.FC = () => {
                 options={
                   isBalanceOperation
                     ? [{ label: "Рубль", value: "Рубль" }]
-                    : Object.values(CurrencyType).map((item: any) => ({
-                        label: `${item}`,
-                        value: item,
-                      }))
+                    : currency.data?.map((item: any) => ({
+                        label: item.name,
+                        value: item.name,
+                      })) || []
                 }
               />
             </Form.Item>

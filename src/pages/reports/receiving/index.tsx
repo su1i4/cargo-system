@@ -223,14 +223,14 @@ export const ShipmentReport = () => {
   const prepareExportData = () => {
     const services = servicesTableProps.dataSource || [];
     return services.map((service: any, index: number) => ({
-      "№": index + 1,
+      "№": String(index + 1),
       "Дата приемки": dayjs(service.good?.created_at)
         .utc()
         .format("DD.MM.YYYY HH:mm"),
       Отправитель: `${service.good?.sender?.clientPrefix}-${service.good?.sender?.clientCode} ${service.good?.sender?.name}`,
       "Номер мешка": service.bag_number_numeric || "",
       Получатель: `${service.good?.recipient?.clientPrefix}-${service.good?.recipient?.clientCode} ${service.good?.recipient?.name}`,
-      Количество: service.quantity || "",
+      Количество: String(service.quantity || ""),
       Вес: service.weight
         ? String(service.weight).replace(".", ",").slice(0, 5)
         : "",

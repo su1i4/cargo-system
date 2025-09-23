@@ -125,7 +125,7 @@ export const CashDeskIncomeReport = () => {
     const dataSource = data?.data?.data || [];
 
     return dataSource.map((record: any, index: number) => ({
-      "№": index + 1,
+      "№": String(index + 1),
       "Дата прихода": record.date
         ? dayjs(record.date).utc().format("DD.MM.YYYY HH:mm")
         : "",
@@ -137,7 +137,7 @@ export const CashDeskIncomeReport = () => {
       "ФИО клиента": record.counterparty?.name || "",
       "Телефон клиента": record.counterparty?.phoneNumber || "",
       "Номер накладной": record.good?.invoice_number || "",
-      "Сумма": `${record.amount || 0} ${record.type_currency || ""}`,
+      "Сумма": String(record.amount || 0),
       "Валюта": record.type_currency || "",
       "Способ оплаты": record.method_payment || "",
       "Сотрудник": record.user

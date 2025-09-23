@@ -513,12 +513,12 @@ export const CargoReceivedReport = () => {
       tableData.forEach((item) => {
         exportData.push({
           Город: item.region || "",
-          Место: item.totalCount || "",
-          "Общий тоннаж, кг": item.totalWeight || "",
-          Пошив: item.sewing || "",
-          Брендированные: item.brand || "",
-          Маркировка: item.marking || "",
-          "К-привозные": item.imported || "",
+          Место: String(item.totalCount || ""),
+          "Общий тоннаж, кг": String(item.totalWeight || ""),
+          Пошив: String(item.sewing || ""),
+          Брендированные: String(item.brand || ""),
+          Маркировка: String(item.marking || ""),
+          "К-привозные": String(item.imported || ""),
         });
       });
 
@@ -537,12 +537,12 @@ export const CargoReceivedReport = () => {
       totalData.forEach((item) => {
         exportData.push({
           Город: item.region || "",
-          Место: item.totalCount || "",
-          "Общий тоннаж, кг": item.totalWeight || "",
-          Пошив: item.sewing || "",
-          Брендированные: item.brand || "",
-          Маркировка: item.marking || "",
-          "К-привозные": item.imported || "",
+          Место: String(item.totalCount || ""),
+          "Общий тоннаж, кг": String(item.totalWeight || ""),
+          Пошив: String(item.sewing || ""),
+          Брендированные: String(item.brand || ""),
+          Маркировка: String(item.marking || ""),
+          "К-привозные": String(item.imported || ""),
         });
       });
 

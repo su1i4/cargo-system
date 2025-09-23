@@ -119,7 +119,7 @@ export const WarehouseStockGoodsReport = () => {
         0;
 
       const mainRow: any = {
-        "№": index + 1,
+        "№": String(index + 1),
         "Фио отправителя": record.sender?.name || "",
         "Фио получателя": record.recipient?.name || "",
         Город: record.destination?.name || "",
@@ -130,53 +130,39 @@ export const WarehouseStockGoodsReport = () => {
             ?.map((item: any) => item.bag_number_numeric)
             .join(", ") || "",
         "Вес, кг": record.weight
-          ? Number(record.weight).toFixed(2).toString().replace(".", ",")
+          ? String(Number(record.weight).toFixed(2)).replace(".", ",")
           : "",
-        "Кол-во мешков": record.services?.length || 0,
-        Сумма: Number(record.amount || 0)
-          .toFixed(2)
-          .toString()
+        "Кол-во мешков": String(record.services?.length || 0),
+        Сумма: String(Number(record.amount || 0)
+          .toFixed(2))
           .replace(".", ","),
-        "Сумма за мешки": Number(
+        "Сумма за мешки": String(Number(
           record.avgProductPrice - (showTagan ? taganSum : 0) || 0
         )
-          .toFixed(2)
-          .toString()
+          .toFixed(2))
           .replace(".", ","),
-        Оплачено: Number(record.paid_sum || 0)
-          .toFixed(2)
-          .toString()
+        Оплачено: String(Number(record.paid_sum || 0)
+          .toFixed(2))
           .replace(".", ","),
       };
 
       if (!showTagan) {
-        mainRow["Долг"] = (
-          Number(record.amount || 0) - Number(record.paid_sum || 0)
-        )
-          .toFixed(2)
-          .toString()
-          .replace(".", ",");
+        mainRow["Долг"] = String(
+          (Number(record.amount || 0) - Number(record.paid_sum || 0)).toFixed(2)
+        ).replace(".", ",");
       }
 
       if (showTagan) {
-        mainRow["Сумма за Таганский рынок"] = Number(taganSum)
-          .toFixed(2)
-          .toString()
+        mainRow["Сумма за Таганский рынок"] = String(Number(taganSum).toFixed(2))
           .replace(".", ",");
 
-        (mainRow["Долг с Таганским рынком"] = (
-          Number(record.amount || 0) - Number(record.paid_sum || 0)
-        )
-          .toFixed(2)
-          .toString()
-          .replace(".", ",")),
-          (mainRow["Долг без Таганского рынка"] = (
-            Number(record.amount || 0) -
-            (Number(record.paid_sum || 0) + Number(taganSum || 0))
-          )
-            .toFixed(2)
-            .toString()
-            .replace(".", ","));
+        (mainRow["Долг с Таганским рынком"] = String(
+          (Number(record.amount || 0) - Number(record.paid_sum || 0)).toFixed(2)
+        ).replace(".", ",")),
+          (mainRow["Долг без Таганского рынка"] = String(
+            (Number(record.amount || 0) -
+            (Number(record.paid_sum || 0) + Number(taganSum || 0))).toFixed(2)
+          ).replace(".", ","));
       }
 
       totalSum += Number(record.amount || 0);
@@ -203,21 +189,17 @@ export const WarehouseStockGoodsReport = () => {
             "Номер получателя": "",
             "Номера мешков": service.bag_number_numeric || "",
             "Вес, кг": service.weight
-              ? Number(service.weight).toFixed(2).toString().replace(".", ",")
+              ? String(Number(service.weight).toFixed(2)).replace(".", ",")
               : "",
-            "Кол-во мешков": 1,
-            Сумма: Number(service.sum || 0)
-              .toFixed(2)
-              .toString()
+            "Кол-во мешков": "1",
+            Сумма: String(Number(service.sum || 0)
+              .toFixed(2))
               .replace(".", ","),
-            "Сумма за мешки": 0,
-            Оплачено: Number(service.paid_sum || 0)
-              .toFixed(2)
-              .toString()
+            "Сумма за мешки": "0",
+            Оплачено: String(Number(service.paid_sum || 0)
+              .toFixed(2))
               .replace(".", ","),
-            Долг: (Number(service.sum || 0) - Number(service.paid_sum || 0))
-              .toFixed(2)
-              .toString()
+            Долг: String((Number(service.sum || 0) - Number(service.paid_sum || 0)).toFixed(2))
               .replace(".", ","),
           };
 
@@ -237,12 +219,12 @@ export const WarehouseStockGoodsReport = () => {
       Досыл: "",
       "Номер получателя": "",
       "Номера мешков": "",
-      "Вес, кг": totalWeight,
-      "Кол-во мешков": totalBagsCount,
-      Сумма: totalSum,
-      "Сумма за мешки": totalBagSum,
-      Оплачено: totalPaid,
-      Долг: totalDebt,
+      "Вес, кг": String(totalWeight),
+      "Кол-во мешков": String(totalBagsCount),
+      Сумма: String(totalSum),
+      "Сумма за мешки": String(totalBagSum),
+      Оплачено: String(totalPaid),
+      Долг: String(totalDebt),
     };
 
     const totalRow2 = {
@@ -549,12 +531,12 @@ export const WarehouseStockGoodsReport = () => {
             "",
             "",
             weight > 0 ? weight.toFixed(2).replace(".", ",") : "",
-            debtAmount > 0 ? debtAmount.toFixed(0) : "",
-            mainAmount > 0 ? mainAmount.toFixed(0) : "",
+            debtAmount > 0 ? String(debtAmount.toFixed(0)) : "",
+            mainAmount > 0 ? String(mainAmount.toFixed(0)) : "",
           ];
 
           if (showTagan) {
-            row.push(record?.avgProductPrice);
+            row.push(record?.avgProductPrice ? String(record.avgProductPrice) : "");
           }
 
           tableData.push(row);
@@ -585,15 +567,15 @@ export const WarehouseStockGoodsReport = () => {
               isFirstService ? (record.sent_back?.name || "") : "",
               bagNumber,
               description,
-              quantity > 0 ? quantity.toString() : "",
+              quantity > 0 ? String(quantity) : "",
               weight > 0 ? weight.toFixed(2).replace(".", ",") : "",
-              isFirstService && debtAmount > 0 ? debtAmount.toFixed(0) : "", // К оплате только в первой строке
-              serviceSum > 0 ? serviceSum.toFixed(0) : "", // Сумма услуги
+              isFirstService && debtAmount > 0 ? String(debtAmount.toFixed(0)) : "", // К оплате только в первой строке
+              serviceSum > 0 ? String(serviceSum.toFixed(0)) : "", // Сумма услуги
             ];
 
             if (showTagan) {
               row.push(
-                isFirstService && record?.avgProductPrice > 0 ? record?.avgProductPrice.toFixed(0) : "" // Таганский только в первой строке
+                isFirstService && record?.avgProductPrice > 0 ? String(record?.avgProductPrice.toFixed(0)) : "" // Таганский только в первой строке
               );
             }
 
@@ -622,16 +604,16 @@ export const WarehouseStockGoodsReport = () => {
         "",
         "",
         "",
-        totalBagsCount.toString(), // Итого количество
+        String(totalBagsCount), // Итого количество
         totalWeight > 0 ? totalWeight.toFixed(2).replace(".", ",") : "0", // Итого вес
-        totalToPaySum > 0 ? totalToPaySum.toFixed(0) : "0", // Итого к оплате
-        totalSum > 0 ? totalSum.toFixed(0) : "0", // Итого сумма
+        totalToPaySum > 0 ? String(totalToPaySum.toFixed(0)) : "0", // Итого к оплате
+        totalSum > 0 ? String(totalSum.toFixed(0)) : "0", // Итого сумма
       ];
 
       if (showTagan) {
         totalRow.push(
-          totalTaganSum > 0 ? totalTaganSum.toFixed(0) : "0", // Итого 400 руб
-          total200Sum > 0 ? total200Sum.toFixed(0) : "0" // Итого 200 руб
+          totalTaganSum > 0 ? String(totalTaganSum.toFixed(0)) : "0", // Итого 400 руб
+          total200Sum > 0 ? String(total200Sum.toFixed(0)) : "0" // Итого 200 руб
         );
       }
 

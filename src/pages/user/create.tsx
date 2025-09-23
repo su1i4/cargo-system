@@ -176,6 +176,16 @@ export const UserCreate = () => {
               <Input.Password />
             </Form.Item>
           </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Form.Item
+              label="Представитель"
+              name="representative"
+              valuePropName="checked"
+            >
+              <Checkbox>Является представителем</Checkbox>
+            </Form.Item>
+          </Col>
         </Row>
 
         <Table dataSource={selectedEndpoints} rowKey="key" pagination={false}>
