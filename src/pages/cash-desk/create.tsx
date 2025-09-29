@@ -44,6 +44,13 @@ import { PrintContent } from "./print-content";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+// Экспорт типа валют для использования в модальных окнах
+export const CurrencyType = {
+  Сом: "Сом",
+  Рубль: "Рубль", 
+  Доллар: "Доллар"
+};
+
 const getHistoricalRate = (currency: any, targetDate: string) => {
   if (!currency?.currency_history || !targetDate) {
     return currency?.rate || 1;
