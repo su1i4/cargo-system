@@ -28,7 +28,7 @@ const entitiesTypes = {
   DiscountEntity: "Скидка",
 };
 
-const columns = [
+const columns = (users: any) => [
   { dataIndex: "id", title: "ID" },
   {
     dataIndex: "entity",
@@ -62,7 +62,14 @@ const columns = [
     render: (value: string) =>
       actionsTypes[value as keyof typeof actionsTypes] || value,
   },
-  { dataIndex: "userId", title: "Пользователь" },
+  {
+    dataIndex: "userId",
+    title: "Пользователь",
+    render: (value: string) => {
+      const user = users.find((user: any) => user.id === Number(value));
+      return user ? user.firstName + " " + user.lastName : null;
+    },
+  },
   {
     dataIndex: "createdAt",
     title: "Дата",
@@ -72,6 +79,7 @@ const columns = [
 
 export const Audit = () => {
   const [data, setData] = useState([]);
+  const [users, setUsers] = useState([]);
   const [filters, setFilters] = useState({
     entity: "",
     entityId: "",
@@ -101,9 +109,27 @@ export const Audit = () => {
     }
   };
 
+  const getUser = async () => {
+    const response = await fetch(`${API_URL}/users`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+      },
+    });
+    const data = await response.json();
+    setUsers(data);
+  };
+
   useEffect(() => {
     getAudit();
   }, [filters]);
+
+  useEffect(() => {
+    getUser();
+  }, []);
+
+  console.log(users);
 
   return (
     <List title="Аудит">
@@ -152,7 +178,7 @@ export const Audit = () => {
         </Col>
       </Row>
 
-      <Table columns={columns} dataSource={data} rowKey="id" />
+      <Table columns={columns(users)} dataSource={data} rowKey="id" />
     </List>
   );
 };

@@ -206,6 +206,9 @@ export const CashDeskCreate: React.FC = () => {
   const [bolik, setBolik] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState("Сом");
   const [isBalanceOperation, setIsBalanceOperation] = useState(false);
+  const [branchFilter, setBranchFilter] = useState<any>(null);
+  const [searchFilter, setSearchFilter] = useState<any>(null);
+  const [dateFilter, setDateFilter] = useState<any>(null);
 
   const { data: currency = { data: [] }, isLoading: currencyLoading } =
     useCustom<any>({
@@ -571,6 +574,20 @@ export const CashDeskCreate: React.FC = () => {
     }
   }, [preselectedGoodsIds, refetch]);
 
+  useEffect(() => {
+    const allFilters = [
+      branchFilter,
+      searchFilter,
+      dateFilter,
+    ].filter(Boolean);
+
+    setFilters(allFilters);
+  }, [branchFilter, searchFilter, dateFilter]);
+
+  useEffect(() => {
+    refetch();
+  }, [filters, refetch]);
+
   const handleSenderChange = (value: any, record: any) => {
     setSelectedCounterparty(record);
     setSelectedType(
@@ -636,7 +653,7 @@ export const CashDeskCreate: React.FC = () => {
       placeholder={["Начальная дата", "Конечная дата"]}
       onChange={(dates, dateStrings) => {
         if (dates && dateStrings[0] && dateStrings[1]) {
-          setFilters([
+          setDateFilter([
             {
               created_at: {
                 $gte: dateStrings[0],
@@ -645,7 +662,7 @@ export const CashDeskCreate: React.FC = () => {
             },
           ]);
         } else {
-          setFilters([]);
+          setDateFilter([]);
         }
       }}
     />
@@ -1167,15 +1184,15 @@ export const CashDeskCreate: React.FC = () => {
                 {...branchSelectProps}
                 onChange={(value) => {
                   if (value) {
-                    setFilters([
+                    setBranchFilter([
                       {
-                        "employee.branch.id": {
+                        "destination.id": {
                           $eq: value,
                         },
                       },
                     ]);
                   } else {
-                    setFilters([]);
+                    setBranchFilter([]);
                   }
                 }}
               />
@@ -1187,11 +1204,11 @@ export const CashDeskCreate: React.FC = () => {
                 onChange={(e) => {
                   const value = e.target.value;
                   if (!value) {
-                    setFilters([]);
+                    setSearchFilter([]);
                     return;
                   }
 
-                  setFilters([
+                  setSearchFilter([
                     {
                       $or: [
                         { invoice_number: { $contL: value } },

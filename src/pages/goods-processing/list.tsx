@@ -63,10 +63,95 @@ export const GoogsProcessingList = () => {
   const [searchFilter, setSearchFilter] = useState<any>(null);
   const [dateFilter, setDateFilter] = useState<any>(null);
 
+  // Состояние для выбранных значений в UI
+  const [selectedDestinations, setSelectedDestinations] = useState<any[]>([]);
+  const [selectedPayment, setSelectedPayment] = useState<boolean | undefined>(undefined);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const [selectedDateRange, setSelectedDateRange] = useState(null);
+  const [selectedDateRange, setSelectedDateRange] = useState<any>(null);
+
+  // Инициализация состояния из URL параметров
+  useEffect(() => {
+    // Восстанавливаем поиск
+    const value = searchparams.get("value");
+    if (value) {
+      setSearchFilter({
+        $or: [
+          { "sender.clientCode": { $contL: value } },
+          { "sender.name": { $contL: value } },
+          { "invoice_number": { $contL: value } },
+        ],
+      });
+      setSearch(value);
+    }
+
+    // Восстанавливаем фильтр по пункту назначения
+    const destinations = searchparams.get("destinations");
+    if (destinations) {
+      const destinationIds = destinations.split(',').map(id => parseInt(id));
+      setSelectedDestinations(destinationIds);
+      setDestinationFilter({
+        $or: destinationIds.map((item: any) => ({
+          destination_id: { $eq: item },
+        })),
+      });
+    }
+
+    // Восстанавливаем фильтр по оплате
+    const payment = searchparams.get("payment");
+    if (payment !== null && payment !== '') {
+      const paymentValue = payment === 'true';
+      setSelectedPayment(paymentValue);
+      setPaymentFilter({ is_payment: { $eq: paymentValue } });
+    }
+
+    // Восстанавливаем фильтр по статусу
+    const statuses = searchparams.get("statuses");
+    if (statuses) {
+      const statusArray = statuses.split(',');
+      setSelectedStatuses(statusArray);
+      setStatusFilter({
+        $or: statusArray.map((status: string) => ({
+          status: { $eq: status },
+        })),
+      });
+    }
+
+    // Восстанавливаем фильтр по дате
+    const dateStart = searchparams.get("dateStart");
+    const dateEnd = searchparams.get("dateEnd");
+    if (dateStart && dateEnd) {
+      const startDate = dayjs(dateStart);
+      const endDate = dayjs(dateEnd);
+      setSelectedDateRange([startDate, endDate] as any);
+      setDateFilter({
+        created_at: {
+          $gte: dateStart,
+          $lte: dateEnd,
+        },
+      });
+    }
+
+    // Восстанавливаем сортировку
+    const sort = searchparams.get("sort");
+    const sortDir = searchparams.get("sortDir");
+    if (sort) {
+      setSortField(sort as any);
+    }
+    if (sortDir) {
+      setSortDirection(sortDir as "ASC" | "DESC");
+    }
+
+    // Восстанавливаем пагинацию
+    const page = searchparams.get("page");
+    const size = searchparams.get("size");
+    if (page) setCurrentPage(Number(page));
+    if (size) setPageSize(Number(size));
+  }, []);
+
   // Функция для объединения всех фильтров
   useEffect(() => {
     const allFilters = [
@@ -109,38 +194,72 @@ export const GoogsProcessingList = () => {
   const [settingVisible, setSettingVisible] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
+  // Обновляем данные при изменении фильтров
   useEffect(() => {
-    if (!searchparams.get("page") && !searchparams.get("size")) {
-      searchparams.set("page", String(currentPage));
-      searchparams.set("size", String(pageSize));
-      setSearchParams(searchparams);
-    } else {
-      const page = searchparams.get("page");
-      const size = searchparams.get("size");
-      setCurrentPage(Number(page));
-      setPageSize(Number(size));
-    }
     refetch();
   }, [searchFilters, sortDirection, currentPage, pageSize]);
-
-  useEffect(() => {
-    const value = searchparams.get("value");
-    if (value) {
-      setSearchFilter({
-        $or: [
-          { "sender.clientCode": { $contL: value } },
-          { "sender.name": { $contL: value } },
-          { "invoice_number": { $contL: value } },
-        ],
-      });
-    }
-    setSearch(value || "");
-  }, []);
 
   const { data: branch } = useCustom({
     url: `${API_URL}/branch`,
     method: "get",
   });
+
+  // Функция для обновления URL параметров
+  const updateUrlParams = () => {
+    const newSearchParams = new URLSearchParams(searchparams);
+    
+    // Сохраняем поиск
+    if (search) {
+      newSearchParams.set("value", search);
+    } else {
+      newSearchParams.delete("value");
+    }
+    
+    // Сохраняем пункты назначения
+    if (selectedDestinations.length > 0) {
+      newSearchParams.set("destinations", selectedDestinations.join(','));
+    } else {
+      newSearchParams.delete("destinations");
+    }
+    
+    // Сохраняем фильтр оплаты
+    if (selectedPayment !== undefined) {
+      newSearchParams.set("payment", String(selectedPayment));
+    } else {
+      newSearchParams.delete("payment");
+    }
+    
+    // Сохраняем статусы
+    if (selectedStatuses.length > 0) {
+      newSearchParams.set("statuses", selectedStatuses.join(','));
+    } else {
+      newSearchParams.delete("statuses");
+    }
+    
+    // Сохраняем даты
+    if (selectedDateRange && selectedDateRange[0] && selectedDateRange[1]) {
+      newSearchParams.set("dateStart", selectedDateRange[0].format('YYYY-MM-DD HH:mm:ss'));
+      newSearchParams.set("dateEnd", selectedDateRange[1].format('YYYY-MM-DD HH:mm:ss'));
+    } else {
+      newSearchParams.delete("dateStart");
+      newSearchParams.delete("dateEnd");
+    }
+    
+    // Сохраняем сортировку
+    newSearchParams.set("sort", sortField);
+    newSearchParams.set("sortDir", sortDirection);
+    
+    // Сохраняем пагинацию
+    newSearchParams.set("page", String(currentPage));
+    newSearchParams.set("size", String(pageSize));
+    
+    setSearchParams(newSearchParams);
+  };
+
+  // Обновляем URL при изменении любых фильтров
+  useEffect(() => {
+    updateUrlParams();
+  }, [selectedDestinations, selectedPayment, selectedStatuses, selectedDateRange, search, sortField, sortDirection, currentPage, pageSize]);
 
   const filterContent = (
     <Card style={{ width: 300, padding: "0px !important" }}>
@@ -156,15 +275,18 @@ export const GoogsProcessingList = () => {
         onChange={(value) => {
           if (!value || value.length === 0) {
             setDestinationFilter(null);
+            setSelectedDestinations([]);
           } else {
             setDestinationFilter({
               $or: value.map((item: any) => ({
                 destination_id: { $eq: item },
               })),
             });
+            setSelectedDestinations(value);
           }
         }}
         style={{ width: "100%", marginBottom: 20 }}
+        value={selectedDestinations}
       />
       <Select
         placeholder="Оплаченные / Не оплаченные"
@@ -183,11 +305,14 @@ export const GoogsProcessingList = () => {
           if (value === undefined || value === null) {
             // очищено — убираем фильтр
             setPaymentFilter(null);
+            setSelectedPayment(undefined);
           } else {
             setPaymentFilter({ is_payment: { $eq: value } });
+            setSelectedPayment(value);
           }
         }}
         style={{ width: "100%", marginBottom: 20 }}
+        value={selectedPayment}
       />
       <Select
         placeholder="Выберите статус"
@@ -215,6 +340,7 @@ export const GoogsProcessingList = () => {
           if (!value || value.length === 0) {
             // очищено — убираем фильтр по статусу
             setStatusFilter(null);
+            setSelectedStatuses([]);
           } else {
             // добавляем фильтр по статусу с несколькими значениями
             setStatusFilter({
@@ -222,9 +348,11 @@ export const GoogsProcessingList = () => {
                 status: { $eq: status },
               })),
             });
+            setSelectedStatuses(value);
           }
         }}
         style={{ width: "100%" }}
+        value={selectedStatuses}
       />
     </Card>
   );
@@ -399,9 +527,6 @@ export const GoogsProcessingList = () => {
 
   // Создаем функции для пагинации, которые обычно предоставляет tableProps
   const handleTableChange = (pagination: any, filters: any, sorter: any) => {
-    searchparams.set("page", pagination.current);
-    searchparams.set("size", pagination.pageSize);
-    setSearchParams(searchparams);
     setCurrentPage(pagination.current);
     setPageSize(pagination.pageSize);
 
@@ -501,15 +626,11 @@ export const GoogsProcessingList = () => {
               if (!value) {
                 setSearchFilter(null);
                 setSearch("");
-                searchparams.set("value", "");
-                setSearchParams(searchparams);
+                setCurrentPage(1);
                 return;
               }
 
-              searchparams.set("page", "1");
-              searchparams.set("size", String(pageSize));
-              searchparams.set("value", value);
-              setSearchParams(searchparams);
+              setCurrentPage(1);
               setSearch(value);
               setSearchFilter({
                 $or: [

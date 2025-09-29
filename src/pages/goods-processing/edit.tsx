@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Edit, useForm, useSelect, useTable } from "@refinedev/antd";
 import { useApiUrl, useCustom, useNavigation } from "@refinedev/core";
 import {
@@ -51,6 +51,7 @@ interface GoodItem {
   is_price_editable?: boolean;
   individual_discount?: number;
   discount_id?: number | null;
+  good_id?: number;
 }
 
 interface TypeProduct {
@@ -137,6 +138,7 @@ export const GoodsEdit = () => {
   const [autoBagNumber, setAutoBagNumber] = useState(true);
   const [cashBacks, setCashBacks] = useState<CashBackItem[]>([]);
   const [discounts, setDiscounts] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [branchNomenclature, setBranchNomenclature] = useState<any>(null);
 
@@ -337,9 +339,9 @@ export const GoodsEdit = () => {
   const generateBarcode = (): string => {
     const prefix = "45";
     const timestamp = Date.now().toString().slice(-10);
-    const random = Math.floor(Math.random() * 10000)
+    const random = Math.floor(Math.random() * 100000)
       .toString()
-      .padStart(4, "0");
+      .padStart(5, "0");
     return `${prefix}${timestamp}${random}`;
   };
 
@@ -376,29 +378,34 @@ export const GoodsEdit = () => {
   };
 
   const addNewItem = () => {
+    let uniqueId: number;
+    do {
+      uniqueId = Date.now() + Math.random() * 100000;
+    } while (services.some(item => item.id === uniqueId));
+    
     const newItem: GoodItem = {
-      id: nextId,
+      id: uniqueId,
       barcode: generateBarcode(),
       bag_number_numeric: autoBagNumber ? getNextBagNumber() : "",
       is_created: true,
       is_price_editable: false,
     };
     setServices([...services, newItem]);
-    setNextId(nextId + 1);
+    setNextId(Math.max(uniqueId + 1, nextId + 1));
   };
 
   const copySelectedItems = () => {
     const selectedItems = services.filter((item) =>
       selectedRowKeys.includes(item.id)
     );
-
-    const newItems = selectedItems.map((item) => {
-      const newId = nextId + selectedItems.indexOf(item);
-
+  
+    const newItems = selectedItems.map((item, index) => {
+      const uniqueId = Date.now() + Math.random() * 100000 + index * 1000;
       return {
         ...item,
-        id: newId,
+        id: uniqueId,
         barcode: generateBarcode(),
+        good_id: undefined,
         bag_number_numeric: autoBagNumber
           ? getNextBagNumber()
           : item.bag_number_numeric,
@@ -406,13 +413,14 @@ export const GoodsEdit = () => {
         is_price_editable: item.is_price_editable || false,
       };
     });
-
+  
     setServices([...services, ...newItems]);
-    setNextId(nextId + selectedItems.length);
+    setNextId(Math.max(...newItems.map(item => item.id)) + 1);
     setSelectedRowKeys([]);
-
+  
     message.success(`Скопировано ${selectedItems.length} товаров`);
   };
+  
 
   const deleteServiceFromAPI = async (serviceId: number) => {
     try {
@@ -452,8 +460,12 @@ export const GoodsEdit = () => {
       cancelText: "Отмена",
       okButtonProps: { danger: true },
       onOk: async () => {
-        const existingItemsToDelete = itemsToDelete.filter((item) => !item.is_created);
-        const newItemsToDelete = itemsToDelete.filter((item) => item.is_created);
+        const existingItemsToDelete = itemsToDelete.filter(
+          (item) => !item.is_created
+        );
+        const newItemsToDelete = itemsToDelete.filter(
+          (item) => item.is_created
+        );
 
         // Удаляем существующие товары через API
         let deletionSuccess = true;
@@ -470,7 +482,7 @@ export const GoodsEdit = () => {
           const remainingItems = services.filter(
             (item) => !selectedRowKeys.includes(item.id)
           );
-          
+
           setServices(remainingItems);
           setSelectedRowKeys([]);
           message.success(`Удалено ${itemsToDelete.length} товаров`);
@@ -482,7 +494,8 @@ export const GoodsEdit = () => {
   const removeItem = (record: any) => {
     Modal.confirm({
       title: "Подтверждение удаления",
-      content: "Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.",
+      content:
+        "Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.",
       okText: "Да, удалить",
       cancelText: "Отмена",
       okButtonProps: { danger: true },
@@ -494,7 +507,7 @@ export const GoodsEdit = () => {
             return;
           }
         }
-        
+
         // Удаляем из локального состояния
         setServices(services.filter((item) => item.id !== record.id));
         message.success("Товар удален");
@@ -554,10 +567,32 @@ export const GoodsEdit = () => {
     value: any,
     index?: number
   ) => {
+    console.log(`updateItemField: id=${id}, field=${field}, value=${value}`);
     const updatedServices = await Promise.all(
-      services.map(async (item) => {
+      services.map(async (item, itemIndex) => {
         if (item.id === id) {
+          // ЗАЩИТА от случайного изменения критических полей
+          if (["barcode", "good_id"].includes(field)) {
+            console.warn(`Попытка изменить защищенное поле: ${field}`);
+            return item; // Возвращает оригинальную запись без изменений
+          }
+
           const newItem = { ...item, [field]: value, updated: true };
+
+          // ПРИНУДИТЕЛЬНО сохраняем оригинальные значения
+          if (item.barcode) newItem.barcode = item.barcode;
+          if (item.good_id) newItem.good_id = item.good_id;
+
+          // Дополнительная защита (опционально)
+          if (item.good_id !== newItem.good_id) {
+            console.error(`КРИТИЧЕСКАЯ ОШИБКА: good_id изменился с ${item.good_id} на ${newItem.good_id}`);
+            newItem.good_id = item.good_id; // Принудительно восстанавливаем
+          }
+
+          // Для bag_number_numeric просто обновляем значение без дополнительной логики
+          if (field === "bag_number_numeric") {
+            return newItem;
+          }
 
           if (field === "type_id" || field === "weight") {
             const selectedType = tariffTableProps?.dataSource?.find(
@@ -811,7 +846,13 @@ export const GoodsEdit = () => {
     }),
   };
 
-  const handleFormSubmit = (values: any) => {
+  const handleFormSubmit = async (values: any) => {
+    // Защита от множественных отправок
+    if (isSubmitting) {
+      message.warning("Форма уже отправляется, пожалуйста подождите");
+      return;
+    }
+
     if (services.length === 0) {
       message.warning("Выберите услуги");
       return;
@@ -886,8 +927,19 @@ export const GoodsEdit = () => {
       };
     }
 
-    if (formProps.onFinish) {
-      formProps.onFinish(submitValues);
+    try {
+      // Устанавливаем флаг отправки
+      setIsSubmitting(true);
+      
+      if (formProps.onFinish) {
+        await formProps.onFinish(submitValues);
+      }
+    } catch (error) {
+      console.error("Ошибка при отправке формы:", error);
+      message.error("Произошла ошибка при отправке формы");
+    } finally {
+      // Сбрасываем флаг отправки в любом случае
+      setIsSubmitting(false);
     }
   };
 
@@ -1073,11 +1125,12 @@ export const GoodsEdit = () => {
 
     for (let i = 0; i < count; i++) {
       const itemsToAdd = selectedItems.map((item, index) => {
-        const newId = nextId + i * selectedItems.length + index;
+        const uniqueId = Date.now() + Math.random() * 100000 + (i * 10000) + index;
         return {
           ...item,
-          id: newId,
+          id: uniqueId,
           barcode: generateBarcode(),
+          good_id: undefined,
           bag_number_numeric: autoBagNumber
             ? newBagNumbers[bagNumberIndex++]
             : item.bag_number_numeric,
@@ -1122,10 +1175,26 @@ export const GoodsEdit = () => {
     }
   }, [record?.sent_back_id, sentCityData]);
 
+  // Создаём кастомные formProps без оригинального onFinish
+  const customFormProps = useMemo(() => {
+    const { onFinish, ...restFormProps } = formProps;
+    return restFormProps;
+  }, [formProps]);
+
+  // Обновляем saveButtonProps с учётом состояния отправки
+  const optimizedSaveButtonProps = useMemo(
+    () => ({
+      ...saveButtonProps,
+      disabled: isSubmitting || saveButtonProps.disabled,
+      loading: isSubmitting || saveButtonProps.loading,
+    }),
+    [saveButtonProps, isSubmitting]
+  );
+
   return (
-    <Edit headerButtons={() => null} saveButtonProps={saveButtonProps}>
+    <Edit headerButtons={() => null} saveButtonProps={optimizedSaveButtonProps}>
       {styleBlock}
-      <Form {...formProps} layout="vertical" onFinish={handleFormSubmit}>
+      <Form {...customFormProps} layout="vertical" onFinish={handleFormSubmit}>
         <Title level={5}>Реквизиты</Title>
         <Row gutter={16}>
           <Col span={6}>
@@ -1410,18 +1479,7 @@ export const GoodsEdit = () => {
                 index < services.length && (
                   <Input
                     onChange={(e) => {
-                      setServices(
-                        services.map((item: any, serviceIndex: number) => {
-                          if (serviceIndex === index) {
-                            return {
-                              ...item,
-                              bag_number_numeric: String(e.target.value),
-                            };
-                          } else {
-                            return item;
-                          }
-                        })
-                      );
+                      updateItemField(record.id, "bag_number_numeric", String(e.target.value));
                     }}
                     style={{ width: 120 }}
                     value={value}

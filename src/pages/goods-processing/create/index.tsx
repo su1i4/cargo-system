@@ -36,6 +36,7 @@ export const GoodsProcessingCreate = memo(() => {
     selectedDiscountOption: null as DiscountOrCashBackItem | null,
     checkTimeouts: {} as { [key: number]: NodeJS.Timeout },
     isCheckingBagNumbers: false,
+    isSubmitting: false,
   });
 
   const updateState = useCallback(
@@ -231,6 +232,12 @@ export const GoodsProcessingCreate = memo(() => {
 
   const handleFormSubmit = useCallback(
     async (values: any) => {
+      // Защита от множественных отправок
+      if (state.isSubmitting) {
+        message.warning("Форма уже отправляется, пожалуйста подождите");
+        return;
+      }
+
       if (state.services.length === 0) {
         message.warning("Выберите услуги");
         return;
@@ -337,11 +344,22 @@ export const GoodsProcessingCreate = memo(() => {
         };
       }
 
-      if (formProps.onFinish) {
-        await formProps.onFinish(submitValues);
+      try {
+        // Устанавливаем флаг отправки
+        updateState("isSubmitting", true);
+        
+        if (formProps.onFinish) {
+          await formProps.onFinish(submitValues);
+        }
+      } catch (error) {
+        console.error("Ошибка при отправке формы:", error);
+        message.error("Произошла ошибка при отправке формы");
+      } finally {
+        // Сбрасываем флаг отправки в любом случае
+        updateState("isSubmitting", false);
       }
     },
-    [state, formProps.onFinish]
+    [state, formProps.onFinish, updateState]
   );
 
   const sharedProps = useMemo(
@@ -370,15 +388,21 @@ export const GoodsProcessingCreate = memo(() => {
   const optimizedSaveButtonProps = useMemo(
     () => ({
       ...saveButtonProps,
-      disabled: state.isCheckingBagNumbers || saveButtonProps.disabled,
-      loading: state.isCheckingBagNumbers || saveButtonProps.loading,
+      disabled: state.isCheckingBagNumbers || state.isSubmitting || saveButtonProps.disabled,
+      loading: state.isCheckingBagNumbers || state.isSubmitting || saveButtonProps.loading,
     }),
-    [saveButtonProps, state.isCheckingBagNumbers]
+    [saveButtonProps, state.isCheckingBagNumbers, state.isSubmitting]
   );
+
+  // Создаём кастомные formProps без оригинального onFinish
+  const customFormProps = useMemo(() => {
+    const { onFinish, ...restFormProps } = formProps;
+    return restFormProps;
+  }, [formProps]);
 
   return (
     <Create saveButtonProps={optimizedSaveButtonProps}>
-      <Form {...formProps} layout="vertical" onFinish={handleFormSubmit}>
+      <Form {...customFormProps} layout="vertical" onFinish={handleFormSubmit}>
         <GoodsProcessingCreateRequisites {...sharedProps} />
         <GoodsProcessingCreateServices
           services={state.services}
