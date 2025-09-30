@@ -29,6 +29,8 @@ import { GoodsEdit } from "./pages/goods-processing/edit";
 
 import { PackerShow } from "./pages/packers/show";
 import { PackersTop } from "./pages/packers/top";
+import { PackerCreate } from "./pages/packers/create";
+import { PackerEdit } from "./pages/packers/edit";
 
 const GoodsProcessingCreate = lazy(() =>
   import("./pages/goods-processing").then((m) => ({
@@ -1259,6 +1261,22 @@ function App() {
                       element={
                         <Suspense fallback={<PageLoadingFallback />}>
                           <PackersTop />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="create"
+                      element={
+                        <Suspense fallback={<PageLoadingFallback />}>
+                          <PackerCreate />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="edit/:id"
+                      element={
+                        <Suspense fallback={<PageLoadingFallback />}>
+                          <PackerEdit />
                         </Suspense>
                       }
                     />

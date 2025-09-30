@@ -13,6 +13,8 @@ import { IResourceItem } from "@refinedev/core";
 import { PackersList } from "../pages/packers/list";
 import { PackerShow } from "../pages/packers/show";
 import { PackersTop } from "../pages/packers/top";
+import { PackerCreate } from "../pages/packers/create";
+import { PackerEdit } from "../pages/packers/edit";
 
 export const routes: IResourceItem[] = [
   {
@@ -388,15 +390,35 @@ export const routes: IResourceItem[] = [
   },
   {
     name: "packers",
-    list: "/packers",
-    create: '/packers/create',
-    edit: '/packers/edit/:id' ,
-    show: "/packers/show/:id",
+    identifier: "packers",
     meta: {
-      canDelete: true,
       label: "Упаковщики",
-      parent: "Настройки",
+      icon: <BoxPlotOutlined />
     },
+    options: {
+      routes: [
+        {
+          path: "/packers",
+          element: <PackersList />
+        },
+        {
+          path: "/packers/show/:id",
+          element: <PackerShow />
+        },
+        {
+          path: "/packers/create",
+          element: <PackerCreate />
+        },
+        {
+          path: "/packers/edit/:id",
+          element: <PackerEdit />
+        },
+        {
+          path: "/packers/top",
+          element: <PackersTop />
+        }
+      ]
+    }
   },
   {
     name: "visiting-group",
