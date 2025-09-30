@@ -1147,10 +1147,15 @@ export const GoodsEdit = () => {
   };
 
   const copyItems = () => {
-    if (copyCount === 0) {
-      copySelectedItems();
-    } else {
+    if (!selectedRowKeys.length) {
+      message.warning("Выберите элементы для копирования");
+      return;
+    }
+
+    if (copyCount > 0) {
       createItemsByCount();
+    } else {
+      copySelectedItems();
     }
   };
 

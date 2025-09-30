@@ -37,6 +37,9 @@ const ShipmentList = () => {
     pagination: {
       pageSize: 500,
     },
+    meta: {
+      join: ["branch"]
+    },
   });
 
   const { push, show } = useNavigation();

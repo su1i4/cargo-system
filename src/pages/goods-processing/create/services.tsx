@@ -21,6 +21,7 @@ import {
   FileAddOutlined,
 } from "@ant-design/icons";
 import { API_URL } from "../../../App";
+import { KeyboardNavigationGrid } from '../../../components/keyboard-navigation-grid';
 
 interface GoodItem {
   id: number;
@@ -463,7 +464,9 @@ export const GoodsProcessingCreateServices = React.memo(
           ...item,
           id: newId,
           barcode: generateBarcode(),
-          bag_number_numeric: autoBagNumber ? newBagNumbers[index] : item.bag_number_numeric,
+          bag_number_numeric: autoBagNumber
+            ? newBagNumbers[index]
+            : item.bag_number_numeric,
           is_price_editable: item.is_price_editable || false,
         };
       });
@@ -496,16 +499,27 @@ export const GoodsProcessingCreateServices = React.memo(
 
     const createItemsByCount = useCallback(() => {
       const count = Number(copyCount || 0);
+      console.log('Creating items with count:', count);
 
-      let newItems: GoodItem[] = [];
+      if (count <= 0) {
+        message.warning("Укажите количество копий больше 0");
+        return;
+      }
 
       const selectedItems = services.filter((item) =>
         selectedRowKeys.includes(item.id)
       );
+      console.log('Selected items:', selectedItems);
+
+      if (selectedItems.length === 0) {
+        message.warning("Выберите элементы для копирования");
+        return;
+      }
 
       const totalItemsToCreate = count * selectedItems.length;
       const newBagNumbers = generateConsecutiveBagNumbers(totalItemsToCreate);
       let bagNumberIndex = 0;
+      let newItems: GoodItem[] = [];
 
       for (let i = 0; i < count; i++) {
         const itemsToAdd = selectedItems.map((item, index) => {
@@ -514,17 +528,20 @@ export const GoodsProcessingCreateServices = React.memo(
             ...item,
             id: newId,
             barcode: generateBarcode(),
-            bag_number_numeric: autoBagNumber ? newBagNumbers[bagNumberIndex++] : item.bag_number_numeric,
+            bag_number_numeric: autoBagNumber
+              ? newBagNumbers[bagNumberIndex++]
+              : item.bag_number_numeric,
             is_price_editable: item.is_price_editable || false,
           };
         });
         newItems = [...newItems, ...itemsToAdd];
       }
 
-      setNextId(nextId + count * selectedItems.length);
-
+      console.log('New items to add:', newItems);
       setServices([...services, ...newItems]);
+      setNextId(nextId + totalItemsToCreate);
       setSelectedRowKeys([]);
+      setCopyCount(0);
 
       const bagNumbersToCheck = newItems
         .filter((item) => item.bag_number_numeric)
@@ -536,22 +553,37 @@ export const GoodsProcessingCreateServices = React.memo(
       if (bagNumbersToCheck.length > 0) {
         checkMultipleBagNumbersAsync(bagNumbersToCheck);
       }
+
+      message.success(`Скопировано ${totalItemsToCreate} товаров`);
     }, [
       services,
+      selectedRowKeys,
       nextId,
       generateBarcode,
       generateConsecutiveBagNumbers,
       copyCount,
       autoBagNumber,
+      checkMultipleBagNumbersAsync,
     ]);
 
     const copyItems = useCallback(() => {
-      if (copyCount === 0) {
-        copySelectedItems();
-      } else {
-        createItemsByCount();
+      console.log('Copy items called with:', {
+        selectedRowKeys,
+        copyCount,
+        selectedItems: services.filter((item) => selectedRowKeys.includes(item.id))
+      });
+
+      if (!selectedRowKeys.length) {
+        message.warning("Выберите элементы для копирования");
+        return;
       }
-    }, [services, selectedRowKeys, copyCount]);
+
+      if (copyCount > 0) {
+        createItemsByCount();
+      } else {
+        copySelectedItems();
+      }
+    }, [selectedRowKeys, copyCount, createItemsByCount, copySelectedItems, services]);
 
     const removeSelectedItems = useCallback(() => {
       if (selectedRowKeys.length === 0) {
@@ -705,7 +737,8 @@ export const GoodsProcessingCreateServices = React.memo(
               loading={isCheckingBagNumbers}
               style={{ width: "100%" }}
             >
-              Копировать ({selectedRowKeys.length}) {copyCount > 0 && `* (${copyCount})`}
+              Копировать ({selectedRowKeys.length}){" "}
+              {copyCount > 0 && `* (${copyCount})`}
             </Button>
           </Col>
           <Col xs={12} sm={8} md={6} lg={4}>
@@ -720,211 +753,217 @@ export const GoodsProcessingCreateServices = React.memo(
             </Button>
           </Col>
         </Row>
-        <Table
-          scroll={{ x: 1200 }}
-          dataSource={[...services, ...lastGoods]}
-          style={{ marginTop: 10 }}
-          rowKey="id"
-          pagination={false}
-          size="small"
-          rowSelection={rowSelection}
+        <KeyboardNavigationGrid
+          rowCount={services.length}
+          colCount={7} // Количество колонок в таблице
+          focusableSelector="input, select, .ant-input-number-input"
         >
-          <Table.Column
-            title="№"
-            dataIndex="id"
-            width={50}
-            render={(value, record: any, index: number) =>
-              index < services.length && <span>{index + 1}</span>
-            }
-          />
-          <Table.Column
-            title="Номенклатура"
-            dataIndex="nomenclature_id"
-            render={(value, record: any, index: number) =>
-              index < services.length && (
-                <Select
-                  style={{ width: 200 }}
-                  {...nomenclatureSelectProps}
-                  value={value}
-                  onChange={(val) =>
-                    updateItemField(record.id, "nomenclature_id", val)
-                  }
-                  allowClear
-                />
-              )
-            }
-          />
-          <Table.Column
-            title="Тип товара"
-            dataIndex="type_id"
-            render={(value, record: any, index: number) =>
-              index < services.length && (
-                <Select
-                  style={{ width: 200 }}
-                  {...typeProductSelectProps}
-                  value={value}
-                  onChange={(val) => {
-                    updateItemField(record.id, "type_id", val, index);
-                  }}
-                />
-              )
-            }
-          />
-          <Table.Column
-            title="Номер мешка"
-            dataIndex="bag_number_numeric"
-            render={(value, record: any, index: number) => {
-              return (
+          <Table
+            scroll={{ x: 1200 }}
+            dataSource={[...services, ...lastGoods]}
+            style={{ marginTop: 10 }}
+            rowKey="id"
+            pagination={false}
+            size="small"
+            rowSelection={rowSelection}
+          >
+            <Table.Column
+              title="№"
+              dataIndex="id"
+              width={50}
+              render={(value, record: any, index: number) =>
+                index < services.length && <span>{index + 1}</span>
+              }
+            />
+            <Table.Column
+              title="Номенклатура"
+              dataIndex="nomenclature_id"
+              render={(value, record: any, index: number) =>
                 index < services.length && (
-                  <Input
-                    onChange={(e) => {
-                      const newValue = e.target.value;
-                      setServices(
-                        services.map((item: any, serviceIndex: number) => {
-                          if (serviceIndex === index) {
-                            return {
-                              ...item,
-                              bag_number_numeric: newValue,
-                            };
-                          } else {
-                            return item;
-                          }
-                        })
-                      );
-
-                      checkBagNumberWithDebounce(String(newValue), record.id);
-                    }}
-                    style={{
-                      width: 120,
-                      border: hasBagNumber.find(
-                        (item: { id: number; has: boolean }) =>
-                          item.id === record.id
-                      )?.has
-                        ? "1px solid red"
-                        : "1px solid #d9d9d9",
-                    }}
+                  <Select
+                    style={{ width: 200 }}
+                    {...nomenclatureSelectProps}
                     value={value}
-                    type="number"
+                    onChange={(val) =>
+                      updateItemField(record.id, "nomenclature_id", val)
+                    }
+                    allowClear
                   />
                 )
-              );
-            }}
-          />
-          <Table.Column
-            title="Количество"
-            dataIndex="quantity"
-            render={(value, record: any, index: number) => (
-              <InputNumber
-                style={{ width: 100 }}
-                min={0}
-                value={value}
-                disabled={index >= services.length}
-                onChange={(val) => updateItemField(record.id, "quantity", val)}
-              />
-            )}
-          />
-          <Table.Column
-            title="Вес (кг)"
-            dataIndex="weight"
-            render={(value, record: any, index: number) => (
-              <InputNumber
-                style={{ width: 100 }}
-                min={0}
-                precision={2}
-                value={value}
-                disabled={index >= services.length}
-                onChange={(val) => {
-                  if (val === null || val === undefined) {
-                    updateItemField(record.id, "weight", null);
-                    return;
-                  }
+              }
+            />
+            <Table.Column
+              title="Тип товара"
+              dataIndex="type_id"
+              render={(value, record: any, index: number) =>
+                index < services.length && (
+                  <Select
+                    style={{ width: 200 }}
+                    {...typeProductSelectProps}
+                    value={value}
+                    onChange={(val) => {
+                      updateItemField(record.id, "type_id", val, index);
+                    }}
+                  />
+                )
+              }
+            />
+            <Table.Column
+              title="Номер мешка"
+              dataIndex="bag_number_numeric"
+              render={(value, record: any, index: number) => {
+                return (
+                  index < services.length && (
+                    <Input
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        setServices(
+                          services.map((item: any, serviceIndex: number) => {
+                            if (serviceIndex === index) {
+                              return {
+                                ...item,
+                                bag_number_numeric: newValue,
+                              };
+                            } else {
+                              return item;
+                            }
+                          })
+                        );
 
-                  updateItemField(record.id, "weight", val);
-                }}
-                formatter={(value) => {
-                  return value?.toString().replace(".", ",") || "";
-                }}
-                parser={(value) => {
-                  if (!value) return value;
-                  const cleanValue = value.replace(",", ".");
-                  const parsed = parseFloat(cleanValue);
-                  return isNaN(parsed) ? null : parsed;
-                }}
-              />
-            )}
-          />
-          <Table.Column
-            title="Цена за кг"
-            dataIndex="price"
-            render={(value, record: any, index: number) =>
-              index < services.length && (
+                        checkBagNumberWithDebounce(String(newValue), record.id);
+                      }}
+                      style={{
+                        width: 120,
+                        border: hasBagNumber.find(
+                          (item: { id: number; has: boolean }) =>
+                            item.id === record.id
+                        )?.has
+                          ? "1px solid red"
+                          : "1px solid #d9d9d9",
+                      }}
+                      value={value}
+                      type="number"
+                    />
+                  )
+                );
+              }}
+            />
+            <Table.Column
+              title="Количество"
+              dataIndex="quantity"
+              render={(value, record: any, index: number) => (
+                <InputNumber
+                  style={{ width: 100 }}
+                  min={0}
+                  value={value}
+                  disabled={index >= services.length}
+                  onChange={(val) => updateItemField(record.id, "quantity", val)}
+                />
+              )}
+            />
+            <Table.Column
+              title="Вес (кг)"
+              dataIndex="weight"
+              render={(value, record: any, index: number) => (
                 <InputNumber
                   style={{ width: 100 }}
                   min={0}
                   precision={2}
                   value={value}
+                  disabled={index >= services.length}
                   onChange={(val) => {
-                    updateItemField(record.id, "price", val);
-                  }}
-                  disabled={!record.is_price_editable}
-                />
-              )
-            }
-          />
-          <Table.Column
-            title="Сумма"
-            dataIndex="sum"
-            render={(value, record: any) => (
-              <InputNumber
-                style={{ width: 100 }}
-                min={0}
-                precision={2}
-                value={value}
-                disabled
-              />
-            )}
-          />
-          <Table.Column
-            title="Штрихкод"
-            dataIndex="barcode"
-            render={(value, record: any, index: number) =>
-              index < services.length && (
-                <span style={{ width: 200 }}>{value}</span>
-              )
-            }
-          />
-          <Table.Column
-            title="Действия"
-            key="action"
-            render={(_, record: any, index: number) =>
-              index < services.length && (
-                <Space size="small">
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => removeItem(record.id)}
-                  />
-                  <Button
-                    type="text"
-                    icon={
-                      <Checkbox
-                        checked={record.is_price_editable || false}
-                        onChange={(e) =>
-                          updateItemField(
-                            record.id,
-                            "is_price_editable",
-                            e.target.checked
-                          )
-                        }
-                      />
+                    if (val === null || val === undefined) {
+                      updateItemField(record.id, "weight", null);
+                      return;
                     }
+
+                    updateItemField(record.id, "weight", val);
+                  }}
+                  formatter={(value) => {
+                    return value?.toString().replace(".", ",") || "";
+                  }}
+                  parser={(value) => {
+                    if (!value) return value;
+                    const cleanValue = value.replace(",", ".");
+                    const parsed = parseFloat(cleanValue);
+                    return isNaN(parsed) ? null : parsed;
+                  }}
+                />
+              )}
+            />
+            <Table.Column
+              title="Цена за кг"
+              dataIndex="price"
+              render={(value, record: any, index: number) =>
+                index < services.length && (
+                  <InputNumber
+                    style={{ width: 100 }}
+                    min={0}
+                    precision={2}
+                    value={value}
+                    onChange={(val) => {
+                      updateItemField(record.id, "price", val);
+                    }}
+                    disabled={!record.is_price_editable}
                   />
-                </Space>
-              )
-            }
-          />
-        </Table>
+                )
+              }
+            />
+            <Table.Column
+              title="Сумма"
+              dataIndex="sum"
+              render={(value, record: any) => (
+                <InputNumber
+                  style={{ width: 100 }}
+                  min={0}
+                  precision={2}
+                  value={value}
+                  disabled
+                />
+              )}
+            />
+            <Table.Column
+              title="Штрихкод"
+              dataIndex="barcode"
+              render={(value, record: any, index: number) =>
+                index < services.length && (
+                  <span style={{ width: 200 }}>{value}</span>
+                )
+              }
+            />
+            <Table.Column
+              title="Действия"
+              key="action"
+              render={(_, record: any, index: number) =>
+                index < services.length && (
+                  <Space size="small">
+                    <Button
+                      type="text"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => removeItem(record.id)}
+                    />
+                    <Button
+                      type="text"
+                      icon={
+                        <Checkbox
+                          checked={record.is_price_editable || false}
+                          onChange={(e) =>
+                            updateItemField(
+                              record.id,
+                              "is_price_editable",
+                              e.target.checked
+                            )
+                          }
+                        />
+                      }
+                    />
+                  </Space>
+                )
+              }
+            />
+          </Table>
+        </KeyboardNavigationGrid>
       </>
     );
   }

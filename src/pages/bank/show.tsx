@@ -54,6 +54,7 @@ export const BankShow = () => {
           ? JSON.stringify({ $and: searchFilters })
           : undefined,
       sort: `${sortField},${sortDirection}`,
+      join: ["operation", "operation.good", "bank_permission", 'operation.user'],
     };
   };
 

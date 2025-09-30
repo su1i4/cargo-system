@@ -111,6 +111,8 @@ export const CounterpartyList: React.FC = () => {
             searchFields={[
               { field: "name", operator: "containss" },
               { field: "phoneNumber", operator: "containss" },
+              { field: "clientPrefix", operator: "containss" },
+              { field: "clientCode", operator: "containss" },
             ]}
             combinedFields={[
               {
@@ -119,7 +121,7 @@ export const CounterpartyList: React.FC = () => {
                 operator: "containss",
               },
             ]}
-            placeholder="Поиск по фио, номеру телефона или коду клиента (формат: префикс-код)"
+            placeholder="Поиск по ФИО, номеру телефона или коду клиента (например: П-3926)"
             allowEmpty={false}
             useOrLogic={true}
           />
@@ -141,7 +143,7 @@ export const CounterpartyList: React.FC = () => {
             if (!record.clientPrefix || !record.clientCode) return "";
             return (
               <CustomTooltip
-                title={`Префикс: ${record.clientPrefix}, Код: ${record.clientCode}`}
+                title={`Префикс: ${record.clientPrefix}, Код: ${record.clientCode}. Для поиска введите: ${record.clientPrefix}-${record.clientCode}`}
               >
                 <span>{record.clientPrefix + "-" + record.clientCode}</span>
               </CustomTooltip>
@@ -149,7 +151,7 @@ export const CounterpartyList: React.FC = () => {
           }}
           width={120}
         />
-        <Table.Column dataIndex="name" title="Фио" />
+        <Table.Column dataIndex="name" title="ФИО" />
         <Table.Column dataIndex="phoneNumber" title="Номер телефона" />
         <Table.Column
           dataIndex="ross_coin"
