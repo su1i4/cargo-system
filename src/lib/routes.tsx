@@ -389,36 +389,16 @@ export const routes: IResourceItem[] = [
     },
   },
   {
-    name: "packers",
-    identifier: "packers",
+    name: "packers",  
+    list: "/packers",
+    create: '/packers/create',
+    edit: '/packers/edit/:id' ,
+    show: "/packers/show/:id",
     meta: {
+      canDelete: true,
       label: "Упаковщики",
-      icon: <BoxPlotOutlined />
+      parent: "Настройки",
     },
-    options: {
-      routes: [
-        {
-          path: "/packers",
-          element: <PackersList />
-        },
-        {
-          path: "/packers/show/:id",
-          element: <PackerShow />
-        },
-        {
-          path: "/packers/create",
-          element: <PackerCreate />
-        },
-        {
-          path: "/packers/edit/:id",
-          element: <PackerEdit />
-        },
-        {
-          path: "/packers/top",
-          element: <PackersTop />
-        }
-      ]
-    }
   },
   {
     name: "visiting-group",
