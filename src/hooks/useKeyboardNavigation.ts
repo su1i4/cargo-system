@@ -107,4 +107,4 @@ export const useKeyboardNavigation = ({
     setCurrentPosition,
     lastInteractionType: lastInteractionType.current,
   };
-}; 
+};

@@ -45,4 +45,4 @@ export const KeyboardNavigationGrid = memo(({
   );
 });
 
-KeyboardNavigationGrid.displayName = 'KeyboardNavigationGrid'; 
+KeyboardNavigationGrid.displayName = 'KeyboardNavigationGrid';

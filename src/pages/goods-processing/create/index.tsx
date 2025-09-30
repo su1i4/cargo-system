@@ -23,7 +23,7 @@ dayjs.tz.setDefault("Asia/Bishkek");
 
 export const GoodsProcessingCreate = memo(() => {
   const { formProps, saveButtonProps, form } = useForm();
-  const [showOthers, setShowOthers] = useState(false);
+  const [showOthers, setShowOthers] = useState(true);
 
   const [state, setState] = useState({
     services: [] as GoodItem[],

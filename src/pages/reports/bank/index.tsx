@@ -42,12 +42,17 @@ export const BankReport = () => {
   const [sorterVisible, setSorterVisible] = useState(false);
   const [bankId, setBankId] = useState<number | null>(null);
   const [searchText, setSearchText] = useState<string>("");
-  const [from, setFrom] = useState(
-    dayjs().startOf("day").format("YYYY-MM-DDTHH:mm")
-  );
+  // Убираем начальные ограничения по датам
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [type, setType] = useState<"income" | "outcome">("income");
-  const [expenseType, setExpenseType] = useState<string[]>([]); 
-  const [to, setTo] = useState(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
+  const [expenseType, setExpenseType] = useState<string[]>([]);
+
+  // Добавляем отладочный вывод
+  useEffect(() => {
+    console.log('Current bankId:', bankId);
+    console.log('Current API_URL:', API_URL);
+  }, [bankId]);
 
   // Стили для инпутов дат
   const inputStyle = {
@@ -65,12 +70,14 @@ export const BankReport = () => {
   const buildQueryParams = () => {
     const params: any = {
       sort: `${sortField},${sortDirection}`,
+      join: ["operation", "operation.good", "bank_permission"]
     };
 
     if (searchFilters.length > 0) {
       params.s = JSON.stringify({ $and: searchFilters });
     }
 
+    console.log('Query params:', params);
     return params;
   };
 
@@ -78,6 +85,11 @@ export const BankReport = () => {
     resource: "bank",
     optionLabel: (value) => value?.name,
   });
+
+  // Добавляем отладочный вывод для bankQuery
+  useEffect(() => {
+    console.log('Bank query data:', bankQuery.data);
+  }, [bankQuery.data]);
 
   useEffect(() => {
     if (
@@ -100,6 +112,13 @@ export const BankReport = () => {
       enabled: !!bankId,
     },
   });
+
+  // Добавляем отладочный вывод для основных данных
+  useEffect(() => {
+    console.log('Bank operations data:', data);
+    console.log('Operations:', operations);
+    console.log('Filtered operations:', filteredOperations);
+  }, [data]);
 
   useEffect(() => {
     if (bankId) {

@@ -27,6 +27,9 @@ import { CustomSider } from "./components/sider";
 import { ColorModeContextProvider } from "./contexts/color-mode";
 import { GoodsEdit } from "./pages/goods-processing/edit";
 
+import { PackerShow } from "./pages/packers/show";
+import { PackersTop } from "./pages/packers/top";
+
 const GoodsProcessingCreate = lazy(() =>
   import("./pages/goods-processing").then((m) => ({
     default: m.GoodsProcessingCreate,
@@ -1240,6 +1243,22 @@ function App() {
                       element={
                         <Suspense fallback={<PageLoadingFallback />}>
                           <PackersList />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="show/:id"
+                      element={
+                        <Suspense fallback={<PageLoadingFallback />}>
+                          <PackerShow />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="top"
+                      element={
+                        <Suspense fallback={<PageLoadingFallback />}>
+                          <PackersTop />
                         </Suspense>
                       }
                     />

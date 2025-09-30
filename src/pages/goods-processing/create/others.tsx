@@ -10,7 +10,8 @@ interface GoodsProcessingCreateOthersProps {
 
 const packerSelectConfig = {
   resource: "packers",
-  optionLabel: (record: any) => `${record?.first_name || ''} ${record?.last_name || ''}`.trim(),
+  optionLabel: (record: any) =>
+    `${record?.first_name || ""} ${record?.last_name || ""}`.trim(),
   onSearch: (value: string) => [
     {
       operator: "or" as const,
@@ -32,7 +33,8 @@ const packerSelectConfig = {
 
 const visitingGroupSelectConfig = {
   resource: "visiting-group",
-  optionLabel: (record: any) => `${record?.first_name || ''} ${record?.last_name || ''}`.trim(),
+  optionLabel: (record: any) =>
+    `${record?.first_name || ""} ${record?.last_name || ""}`.trim(),
   onSearch: (value: string) => [
     {
       operator: "or" as const,
@@ -55,14 +57,16 @@ const visitingGroupSelectConfig = {
 export const GoodsProcessingCreateOthers = React.memo(
   ({ values, form }: GoodsProcessingCreateOthersProps) => {
     const { selectProps: packerSelectProps } = useSelect(packerSelectConfig);
-    const { selectProps: visitingGroupSelectProps } = useSelect(visitingGroupSelectConfig);
+    const { selectProps: visitingGroupSelectProps } = useSelect(
+      visitingGroupSelectConfig
+    );
 
-    const calculateCommissionAmount = useCallback((
-      declaredValue: number,
-      commissionPercent: number
-    ): number => {
-      return (declaredValue * commissionPercent) / 100;
-    }, []);
+    const calculateCommissionAmount = useCallback(
+      (declaredValue: number, commissionPercent: number): number => {
+        return (declaredValue * commissionPercent) / 100;
+      },
+      []
+    );
 
     useEffect(() => {
       if (values?.declared_value && values?.commission && form) {
@@ -77,10 +81,34 @@ export const GoodsProcessingCreateOthers = React.memo(
           form.setFieldValue("amount_commission", commissionAmount);
         }
       }
-    }, [values?.declared_value, values?.commission, form, calculateCommissionAmount]);
+    }, [
+      values?.declared_value,
+      values?.commission,
+      form,
+      calculateCommissionAmount,
+    ]);
 
     return (
       <>
+        <Title style={{ marginTop: 10 }} level={5}>
+          Упаковщики
+        </Title>
+        <Row gutter={16}>
+          <Col span={8}>
+            <Form.Item label="Выберите упаковщика" name="packers">
+              <Select {...packerSelectProps} mode="multiple" allowClear />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item label="Выездная группа" name="visiting_group_ids">
+              <Select
+                {...visitingGroupSelectProps}
+                mode="multiple"
+                allowClear
+              />
+            </Form.Item>
+          </Col>
+        </Row>
         <Row gutter={16}>
           <Col span={8}>
             <Form.Item label="Процент скидки" name="discount_custom">
@@ -93,7 +121,7 @@ export const GoodsProcessingCreateOthers = React.memo(
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Title style={{ marginTop: 10 }} level={5}>
           Гарантия
         </Title>
@@ -121,26 +149,6 @@ export const GoodsProcessingCreateOthers = React.memo(
           <Col span={8}>
             <Form.Item label="Сумма комиссии" name="amount_commission">
               <InputNumber style={{ width: "100%" }} min={0} disabled />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Title style={{ marginTop: 10 }} level={5}>
-          Упаковщики
-        </Title>
-        <Row gutter={16}>
-          <Col span={8}>
-            <Form.Item label="Выберите упаковщика" name="packers">
-              <Select {...packerSelectProps} mode="multiple" allowClear />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item label="Выездная группа" name="visiting_group_ids">
-              <Select
-                {...visitingGroupSelectProps}
-                mode="multiple"
-                allowClear
-              />
             </Form.Item>
           </Col>
         </Row>

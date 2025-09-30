@@ -1,117 +1,61 @@
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import { List, useTable, useModalForm, CreateButton } from "@refinedev/antd";
-import { useDelete } from "@refinedev/core";
-import {
-  Table,
-  Modal,
-  Form,
-  Input,
-  Button,
-  Space,
-  Popconfirm,
-  InputNumber,
-} from "antd";
+import React from 'react';
+import { useTable } from '@refinedev/antd';
+import { Table, Space, Button } from 'antd';
+import { IPacker } from './interfaces';
+import { useNavigation } from '@refinedev/core';
 
-export const PackersList = () => {
-  const { tableProps } = useTable({
-    resource: "packers",
-  });
+export const PackersList: React.FC = () => {
+    const { tableProps } = useTable<IPacker>();
+    const {push} = useNavigation()
 
-  const {
-    modalProps: createModalProps,
-    formProps: createFormProps,
-    show: showCreateModal,
-  } = useModalForm({
-    resource: "packers",
-    action: "create",
-    redirect: false,
-  });
+    const columns = [
+        {
+            title: 'Имя',
+            dataIndex: 'first_name',
+            key: 'first_name'
+        },
+        {
+            title: 'Фамилия',
+            dataIndex: 'last_name',
+            key: 'last_name'
+        },
+        {
+            title: 'Общий вес (кг)',
+            dataIndex: 'weight_amount',
+            key: 'weight_amount',
+            render: (weight: number) => weight
+        },
+        {
+            title: 'Действия',
+            key: 'actions',
+            render: (_: any, record: IPacker) => (
+                <Space>
+                    <Button
+                        onClick={() => push(`/packers/show/${record.id}`)}
+                        type="primary"
+                    >
+                        Подробнее
+                    </Button>
+                </Space>
+            )
+        }
+    ];
 
-  const {
-    modalProps: editModalProps,
-    formProps: editFormProps,
-    show: showEditModal,
-  } = useModalForm({
-    resource: "packers",
-    action: "edit",
-    redirect: false,
-  });
-
-  const { mutate: deleteOne } = useDelete();
-
-  return (
-    <List headerButtons={<CreateButton onClick={() => showCreateModal()} />}>
-      <Table {...tableProps} rowKey="id">
-        <Table.Column dataIndex="first_name" title="Имя" />
-        <Table.Column dataIndex="last_name" title="Фамилия" />
-        <Table.Column dataIndex="weight_amount" title="Общий вес" />
-        <Table.Column<any>
-          title="Действия"
-          render={(record) => (
-            <Space>
-              <Button
-                icon={<EditOutlined />}
-                onClick={() => showEditModal(record.id)}
-              />
-              <Popconfirm
-                title="Удалить этого упаковщика?"
-                okText="Да"
-                cancelText="Нет"
-                onConfirm={() =>
-                  deleteOne({
-                    resource: "packers",
-                    id: record.id,
-                  })
-                }
-              >
-                <Button icon={<DeleteOutlined />} />
-              </Popconfirm>
+    return (
+        <div>
+            <Space style={{ marginBottom: 16 }}>
+                <Button
+                    type="primary"
+                    onClick={() => push('/packers/top')}
+                >
+                    Топ упаковщиков
+                </Button>
             </Space>
-          )}
-        />
-      </Table>
-
-      {/* Модалка создания */}
-      <Modal {...createModalProps} title="Создание упаковщика">
-        <Form {...createFormProps} layout="vertical">
-          <Form.Item
-            label="Имя"
-            name="first_name"
-            rules={[{ required: true, message: "Введите имя" }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            label="Фамилия"
-            name="last_name"
-            rules={[{ required: true, message: "Введите фамилию" }]}
-          >
-            <Input />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Модалка редактирования */}
-      <Modal {...editModalProps} title="Редактирование упаковщика">
-        <Form {...editFormProps} layout="vertical">
-          <Form.Item
-            label="Имя"
-            name="first_name"
-            rules={[{ required: true, message: "Введите имя" }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            label="Фамилия"
-            name="last_name"
-            rules={[{ required: true, message: "Введите фамилию" }]}
-          >
-            <Input />
-          </Form.Item>
-        </Form>
-      </Modal>
-    </List>
-  );
+            <Table
+                {...tableProps}
+                columns={columns}
+                rowKey="id"
+            />
+        </div>
+    );
 };

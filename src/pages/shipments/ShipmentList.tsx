@@ -34,9 +34,6 @@ const ShipmentList = () => {
       initial: [{ field: "created_at", order: "desc" }],
     },
     syncWithLocation: false,
-    pagination: {
-      pageSize: 500,
-    },
     meta: {
       join: ["branch"]
     },
@@ -180,9 +177,6 @@ const ShipmentList = () => {
           };
         }}
         {...tableProps}
-        pagination={{
-          pageSize: 500,
-        }}
         rowKey="id"
       >
         <Table.Column

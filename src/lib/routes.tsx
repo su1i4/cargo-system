@@ -5,9 +5,16 @@ import {
   ContactsOutlined,
   BankOutlined,
   HomeOutlined,
+  BoxPlotOutlined
 } from "@ant-design/icons";
+import { IResourceItem } from "@refinedev/core";
 
-export const routes = [
+// Импорты для страниц упаковщиков
+import { PackersList } from "../pages/packers/list";
+import { PackerShow } from "../pages/packers/show";
+import { PackersTop } from "../pages/packers/top";
+
+export const routes: IResourceItem[] = [
   {
     name: "Продукты",
     icon: <AppstoreOutlined />,
@@ -382,6 +389,9 @@ export const routes = [
   {
     name: "packers",
     list: "/packers",
+    create: '/packers/create',
+    edit: '/packers/edit/:id' ,
+    show: "/packers/show/:id",
     meta: {
       canDelete: true,
       label: "Упаковщики",
