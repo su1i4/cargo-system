@@ -19,7 +19,6 @@ import {
   Menu,
   Select,
   Card,
-  message,
 } from "antd";
 import { useParams } from "react-router";
 import { translateStatus } from "../../lib/utils";
@@ -29,14 +28,12 @@ import {
   ArrowDownOutlined,
   SearchOutlined,
   FilterOutlined,
-  SendOutlined,
 } from "@ant-design/icons";
 import { useState, useEffect } from "react";
 import { CustomTooltip } from "../../shared/custom-tooltip";
 
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-import { API_URL } from "../../App";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -75,7 +72,7 @@ const ShipmentShow = () => {
       ],
     },
     pagination: {
-      pageSize: 200,
+      mode: "off",
     },
   });
 
@@ -90,7 +87,6 @@ const ShipmentShow = () => {
   );
   const [filterVisible, setFilterVisible] = useState(false);
 
-  // Состояния для отдельных фильтров
   const [productTypeFilter, setProductTypeFilter] = useState<any>(null);
   const [destinationFilter, setDestinationFilter] = useState<any>(null);
   const [searchFilter, setSearchFilter] = useState<any>(null);
@@ -149,7 +145,6 @@ const ShipmentShow = () => {
     </Menu>
   );
 
-  // Объединение всех фильтров
   useEffect(() => {
     const allFilters = [
       productTypeFilter,
@@ -366,7 +361,7 @@ const ShipmentShow = () => {
           />
         </Flex>
       </Row>
-      <Table {...tableProps} rowKey="id">
+      <Table {...tableProps} rowKey="id" pagination={false}>
         <Table.Column
           title="№"
           dataIndex="number"

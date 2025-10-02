@@ -1,5 +1,5 @@
 import { Show } from "@refinedev/antd";
-import { useShow, useCustom, useNavigation } from "@refinedev/core";
+import { useShow, useCustom } from "@refinedev/core";
 import {
   Typography,
   Table,
@@ -41,8 +41,11 @@ export const BankShow = () => {
   const [sortField, setSortField] = useState<any>("good.created_at");
   const [searchFilters, setSearchFilters] = useState<any[]>([]);
   const [sorterVisible, setSorterVisible] = useState(false);
-
   const [searchText, setSearchText] = useState<string>("");
+
+  // ✅ пагинация
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   const record = showData?.data;
   const bankId = record?.id;
@@ -54,11 +57,10 @@ export const BankShow = () => {
           ? JSON.stringify({ $and: searchFilters })
           : undefined,
       sort: `${sortField},${sortDirection}`,
-      join: ["operation", "operation.good", "bank_permission", 'operation.user'],
+      join: ["operation", "operation.good", "bank_permission", "operation.user"],
     };
   };
 
-  // Запрос операций с сортировкой и фильтрацией
   const { data, isLoading, refetch } = useCustom<any>({
     url: `${API_URL}/bank/${bankId}`,
     method: "get",
@@ -70,11 +72,7 @@ export const BankShow = () => {
     },
   });
 
-  // Функция для обновления фильтров
-  const setFilters = (
-    filters: any[],
-    mode: "replace" | "append" = "append"
-  ) => {
+  const setFilters = (filters: any[], mode: "replace" | "append" = "append") => {
     if (mode === "replace") {
       setSearchFilters(filters);
     } else {
@@ -82,14 +80,12 @@ export const BankShow = () => {
     }
   };
 
-  // Обновление данных при изменении фильтров или сортировки
   useEffect(() => {
     if (bankId) {
       refetch();
     }
   }, [searchFilters, sortDirection, sortField, bankId]);
 
-  // Компонент выбора даты
   const datePickerContent = (
     <DatePicker.RangePicker
       style={{ width: "280px" }}
@@ -107,12 +103,12 @@ export const BankShow = () => {
             ],
             "replace"
           );
+          setCurrentPage(1); // ✅ сбрасываем на первую страницу при фильтрации
         }
       }}
     />
   );
 
-  // Компонент сортировки
   const sortContent = (
     <Card style={{ width: 200, padding: "0px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -126,7 +122,6 @@ export const BankShow = () => {
         >
           Сортировать по
         </div>
-        {/* Сортировка по ID (дате создания) */}
         <Button
           type="text"
           style={{
@@ -138,10 +133,8 @@ export const BankShow = () => {
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
-          Дате создания{" "}
-          {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
+          Дате создания {sortField === "id" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
-        {/* Сортировка по типу операции */}
         <Button
           type="text"
           style={{
@@ -153,24 +146,19 @@ export const BankShow = () => {
             setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
           }}
         >
-          Типу операции{" "}
-          {sortField === "type" && (sortDirection === "ASC" ? "↑" : "↓")}
+          Типу операции {sortField === "type" && (sortDirection === "ASC" ? "↑" : "↓")}
         </Button>
       </div>
     </Card>
   );
 
-  // Получаем данные операций
   const operations = data?.data?.operation || record?.operation || [];
 
-  // Применяем сортировку и фильтрацию локально, если данные уже загружены
   const filteredOperations = useMemo(() => {
     let result = [...operations];
 
-    // Применяем фильтры
     if (searchFilters.length > 0) {
       searchFilters.forEach((filter) => {
-        // Фильтр по дате
         if (filter.date) {
           const { $gte, $lte } = filter.date;
           if ($gte) {
@@ -187,17 +175,14 @@ export const BankShow = () => {
       });
     }
 
-    // Применяем общий поиск по коду клиента и трек-коду
     if (searchText) {
       result = result.filter(
         (op) =>
-          (op.counterparty_id &&
-            op.counterparty_id.toString().includes(searchText)) ||
+          (op.counterparty_id && op.counterparty_id.toString().includes(searchText)) ||
           (op.goods_id && op.goods_id.toString().includes(searchText))
       );
     }
 
-    // Применяем сортировку
     result.sort((a, b) => {
       if (sortField === "id") {
         return sortDirection === "ASC" ? a.id - b.id : b.id - a.id;
@@ -214,22 +199,25 @@ export const BankShow = () => {
     return result;
   }, [operations, searchFilters, sortField, sortDirection, searchText]);
 
-  // Убираем пагинацию - все операции отображаются сразу
   const total = filteredOperations.length;
 
-  // Обработчик изменения таблицы (только сортировка)
+  // ✅ пагинированный массив
+  const paginatedOperations = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredOperations.slice(startIndex, startIndex + pageSize);
+  }, [filteredOperations, currentPage]);
+
   const handleTableChange = (_pagination: any, _filters: any, sorter: any) => {
-    // Обрабатываем сортировку, если она пришла из таблицы
     if (sorter && sorter.field) {
       setSortField(sorter.field === "type" ? "type" : "id");
       setSortDirection(sorter.order === "ascend" ? "ASC" : "DESC");
     }
   };
 
-  // Функция для сброса всех фильтров и поиска
   const resetAllFilters = () => {
     setSearchFilters([]);
     setSearchText("");
+    setCurrentPage(1);
   };
 
   const { data: counterparty } = useCustom<any>({
@@ -239,13 +227,10 @@ export const BankShow = () => {
 
   const counterparties = counterparty?.data || [];
 
-  const { push } = useNavigation();
-
   return (
     <Show isLoading={showLoading} headerButtons={() => false}>
       <Title level={5}>История операций: {record?.name}</Title>
 
-      {/* Панель фильтров и сортировки */}
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col span={8}>
           <Input
@@ -254,16 +239,13 @@ export const BankShow = () => {
             value={searchText}
             onChange={(e) => {
               setSearchText(e.target.value);
+              setCurrentPage(1); // ✅ сброс страницы при поиске
             }}
             allowClear
           />
         </Col>
         <Col>
-          <Dropdown
-            overlay={datePickerContent}
-            trigger={["click"]}
-            placement="bottomRight"
-          >
+          <Dropdown overlay={datePickerContent} trigger={["click"]} placement="bottomRight">
             <Button icon={<CalendarOutlined />}>Фильтр по дате</Button>
           </Dropdown>
         </Col>
@@ -276,11 +258,7 @@ export const BankShow = () => {
           >
             <Button>
               Сортировка{" "}
-              {sortDirection === "ASC" ? (
-                <ArrowUpOutlined />
-              ) : (
-                <ArrowDownOutlined />
-              )}
+              {sortDirection === "ASC" ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
             </Button>
           </Dropdown>
         </Col>
@@ -291,33 +269,35 @@ export const BankShow = () => {
         )}
         <Col>
           {(searchFilters.length > 0 || searchText) && (
-            <Typography.Text type="secondary">
-              Найдено: {total} записей
-            </Typography.Text>
+            <Typography.Text type="secondary">Найдено: {total} записей</Typography.Text>
           )}
         </Col>
       </Row>
 
       <Table
-        dataSource={filteredOperations}
+        dataSource={paginatedOperations}
         rowKey="id"
         loading={isLoading}
-        pagination={false}
+        pagination={{
+          current: currentPage,
+          pageSize: pageSize,
+          total: total,
+          onChange: (page) => setCurrentPage(page),
+          showSizeChanger: false,
+        }}
         onChange={handleTableChange}
         scroll={{ x: true }}
       >
         <Table.Column
           title="№"
-          render={(_: any, __: any, index: number) => {
-            return (1 - 1) * 1000 + index + 1;
-          }}
+          render={(_: any, __: any, index: number) =>
+            (currentPage - 1) * pageSize + index + 1
+          }
         />
         <Column
           title="Дата оплаты"
           dataIndex="date"
-          render={(value) =>
-            value ? dayjs(value).format("DD.MM.YYYY HH:mm") : "-"
-          }
+          render={(value) => (value ? dayjs(value).format("DD.MM.YYYY HH:mm") : "-")}
         />
         <Column
           title="Код клиента"
@@ -325,11 +305,9 @@ export const BankShow = () => {
           render={(value) => {
             return (
               <p>{`${
-                counterparties.find((item: any) => item.id === value)
-                  ?.clientPrefix || ""
+                counterparties.find((item: any) => item.id === value)?.clientPrefix || ""
               }-${
-                counterparties.find((item: any) => item.id === value)
-                  ?.clientCode || ""
+                counterparties.find((item: any) => item.id === value)?.clientCode || ""
               }`}</p>
             );
           }}
@@ -339,11 +317,7 @@ export const BankShow = () => {
           dataIndex="good"
           render={(value) => value?.invoice_number || "-"}
         />
-        <Column
-          title="Валюта"
-          dataIndex="type_currency"
-          render={(value) => value || "-"}
-        />
+        <Column title="Валюта" dataIndex="type_currency" render={(value) => value || "-"} />
         <Column
           title="Сумма"
           dataIndex="amount"
