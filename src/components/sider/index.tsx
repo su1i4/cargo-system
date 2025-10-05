@@ -73,7 +73,8 @@ export const CustomSider: typeof Sider = ({ render }) => {
     const findPermission = userPermissions.find(
       (permission) => permission.endpoint.path === name
     );
-    return findPermission?.show || findPermission?.create || findPermission?.delete || findPermission?.edit;
+    // return findPermission?.show || findPermission?.create || findPermission?.delete || findPermission?.edit;
+    return true;
   };
 
   const renderTreeView = (tree: ITreeMenu[], selectedKey: string) => {

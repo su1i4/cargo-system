@@ -1,8 +1,11 @@
 import { List, useTable } from "@refinedev/antd";
-import { Card, Row, Col, Button, Flex } from "antd";
+import { Card, Row, Col, Button, Flex, message, Tooltip } from "antd";
 import { type BaseRecord, useNavigation } from "@refinedev/core";
-import { EditOutlined } from "@ant-design/icons";
+import { EditOutlined, SwapOutlined, SyncOutlined } from "@ant-design/icons";
 import Title from "antd/lib/typography/Title";
+import { useState } from "react";
+import { BankTransferModal } from "../../components/bank-transfer-modal";
+import { CurrencyConvertModal } from "../../components/currency-convert-modal";
 
 interface IBank extends BaseRecord {
   name?: string;
@@ -12,16 +15,45 @@ interface IBank extends BaseRecord {
 }
 
 export const BankList = () => {
-  const { tableProps } = useTable<IBank>({
+  const { tableProps, tableQueryResult } = useTable<IBank>({
     syncWithLocation: false,
     pagination: {
       pageSize: 50,
     },
   });
 
+  const role = localStorage.getItem("cargo-system-role");
   const { dataSource } = tableProps;
   const { show, push } = useNavigation();
-  
+
+  const [transferModalVisible, setTransferModalVisible] = useState(false);
+  const [convertModalVisible, setConvertModalVisible] = useState(false);
+  const [selectedBankId, setSelectedBankId] = useState<number | undefined>();
+  const [selectedBankName, setSelectedBankName] = useState<
+    string | undefined
+  >();
+
+  const handleTransferClick = (bankId: number) => {
+    setSelectedBankId(bankId);
+    setTransferModalVisible(true);
+  };
+
+  const handleConvertClick = (bankId: number, bankName: string) => {
+    setSelectedBankId(bankId);
+    setSelectedBankName(bankName);
+    setConvertModalVisible(true);
+  };
+
+  const handleTransferSuccess = async () => {
+    message.success("Заявка на перевод создана");
+    await tableQueryResult.refetch();
+  };
+
+  const handleConvertSuccess = async () => {
+    message.success("Конвертация успешно выполнена");
+    await tableQueryResult.refetch();
+  };
+
   return (
     <List>
       <Row gutter={[16, 16]}>
@@ -35,11 +67,36 @@ export const BankList = () => {
                   style={{ height: "100%" }}
                 >
                   <Title level={5}>{bank.name}</Title>
-                  <EditOutlined
-                    onClick={() => {
-                      push(`/bank/edit/${bank.id}`);
-                    }}
-                  />
+                  <Flex gap={8}>
+                    <Tooltip title="Создать заявку на перевод">
+                      <SwapOutlined
+                        onClick={() => handleTransferClick(bank.id as number)}
+                        style={{ fontSize: "18px", cursor: "pointer" }}
+                      />
+                    </Tooltip>
+                    {role === "admin" && (
+                      <>
+                        <Tooltip title="Конвертация валюты">
+                          <SyncOutlined
+                            onClick={() =>
+                              handleConvertClick(
+                                bank.id as number,
+                                bank.name as string
+                              )
+                            }
+                            style={{ fontSize: "18px", cursor: "pointer" }}
+                          />
+                        </Tooltip>
+                      </>
+                    )}
+                    <Tooltip title="Редактировать">
+                      <EditOutlined
+                        onClick={() => {
+                          push(`/bank/edit/${bank.id}`);
+                        }}
+                      />
+                    </Tooltip>
+                  </Flex>
                 </Flex>
               }
               style={{ borderRadius: 8 }}
@@ -85,6 +142,21 @@ export const BankList = () => {
           </Col>
         ))}
       </Row>
+
+      <BankTransferModal
+        visible={transferModalVisible}
+        onCancel={() => setTransferModalVisible(false)}
+        onSuccess={handleTransferSuccess}
+        fromBankId={selectedBankId}
+      />
+
+      <CurrencyConvertModal
+        open={convertModalVisible}
+        onClose={() => setConvertModalVisible(false)}
+        bankId={selectedBankId}
+        bankName={selectedBankName}
+        onSuccess={handleConvertSuccess}
+      />
     </List>
   );
 };

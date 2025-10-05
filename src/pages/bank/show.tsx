@@ -38,7 +38,7 @@ export const BankShow = () => {
   const { data: showData, isLoading: showLoading } = queryResult;
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
-  const [sortField, setSortField] = useState<any>("good.created_at");
+  const [sortField, setSortField] = useState<any>("id");
   const [searchFilters, setSearchFilters] = useState<any[]>([]);
   const [sorterVisible, setSorterVisible] = useState(false);
   const [searchText, setSearchText] = useState<string>("");

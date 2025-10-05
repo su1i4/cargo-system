@@ -107,6 +107,7 @@ export const WarehouseStockGoodsReport = () => {
     let totalBagsCount = 0;
     let totalWeight = 0;
 
+    // Убираем заголовки из exportData, они будут добавлены через headerInfo
     dataSource.forEach((record: any, index: number) => {
       const taganSum =
         record.products
@@ -130,39 +131,35 @@ export const WarehouseStockGoodsReport = () => {
             ?.map((item: any) => item.bag_number_numeric)
             .join(", ") || "",
         "Вес, кг": record.weight
-          ? String(Number(record.weight).toFixed(2)).replace(".", ",")
+          ? String(Number(record.weight).toFixed(2))
           : "",
         "Кол-во мешков": String(record.services?.length || 0),
         Сумма: String(Number(record.amount || 0)
-          .toFixed(2))
-          .replace(".", ","),
+          .toFixed(2)),
         "Сумма за мешки": String(Number(
           record.avgProductPrice - (showTagan ? taganSum : 0) || 0
         )
-          .toFixed(2))
-          .replace(".", ","),
+          .toFixed(2)),
         Оплачено: String(Number(record.paid_sum || 0)
-          .toFixed(2))
-          .replace(".", ","),
+          .toFixed(2)),
       };
 
       if (!showTagan) {
         mainRow["Долг"] = String(
           (Number(record.amount || 0) - Number(record.paid_sum || 0)).toFixed(2)
-        ).replace(".", ",");
+        );
       }
 
       if (showTagan) {
-        mainRow["Сумма за Таганский рынок"] = String(Number(taganSum).toFixed(2))
-          .replace(".", ",");
+        mainRow["Сумма за Таганский рынок"] = String(Number(taganSum).toFixed(2));
 
-        (mainRow["Долг с Таганским рынком"] = String(
+        mainRow["Долг с Таганским рынком"] = String(
           (Number(record.amount || 0) - Number(record.paid_sum || 0)).toFixed(2)
-        ).replace(".", ",")),
-          (mainRow["Долг без Таганского рынка"] = String(
-            (Number(record.amount || 0) -
-            (Number(record.paid_sum || 0) + Number(taganSum || 0))).toFixed(2)
-          ).replace(".", ","));
+        );
+        mainRow["Долг без Таганского рынка"] = String(
+          (Number(record.amount || 0) -
+          (Number(record.paid_sum || 0) + Number(taganSum || 0))).toFixed(2)
+        );
       }
 
       totalSum += Number(record.amount || 0);
@@ -189,18 +186,17 @@ export const WarehouseStockGoodsReport = () => {
             "Номер получателя": "",
             "Номера мешков": service.bag_number_numeric || "",
             "Вес, кг": service.weight
-              ? String(Number(service.weight).toFixed(2)).replace(".", ",")
+              ? String(Number(service.weight).toFixed(2))
               : "",
             "Кол-во мешков": "1",
             Сумма: String(Number(service.sum || 0)
-              .toFixed(2))
-              .replace(".", ","),
+              .toFixed(2)),
             "Сумма за мешки": "0",
             Оплачено: String(Number(service.paid_sum || 0)
-              .toFixed(2))
-              .replace(".", ","),
-            Долг: String((Number(service.sum || 0) - Number(service.paid_sum || 0)).toFixed(2))
-              .replace(".", ","),
+              .toFixed(2)),
+            Долг: String(
+              (Number(service.sum || 0) - Number(service.paid_sum || 0)).toFixed(2)
+            )
           };
 
           totalSum += service.sum || 0;
@@ -219,12 +215,12 @@ export const WarehouseStockGoodsReport = () => {
       Досыл: "",
       "Номер получателя": "",
       "Номера мешков": "",
-      "Вес, кг": String(totalWeight),
+      "Вес, кг": String(Number(totalWeight).toFixed(2)),
       "Кол-во мешков": String(totalBagsCount),
-      Сумма: String(totalSum),
-      "Сумма за мешки": String(totalBagSum),
-      Оплачено: String(totalPaid),
-      Долг: String(totalDebt),
+      Сумма: String(Number(totalSum).toFixed(2)),
+      "Сумма за мешки": String(Number(totalBagSum).toFixed(2)),
+      Оплачено: String(Number(totalPaid).toFixed(2)),
+      Долг: String(Number(totalDebt).toFixed(2)),
     };
 
     const totalRow2 = {
@@ -301,18 +297,14 @@ export const WarehouseStockGoodsReport = () => {
         ? dayjs(shipmentRecordForHeader.created_at).utc().format("DD.MM.YYYY")
         : dayjs().format("DD.MM.YYYY");
 
-      // Создаем шапку с информацией
+      // Создаем шапку с информацией в downloadXLSX
       const headerInfo = [
         {
-          [Object.keys(exportData[0] || {})[0] || 'info']: `ЛОГО | РЕЙС: ${headerTruckNumber} | ВОДИТЕЛЬ: ${headerDriver} | ДАТА: ${shipmentDateForHeader}`,
+          [Object.keys(exportData[0] || {})[0] || 'info']: `РЕЙС: ${headerTruckNumber} | ВОДИТЕЛЬ: ${headerDriver} | ДАТА: ${shipmentDateForHeader}`,
           ...Object.fromEntries(
             Object.keys(exportData[0] || {}).slice(1).map(key => [key, ''])
           )
-        },
-        // Пустая строка
-        Object.fromEntries(
-          Object.keys(exportData[0] || {}).map(key => [key, ''])
-        ),
+        }
       ];
 
       const dataWithHeader = [...headerInfo, ...exportData];
@@ -423,44 +415,13 @@ export const WarehouseStockGoodsReport = () => {
 
       const headerData = [
         [
-          "ЛОГО",
           `РЕЙС: ${headerTruckNumber}`,
           `ВОДИТЕЛЬ: ${headerDriver}`,
           `ДАТА: ${shipmentDateForHeader}`,
-          "",
-          "",
-        ],
-        [
-          "",
-          "",
-          "ОТПРАВКА №",
-          shipmentData?.id || "",
-          "",
-          "",
-        ],
-        [
-          "город направление:",
-          shipmentData?.destination || "",
-          "",
-          "",
           "РОССкарго",
           "",
-        ],
-        [], // пустая строка
-        mainHeaders,
-        [
-          "Ф.И.О",
-          "Номер тел.",
-          "Ф.И.О",
-          "Номер тел",
           "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-        ].concat(showTagan ? ["", ""] : []),
+        ]
       ];
 
       // ===== 4. Подготовка данных для таблицы =====
@@ -480,6 +441,7 @@ export const WarehouseStockGoodsReport = () => {
           )
         : sortedData;
 
+      // Убираем mainHeaders и подзаголовки из headerData, они будут в tableData
       dataSource.forEach((record: any) => {
         const senderName = record.sender?.name || "";
         const senderPhone = record.sender?.phoneNumber || "";
@@ -677,36 +639,20 @@ export const WarehouseStockGoodsReport = () => {
       });
 
       // Стили
-      const headerTitleStyle = createCellStyle({
+      const headerInfoStyle = createCellStyle({
         fontSize: 12,
         bold: true,
         align: "left",
+        bgColor: "F5F5F5"
       });
-      const headerValueStyle = createCellStyle({
-        fontSize: 12,
-        bold: true,
-        align: "left",
-      });
-      const headerDateStyle = createCellStyle({
-        fontSize: 12,
-        bold: true,
-        align: "right",
-      });
-      const cityLabelStyle = createCellStyle({
-        fontSize: 11,
-        bold: true,
-        align: "left",
-      });
-      const cityValueStyle = createCellStyle({
-        fontSize: 11,
-        bold: true,
-        align: "left",
-      });
+
       const companyStyle = createCellStyle({
-        fontSize: 11,
+        fontSize: 12,
         bold: true,
         align: "right",
+        bgColor: "F5F5F5"
       });
+
       const tableHeaderMainStyle = createCellStyle({
         fontSize: 10,
         bold: true,
@@ -714,6 +660,7 @@ export const WarehouseStockGoodsReport = () => {
         border: true,
         bgColor: "E6E6FA",
       });
+
       const tableHeaderSubStyle = createCellStyle({
         fontSize: 9,
         bold: true,
@@ -721,12 +668,14 @@ export const WarehouseStockGoodsReport = () => {
         border: true,
         bgColor: "F0F8FF",
       });
+
       const tableCellStyle = createCellStyle({
         fontSize: 10,
         bold: false,
         border: true,
         align: "center",
       });
+
       const tableCellLeftStyle = createCellStyle({
         fontSize: 10,
         bold: false,
@@ -734,6 +683,7 @@ export const WarehouseStockGoodsReport = () => {
         align: "left",
         indent: 1,
       });
+
       const totalRowStyle = createCellStyle({
         fontSize: 10,
         bold: true,
@@ -748,42 +698,19 @@ export const WarehouseStockGoodsReport = () => {
         worksheet[address].s = style;
       };
 
-      // Шапка документа - новая первая строка с логотипом, рейсом, водителем и датой
-      setCellStyle("A1", headerTitleStyle); // ЛОГО
-      setCellStyle("B1", headerValueStyle); // РЕЙС
-      setCellStyle("C1", headerValueStyle); // ВОДИТЕЛЬ
-      setCellStyle("D1", headerDateStyle);  // ДАТА
-      
-      // Вторая строка - номер отправки
-      setCellStyle("C2", headerTitleStyle);
-      setCellStyle("D2", headerValueStyle);
-      
-      // Третья строка - город и компания
-      setCellStyle("A3", cityLabelStyle);
-      setCellStyle("B3", cityValueStyle);
-      setCellStyle("E3", companyStyle);
-
-      // Заголовки таблицы
-      const headerRow1 = 4; // 0-based index для строки 5
-      const headerRow2 = 5; // 0-based index для строки 6
-      const totalCols = showTagan ? 13 : 11;
-
-      // Главные заголовки (строка 4)
-      for (let col = 0; col < totalCols; col++) {
-        const addr1 = XLSX.utils.encode_cell({ r: headerRow1, c: col });
-        setCellStyle(addr1, tableHeaderMainStyle);
+      // Применяем стили к строке с информацией о рейсе
+      for (let col = 0; col < 3; col++) {
+        const addr = XLSX.utils.encode_cell({ r: 0, c: col });
+        setCellStyle(addr, headerInfoStyle);
       }
-
-      // Подзаголовки (строка 5)
-      for (let col = 0; col < totalCols; col++) {
-        const addr2 = XLSX.utils.encode_cell({ r: headerRow2, c: col });
-        setCellStyle(addr2, tableHeaderSubStyle);
-      }
+      setCellStyle(XLSX.utils.encode_cell({ r: 0, c: 3 }), companyStyle);
 
       // Данные таблицы
-      const totalRowIndex = allData.length - 1; // Индекс итоговой строки
+      const dataStartRow = 1; // Данные начинаются сразу после информации о рейсе
+      const totalRowIndex = allData.length - 1;
+      const totalCols = showTagan ? 13 : 11;
 
-      for (let row = 6; row < allData.length; row++) {
+      for (let row = dataStartRow; row < allData.length; row++) {
         for (let col = 0; col < totalCols; col++) {
           const addr = XLSX.utils.encode_cell({ r: row, c: col });
 
@@ -801,31 +728,13 @@ export const WarehouseStockGoodsReport = () => {
         }
       }
 
-      // ===== 10. Объединение ячеек =====
-      worksheet["!merges"] = [
-        // Заголовок "ОТПРАВКА №" во второй строке
-        { s: { r: 1, c: 2 }, e: { r: 1, c: 3 } },
-        // Город направления в третьей строке
-        { s: { r: 2, c: 1 }, e: { r: 2, c: 3 } },
-        // Заголовки таблицы - основные группы
-        { s: { r: 4, c: 0 }, e: { r: 4, c: 1 } }, // Отправитель
-        { s: { r: 4, c: 2 }, e: { r: 4, c: 3 } }, // Получатель
-      ];
-
       // ===== 11. Установка высоты строк =====
       worksheet["!rows"] = [
-        { hpt: 20 }, // Строка 1 - ЛОГО, РЕЙС, ВОДИТЕЛЬ, ДАТА
-        { hpt: 18 }, // Строка 2 - ОТПРАВКА №
-        { hpt: 16 }, // Строка 3 - город направления
-        { hpt: 12 }, // Пустая строка
-        { hpt: 20 }, // Заголовки 1
-        { hpt: 18 }, // Заголовки 2 (подзаголовки)
+        { hpt: 25 }, // Строка с информацией о рейсе
       ];
 
       // Добавляем высоту для строк данных
-      for (let i = 6; i < allData.length; i++) {
-        if (!worksheet["!rows"]) worksheet["!rows"] = [];
-        // Итоговая строка чуть выше
+      for (let i = dataStartRow; i < allData.length; i++) {
         worksheet["!rows"][i] = { hpt: i === totalRowIndex ? 18 : 15 };
       }
 
@@ -1304,7 +1213,7 @@ export const WarehouseStockGoodsReport = () => {
             dataIndex="amount"
             title="Сумма"
             render={(value) => {
-              return value;
+              return Number(value).toFixed(2);
             }}
           />
           <Table.Column
@@ -1323,10 +1232,7 @@ export const WarehouseStockGoodsReport = () => {
                     0
                   ) || 0;
 
-              return (value - (showTagan ? taganSum : 0))
-                .toFixed(2)
-                .toString()
-                .replace(".", ",");
+              return Number(value - (showTagan ? taganSum : 0)).toFixed(2);
             }}
           />
           {showTagan && (
@@ -1349,18 +1255,15 @@ export const WarehouseStockGoodsReport = () => {
               }}
             />
           )}
-          <Table.Column dataIndex="paid_sum" title="Оплачено" />
+          <Table.Column dataIndex="paid_sum" title="Оплачено" render={(value) => Number(value).toFixed(2)} />
 
           <Table.Column
             dataIndex="id"
             title={showTagan ? "Долг с Таганским рынком" : "Долг"}
             render={(_, record) => {
-              return (
+              return Number(
                 Number(record?.amount || 0) - Number(record?.paid_sum || 0)
-              )
-                .toFixed(2)
-                .toString()
-                .replace(".", ",");
+              ).toFixed(2);
             }}
           />
 

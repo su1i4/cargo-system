@@ -243,12 +243,12 @@ export const GoodsProcessingCreate = memo(() => {
         return;
       }
 
-      if (state.hasBagNumber.length > 0) {
-        message.error(
-          "Обнаружены дублированные номера мешков. Исправьте перед отправкой."
-        );
-        return;
-      }
+      // if (state.hasBagNumber.length > 0) {
+      //   message.error(
+      //     "Обнаружены дублированные номера мешков. Исправьте перед отправкой."
+      //   );
+      //   return;
+      // }
 
       const invalidServices = state.services.filter((service) => {
         return !service.type_id || !service.weight || service.weight <= 0;

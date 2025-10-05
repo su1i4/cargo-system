@@ -62,6 +62,7 @@ export const GoogsProcessingList = () => {
   const [statusFilter, setStatusFilter] = useState<any>(null);
   const [searchFilter, setSearchFilter] = useState<any>(null);
   const [dateFilter, setDateFilter] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Состояние для выбранных значений в UI
   const [selectedDestinations, setSelectedDestinations] = useState<any[]>([]);
@@ -150,6 +151,24 @@ export const GoogsProcessingList = () => {
     const size = searchparams.get("size");
     if (page) setCurrentPage(Number(page));
     if (size) setPageSize(Number(size));
+  }, []);
+
+  const getUser = async () => {
+    try {
+      const response = await fetch(`${API_URL}/users/profile`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+        },
+      });
+      const data = await response.json();
+      setUser(data);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+    }
+  };
+
+  useEffect(() => {
+    getUser();
   }, []);
 
   // Функция для объединения всех фильтров
@@ -560,13 +579,15 @@ export const GoogsProcessingList = () => {
       >
         <Col>
           <Space size="middle">
-            <CustomTooltip title="Создать">
-              <Button
-                icon={<FileAddOutlined />}
-                style={{}}
-                onClick={() => push("/goods-processing/create")}
-              />
-            </CustomTooltip>
+            {!user?.representative && (
+              <CustomTooltip title="Создать">
+                <Button
+                  icon={<FileAddOutlined />}
+                  style={{}}
+                  onClick={() => push("/goods-processing/create")}
+                />
+              </CustomTooltip>
+            )}
             <CustomTooltip title="Сортировка">
               <Dropdown
                 overlay={sortContent}

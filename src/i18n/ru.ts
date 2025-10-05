@@ -115,6 +115,8 @@ export const i18nProvider_ru = {
       "cash-back.titles.create": "Создать кешбек",
       "cash-back.titles.show": "Просмотр кешбека",
       "cash-back.titles.edit": "Редактирование кешбека",
+      "transfer-requests.titles.list": "Заявки на переводы",
+      "transfer-requests.titles.show": "Просмотр заявки на перевод",
     };
     return translations[key] || key;
   },

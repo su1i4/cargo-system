@@ -37,6 +37,13 @@ const GoodsProcessingCreate = lazy(() =>
     default: m.GoodsProcessingCreate,
   }))
 );
+
+const TransferRequestList = lazy(() =>
+  import("./pages/bank/transfer-requests/list").then((m) => ({
+    default: m.TransferRequestList,
+  }))
+);
+
 const GoogsProcessingList = lazy(() =>
   import("./pages/goods-processing").then((m) => ({
     default: m.GoogsProcessingList,
@@ -1066,6 +1073,15 @@ function App() {
                       }
                     />
                   </Route>
+                  <Route
+                    path="transfer-requests"
+                    index
+                    element={
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <TransferRequestList />
+                      </Suspense>
+                    }
+                  />
 
                   <Route path="/bank">
                     <Route
@@ -1076,6 +1092,7 @@ function App() {
                         </Suspense>
                       }
                     />
+
                     <Route
                       path="create"
                       element={

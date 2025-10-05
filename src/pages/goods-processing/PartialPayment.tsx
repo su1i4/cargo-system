@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useForm, useSelect } from "@refinedev/antd";
-import { useUpdateMany, useCustom } from "@refinedev/core";
+import { useUpdateMany, useCustom, useInvalidate } from "@refinedev/core";
 import {
   Button,
   Card,
@@ -36,24 +36,49 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Добавляем useInvalidate для инвалидации кэша
+  const invalidate = useInvalidate();
+
   const { mutate: updateManyGoods } = useUpdateMany({
     resource: "goods-processing",
     mutationOptions: {
-      onSuccess: () => {
-        refetch();
+      onSuccess: async () => {
+        // Инвалидируем кэш для всех связанных ресурсов
+        invalidate({
+          resource: "goods-processing",
+          invalidates: ["list", "detail"],
+        });
+        
+        invalidate({
+          resource: "cash-desk",
+          invalidates: ["list", "detail"],
+        });
+
+        // Небольшая задержка для гарантии обновления на бэкенде
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Обновляем данные
+        await refetch();
+        
         setIsModalOpen(false);
         setIsSubmitting(false);
         message.success("Частичная оплата создана успешно");
       },
-      onError: () => {
+      onError: (error) => {
+        console.error("Ошибка при обновлении:", error);
         setIsSubmitting(false);
+        message.error("Ошибка при создании частичной оплаты");
       }
     },
   });
 
-  const { data: currencyData = { data: [] } } = useCustom<any>({
+  const { data: currencyData = { data: [] }, refetch: refetchCurrency } = useCustom<any>({
     url: `${API_URL}/currency`,
     method: "get",
+    queryOptions: {
+      enabled: !!record?.id,
+      refetchOnWindowFocus: true,
+    },
   });
 
   const { formProps, form, formLoading } = useForm({
@@ -65,9 +90,23 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
           values: { operation_id: id },
         });
       }
+      
+      // Инвалидируем сразу после создания записи
+      invalidate({
+        resource: "cash-desk",
+        invalidates: ["list", "detail"],
+      });
+
+      refetchCurrency();
+    },
+    onMutationError(error) {
+      console.error("Ошибка формы:", error);
+      setIsSubmitting(false);
+      message.error("Ошибка при сохранении данных");
     },
     resource: "cash-desk",
     redirect: false,
+    invalidates: ["list", "detail"], // Автоматическая инвалидация
     // @ts-ignore
     defaultValues: {
       type: "income",
@@ -133,7 +172,6 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     return Math.ceil(remainingAmountInBaseCurrency * rate);
   };
   
-
   const remainingAmount = getRemainingAmountInFormCurrency();
   
   console.log({
@@ -218,7 +256,12 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
       date: dayjs(),
     };
 
-    formProps?.onFinish?.(payload);
+    try {
+      await formProps?.onFinish?.(payload);
+    } catch (error) {
+      console.error("Ошибка при отправке формы:", error);
+      setIsSubmitting(false);
+    }
   };
 
   const isButtonDisabled = isFullyPaid || isSubmitting || formLoading;
@@ -228,9 +271,7 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
       trigger={["click"]}
       open={isModalOpen}
       onOpenChange={(open) => {
-        // if (!isButtonDisabled) {
-          setIsModalOpen(open);
-        // }
+        setIsModalOpen(open);
       }}
       overlay={
         <Card size="small" style={{ width: 480 }}>
@@ -292,9 +333,6 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
                         if (amount <= 0) {
                           return Promise.reject(new Error('Сумма должна быть больше 0'));
                         }
-                        // if (amount > record?.amount) {
-                        //   return Promise.reject(new Error(`Сумма не может превышать ${record?.amount} ${values?.type_currency || 'Сом'}`));
-                        // }
                         return Promise.resolve();
                       }
                     }
@@ -341,12 +379,6 @@ export const PartialPayment: React.FC<PartialPaymentProps> = ({
     >
       <Button
         type="default"
-        // style={{ 
-        //   backgroundColor: isFullyPaid ? "#f5f5f5" : "#f0f8ff", 
-        //   borderColor: isFullyPaid ? "#d9d9d9" : "#1890ff",
-        //   color: isFullyPaid ? "#00000040" : undefined
-        // }}
-        // disabled={isButtonDisabled}
       >
         💳 {record?.products?.length > 0 ? isFullyPaid ? "Оплачено" : "Оплатить" : "Отсутствуют товары"}
       </Button>

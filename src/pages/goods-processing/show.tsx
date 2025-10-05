@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Show, EditButton, DeleteButton, useTable } from "@refinedev/antd";
 import { useNavigation, useShow } from "@refinedev/core";
 import { Typography, Flex, Row, Col, Button } from "antd";
@@ -10,6 +10,7 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { useReactToPrint } from "react-to-print";
 import { PartialPayment } from "./PartialPayment";
+import { API_URL } from "../../App";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -199,6 +200,28 @@ export const GoodsShow: React.FC = () => {
       mode: "off",
     },
   });
+
+  const [user, setUser] = useState<any>(null);
+
+  const user_id = localStorage.getItem("cargo-system-id");
+
+  const getUser = async () => {
+    try {
+      const response = await fetch(`${API_URL}/users/profile`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("cargo-system-token")}`,
+        },
+      });
+      const data = await response.json();
+      setUser(data);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+    }
+  };
+
+  useEffect(() => {
+    getUser();
+  }, []);
 
   const currenciesLoading = !currencyTableProps?.dataSource;
 
@@ -1033,10 +1056,10 @@ export const GoodsShow: React.FC = () => {
           >
             Распечатать
           </Button>
-          {editButtonProps && (
+          {editButtonProps && !user?.representative && (
             <EditButton {...editButtonProps} meta={{ foo: "bar" }} />
           )}
-          {deleteButtonProps && (
+          {deleteButtonProps && !user?.representative && (
             <DeleteButton {...deleteButtonProps} meta={{ foo: "bar" }} />
           )}
         </>

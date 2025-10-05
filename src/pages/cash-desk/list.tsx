@@ -11,14 +11,17 @@ import {
   Select,
   Card,
   Image,
+  message,
+  Modal,
 } from "antd";
-import { useCustom, useNavigation } from "@refinedev/core";
+import { useCustom, useNavigation, useUpdate } from "@refinedev/core";
 import {
   FileAddOutlined,
   SearchOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
   DownloadOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { API_URL } from "../../App";
@@ -32,16 +35,21 @@ interface IncomeFilters {
 }
 
 export const CashDeskList: React.FC = () => {
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [editingComment, setEditingComment] = useState<string>("");
+  const { mutate } = useUpdate();
+
   const { tableProps: bankTableProps } = useTable({
     resource: "bank",
   });
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState<"id" | "counterparty.name">("id");
-  
+
   // Отдельные состояния для каждого типа фильтра
   const [filters, setFilters] = useState<IncomeFilters>({});
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sorterVisible, setSorterVisible] = useState(false);
@@ -116,7 +124,7 @@ export const CashDeskList: React.FC = () => {
   // Debounced функция для поиска
   const debouncedSearch = useCallback(
     debounce((searchValue: string) => {
-      setFilters(prev => ({
+      setFilters((prev) => ({
         ...prev,
         search: searchValue,
       }));
@@ -130,14 +138,14 @@ export const CashDeskList: React.FC = () => {
   };
 
   const handleUserChange = (userIds: number[]) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       userIds: userIds.length > 0 ? userIds : undefined,
     }));
   };
 
   const handleBankChange = (bankIds: number[]) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       bankIds: bankIds.length > 0 ? bankIds : undefined,
     }));
@@ -145,7 +153,7 @@ export const CashDeskList: React.FC = () => {
 
   const handleSort = (field: "id" | "counterparty.name") => {
     if (sortField === field) {
-      setSortDirection(prev => prev === "ASC" ? "DESC" : "ASC");
+      setSortDirection((prev) => (prev === "ASC" ? "DESC" : "ASC"));
     } else {
       setSortField(field);
       setSortDirection("DESC");
@@ -249,9 +257,44 @@ export const CashDeskList: React.FC = () => {
     }
   };
 
+  const handleCommentUpdate = () => {
+    if (!editingRecord) return;
+
+    mutate(
+      {
+        resource: "cash-desk",
+        id: editingRecord.id,
+        values: {
+          comment: editingComment,
+        },
+      },
+      {
+        onSuccess: () => {
+          setEditModalVisible(false);
+          setEditingRecord(null);
+          setEditingComment("");
+          refetch();
+          message.success("Комментарий успешно обновлен");
+        },
+        onError: () => {
+          message.error("Ошибка при обновлении комментария");
+        },
+      }
+    );
+  };
+
   const { selectProps: userSelectProps } = useSelect({
     resource: "users",
     optionLabel: (item: any) => `${item.firstName} ${item.lastName}`,
+    onSearch: (value: string) => [
+      {
+        operator: "or",
+        value: [
+          { field: "firstName", operator: "contains", value },
+          { field: "lastName", operator: "contains", value },
+        ],
+      },
+    ],
   });
 
   const { push, show } = useNavigation();
@@ -362,9 +405,9 @@ export const CashDeskList: React.FC = () => {
           }}
           width={120}
         />
-        <Table.Column 
-          dataIndex="method_payment" 
-          title="Метод оплаты" 
+        <Table.Column
+          dataIndex="method_payment"
+          title="Метод оплаты"
           render={(value) => value || "-"}
         />
         <Table.Column
@@ -374,17 +417,39 @@ export const CashDeskList: React.FC = () => {
         />
 
         <Table.Column
-          dataIndex="counterparty"
-          title="Код клиента"
+          dataIndex="good"
+          title="Код отправителя"
           render={(value) =>
-            value ? `${value?.clientPrefix || ""}-${value?.clientCode || ""}` : "-"
+            value
+              ? `${value?.sender?.clientPrefix || ""}-${
+                  value?.sender?.clientCode || ""
+                }`
+              : "-"
           }
         />
 
         <Table.Column
-          dataIndex="counterparty"
-          title="Фио клиента"
-          render={(counterparty) => counterparty?.name || "-"}
+          dataIndex="good"
+          title="Фио отправителя"
+          render={(good) => good?.sender?.name || "-"}
+        />
+
+        <Table.Column
+          dataIndex="good"
+          title="Код получателя"
+          render={(value) =>
+            value
+              ? `${value?.recipient?.clientPrefix || ""}-${
+                  value?.recipient?.clientCode || ""
+                }`
+              : "-"
+          }
+        />
+
+        <Table.Column
+          dataIndex="good"
+          title="Фио получателя"
+          render={(good) => good?.recipient?.name || "-"}
         />
 
         <Table.Column
@@ -393,14 +458,14 @@ export const CashDeskList: React.FC = () => {
           render={(value) => value?.invoice_number || "-"}
         />
 
-        <Table.Column 
-          dataIndex="amount" 
+        <Table.Column
+          dataIndex="amount"
           title="Сумма"
           render={(value) => value || "-"}
         />
 
-        <Table.Column 
-          dataIndex="type_currency" 
+        <Table.Column
+          dataIndex="type_currency"
           title="Валюта"
           render={(value) => value || "-"}
         />
@@ -408,7 +473,20 @@ export const CashDeskList: React.FC = () => {
         <Table.Column
           dataIndex="comment"
           title="Комментарий"
-          render={(value) => value || "-"}
+          render={(value, record: any) => (
+            <Space>
+              <span>{value || "-"}</span>
+              <Button
+                type="link"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setEditingRecord(record);
+                  setEditingComment(value || "");
+                  setEditModalVisible(true);
+                }}
+              />
+            </Space>
+          )}
         />
         <Table.Column
           dataIndex="check_file"
@@ -453,11 +531,34 @@ export const CashDeskList: React.FC = () => {
         <Table.Column
           title="Сотрудник"
           dataIndex="user"
-          render={(value) => 
-            value ? `${value?.firstName || ""} ${value?.lastName || ""}`.trim() || "-" : "-"
+          render={(value) =>
+            value
+              ? `${value?.firstName || ""} ${value?.lastName || ""}`.trim() ||
+                "-"
+              : "-"
           }
         />
       </Table>
+
+      <Modal
+        title="Редактирование комментария"
+        open={editModalVisible}
+        onOk={handleCommentUpdate}
+        onCancel={() => {
+          setEditModalVisible(false);
+          setEditingRecord(null);
+          setEditingComment("");
+        }}
+        okText="Сохранить"
+        cancelText="Отмена"
+      >
+        <Input.TextArea
+          value={editingComment}
+          onChange={(e) => setEditingComment(e.target.value)}
+          rows={4}
+          placeholder="Введите комментарий"
+        />
+      </Modal>
     </List>
   );
 };

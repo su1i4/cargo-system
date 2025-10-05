@@ -1,12 +1,13 @@
 import { List, useTable, DeleteButton } from "@refinedev/antd";
-import { Table, Space, Tag, Button } from "antd";
-import { type BaseRecord, useNavigation } from "@refinedev/core";
+import { Table, Space, Tag, Button, Checkbox } from "antd";
+import { type BaseRecord, useNavigation, useUpdate } from "@refinedev/core";
 import { PlusOutlined } from "@ant-design/icons";
 
 interface IBankPermission extends BaseRecord {
   id: number;
   bank_id: number;
   user_id: number;
+  owner: boolean;
   bank: {
     id: number;
     name: string;
@@ -25,7 +26,20 @@ export const BankPermissionList = () => {
     resource: "permission-bank",
   });
 
+  const { mutate } = useUpdate();
   const { push } = useNavigation();
+
+  const handleOwnerChange = (checked: boolean, record: IBankPermission) => {
+    mutate({
+      resource: "permission-bank",
+      id: record.id,
+      values: {
+        owner: checked,
+      },
+    });
+  };
+
+  const role = localStorage.getItem("cargo-system-role");
 
   return (
     <List
@@ -43,11 +57,7 @@ export const BankPermissionList = () => {
       title="Разрешения на банк"
     >
       <Table {...tableProps} rowKey="id">
-        <Table.Column 
-          dataIndex="id" 
-          title="ID" 
-          sorter={{ multiple: 2 }}
-        />
+        <Table.Column dataIndex="id" title="ID" sorter={{ multiple: 2 }} />
         <Table.Column
           dataIndex={["user", "firstName"]}
           title="Пользователь"
@@ -67,6 +77,18 @@ export const BankPermissionList = () => {
             <Tag color="green">{record.bank.name}</Tag>
           )}
         />
+        {role === "admin" && (
+          <Table.Column
+            dataIndex="owner"
+            title="Владелец"
+            render={(value, record: IBankPermission) => (
+              <Checkbox
+                checked={record.owner}
+                onChange={(e) => handleOwnerChange(e.target.checked, record)}
+              />
+            )}
+          />
+        )}
         <Table.Column
           title="Действия"
           dataIndex="actions"
@@ -84,4 +106,4 @@ export const BankPermissionList = () => {
       </Table>
     </List>
   );
-}; 
+};

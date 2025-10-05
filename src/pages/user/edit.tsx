@@ -215,6 +215,12 @@ export const UserEdit = () => {
           </Col>
 
           <Col xs={24} sm={12} md={6}>
+            <Form.Item label="Пароль" name="password">
+              <Input.Password />
+            </Form.Item>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
             <Form.Item
               label="Представитель"
               name="representative"

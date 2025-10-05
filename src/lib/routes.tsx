@@ -345,10 +345,11 @@ export const routes: IResourceItem[] = [
     edit: "/bank/edit/:id",
     show: "/bank/show/:id",
     meta: {
+      label: "Банки",
       canDelete: true,
-      label: "Банк",
       parent: "Касса",
     },
+    
   },
 
   {
@@ -385,6 +386,16 @@ export const routes: IResourceItem[] = [
     meta: {
       canDelete: true,
       label: "Валюта",
+      parent: "Касса",
+    },
+  },
+  {
+    name: "transfer-requests",
+    list: "/transfer-requests",
+    show: "/transfer-requests/show/:id",
+    meta: {
+      canDelete: true,
+      label: "Заявки на переводы",
       parent: "Касса",
     },
   },
