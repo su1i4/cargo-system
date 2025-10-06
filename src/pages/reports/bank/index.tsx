@@ -45,7 +45,7 @@ export const BankReport = () => {
   // Убираем начальные ограничения по датам
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [type, setType] = useState<"income" | "outcome">("income");
+  const [type, setType] = useState<"income" | "outcome" | "all">("all");
   const [expenseType, setExpenseType] = useState<string[]>([]);
 
   // Добавляем отладочный вывод
@@ -214,7 +214,10 @@ export const BankReport = () => {
       );
     }
 
-    return result.filter((op) => op.type === type);
+    return result.filter((op) => {
+      if (type === "all") return true;
+      return op.type === type;
+    });
   }, [operations, searchText, from, to, type]);
 
   const total = filteredOperations.length;
@@ -464,6 +467,7 @@ export const BankReport = () => {
             onChange={(value: any) => setType(value as "income" | "outcome")}
             placeholder="Выберите тип операции"
             options={[
+              { value: "all", label: "Все" },
               { value: "income", label: "Приход" },
               { value: "outcome", label: "Расход" },
             ]}
