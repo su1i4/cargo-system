@@ -1,17 +1,13 @@
 import {
-  DateField,
-  DeleteButton,
-  EditButton,
   List,
-  MarkdownField,
-  ShowButton,
   useTable,
 } from "@refinedev/antd";
-import { type BaseRecord, useMany, useNavigation } from "@refinedev/core";
-import { Checkbox, Space, Table } from "antd";
+import { useNavigation } from "@refinedev/core";
+import { Input, Row, Table } from "antd";
+import { useState, useEffect } from "react";
 
 export const BranchList = () => {
-  const { tableProps } = useTable({
+  const { tableProps, setFilters } = useTable({
     syncWithLocation: true,
     sorters: {
       permanent: [
@@ -24,17 +20,39 @@ export const BranchList = () => {
   });
 
   const { push } = useNavigation();
+  const [search, setSearch] = useState("");
+
+  // 👇 Debounce для фильтрации
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setFilters([
+        {
+          field: "name",
+          operator: "contains",
+          value: search || undefined,
+        },
+      ]);
+    }, 400);
+
+    return () => clearTimeout(timeout);
+  }, [search, setFilters]);
 
   return (
     <List title="Города">
+      <Row style={{ marginBottom: 16 }}>
+        <Input
+          placeholder="Поиск по названию города"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </Row>
+
       <Table
-        onRow={(record) => ({
-          onDoubleClick: () => {
-            push(`/branch/show/${record?.id}`);
-          },
-        })}
         {...tableProps}
         rowKey="id"
+        onRow={(record) => ({
+          onDoubleClick: () => push(`/branch/show/${record?.id}`),
+        })}
       >
         <Table.Column dataIndex="id" title="№" width={50} />
         <Table.Column dataIndex="name" title="Название города" />
@@ -43,7 +61,7 @@ export const BranchList = () => {
         <Table.Column
           dataIndex="is_sent"
           title="Досыльный город"
-          render={(record) => (record ? "Да" : "Нет")}
+          render={(isSent: boolean) => (isSent ? "Да" : "Нет")}
         />
       </Table>
     </List>

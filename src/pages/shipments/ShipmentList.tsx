@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { ArrowDownOutlined, SearchOutlined } from "@ant-design/icons";
-import { ArrowUpOutlined } from "@ant-design/icons";
-import { CreateButton, List, useTable } from "@refinedev/antd";
+import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
+import { CreateButton, List, useSelect, useTable } from "@refinedev/antd";
 import { useNavigation } from "@refinedev/core";
-import { Button, Col, Dropdown, Flex, Input, Menu, Row, Table } from "antd";
+import { Button, Dropdown, Flex, Input, Menu, Row, Select, Table } from "antd";
 import dayjs from "dayjs";
 
 import timezone from "dayjs/plugin/timezone";
@@ -11,13 +14,15 @@ import utc from "dayjs/plugin/utc";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
-
 dayjs.tz.setDefault("Asia/Bishkek");
 
 const ShipmentList = () => {
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [searchValue, setSearchValue] = useState("");
   const [sortField, setSortField] = useState("created_at");
+  const [selectedCity, setSelectedCity] = useState<string | undefined>(
+    undefined
+  );
 
   const { tableProps, setSorters, setFilters } = useTable({
     resource: "shipments",
@@ -35,7 +40,7 @@ const ShipmentList = () => {
     },
     syncWithLocation: false,
     meta: {
-      join: ["branch"]
+      join: ["branch"],
     },
   });
 
@@ -52,48 +57,68 @@ const ShipmentList = () => {
     ]);
   };
 
-  const handleSortClick = () => {
-    const newDirection = sortDirection === "ASC" ? "DESC" : "ASC";
-    handleSort(sortField, newDirection);
+  const { selectProps } = useSelect({
+    resource: "branch",
+    optionLabel: "name",
+    optionValue: "id",
+    pagination: { mode: "off" },
+  });
+
+  const handleCityFilter = (cityId: string | undefined) => {
+    setSelectedCity(cityId);
+
+    const filters: any[] = [
+      {
+        field: "status",
+        operator: "eq",
+        value: "В пути",
+      },
+    ];
+
+    console.log(cityId);
+
+    if (cityId) {
+      filters.push({
+        field: "branch.id",
+        operator: "eq",
+        value: cityId,
+      });
+    }
+
+    if (searchValue.trim() !== "") {
+      filters.push({
+        operator: "or",
+        value: [
+          {
+            field: "truck_number",
+            operator: "contains",
+            value: searchValue.trim(),
+          },
+          {
+            field: "employee.firstName",
+            operator: "contains",
+            value: searchValue.trim(),
+          },
+          {
+            field: "employee.lastName",
+            operator: "contains",
+            value: searchValue.trim(),
+          },
+          {
+            field: "branch.name",
+            operator: "contains",
+            value: searchValue.trim(),
+          },
+        ],
+      });
+    }
+
+    setFilters(filters, "replace");
   };
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
-
-    if (value.trim() === "") {
-      setFilters([], "replace");
-    } else {
-      setFilters(
-        [
-          {
-            operator: "or",
-            value: [
-              {
-                field: "truck_number",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "employee.firstName",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "employee.lastName",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "branch.name",
-                operator: "contains",
-                value: value.trim(),
-              },
-            ],
-          },
-        ],
-        "replace"
-      );
-    }
+    handleCityFilter(selectedCity); // применяем фильтрацию снова с учетом нового поиска
   };
 
   const sortFields = [
@@ -129,18 +154,14 @@ const ShipmentList = () => {
 
   return (
     <List
-      headerButtons={(createButtonProps) => {
-        return (
-          <>
-            <Button onClick={() => push("/shipments/history")}>
-              История отправлений
-            </Button>
-            {createButtonProps && (
-              <CreateButton {...createButtonProps} meta={{ foo: "bar" }} />
-            )}
-          </>
-        );
-      }}
+      headerButtons={(createButtonProps) => (
+        <>
+          <Button onClick={() => push("/shipments/history")}>
+            История отправлений
+          </Button>
+          {createButtonProps && <CreateButton {...createButtonProps} />}
+        </>
+      )}
     >
       <Row gutter={[16, 16]} style={{ marginBottom: 10, gap: 10 }}>
         <Flex style={{ width: "100%", padding: "0px 10px" }} gap={10}>
@@ -153,7 +174,6 @@ const ShipmentList = () => {
                   <ArrowDownOutlined />
                 )
               }
-              // onClick={handleSortClick}
             >
               {getSortFieldLabel()}
             </Button>
@@ -164,18 +184,23 @@ const ShipmentList = () => {
             value={searchValue}
             onChange={(e) => handleSearch(e.target.value)}
             allowClear
-            style={{ width: "50%" }}
+            style={{ width: "100%" }}
+          />
+          <Select
+            {...selectProps}
+            allowClear
+            placeholder="Фильтр по городу / пункту назначения"
+            style={{ width: "100%" }}
+            onChange={(value) => {
+              handleCityFilter(value as any);
+            }}
           />
         </Flex>
       </Row>
       <Table
-        onRow={(record) => {
-          return {
-            onDoubleClick: () => {
-              show("shipments", record.id as number);
-            },
-          };
-        }}
+        onRow={(record) => ({
+          onDoubleClick: () => show("shipments", record.id as number),
+        })}
         {...tableProps}
         rowKey="id"
       >
@@ -183,7 +208,7 @@ const ShipmentList = () => {
           width={10}
           title="№"
           dataIndex="number"
-          render={(value, record, index) => index + 1}
+          render={(_, __, index) => index + 1}
         />
         <Table.Column
           title="Дата отправки"
@@ -215,11 +240,7 @@ const ShipmentList = () => {
           dataIndex="branch"
           render={(value) => value?.name}
         />
-        <Table.Column
-          width={50}
-          title="Водитель"
-          dataIndex="driver"
-        />
+        <Table.Column width={50} title="Водитель" dataIndex="driver" />
         <Table.Column
           width={50}
           title="Сотрудник"

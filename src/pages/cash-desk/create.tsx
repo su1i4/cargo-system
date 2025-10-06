@@ -1193,7 +1193,7 @@ export const CashDeskCreate: React.FC = () => {
                   if (value) {
                     setBranchFilter([
                       {
-                        "destination.id": {
+                        "destination_id": {
                           $eq: value,
                         },
                       },

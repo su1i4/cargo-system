@@ -66,7 +66,9 @@ export const GoogsProcessingList = () => {
 
   // Состояние для выбранных значений в UI
   const [selectedDestinations, setSelectedDestinations] = useState<any[]>([]);
-  const [selectedPayment, setSelectedPayment] = useState<boolean | undefined>(undefined);
+  const [selectedPayment, setSelectedPayment] = useState<boolean | undefined>(
+    undefined
+  );
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -83,7 +85,7 @@ export const GoogsProcessingList = () => {
         $or: [
           { "sender.clientCode": { $contL: value } },
           { "sender.name": { $contL: value } },
-          { "invoice_number": { $contL: value } },
+          { invoice_number: { $contL: value } },
         ],
       });
       setSearch(value);
@@ -92,7 +94,7 @@ export const GoogsProcessingList = () => {
     // Восстанавливаем фильтр по пункту назначения
     const destinations = searchparams.get("destinations");
     if (destinations) {
-      const destinationIds = destinations.split(',').map(id => parseInt(id));
+      const destinationIds = destinations.split(",").map((id) => parseInt(id));
       setSelectedDestinations(destinationIds);
       setDestinationFilter({
         $or: destinationIds.map((item: any) => ({
@@ -103,8 +105,8 @@ export const GoogsProcessingList = () => {
 
     // Восстанавливаем фильтр по оплате
     const payment = searchparams.get("payment");
-    if (payment !== null && payment !== '') {
-      const paymentValue = payment === 'true';
+    if (payment !== null && payment !== "") {
+      const paymentValue = payment === "true";
       setSelectedPayment(paymentValue);
       setPaymentFilter({ is_payment: { $eq: paymentValue } });
     }
@@ -112,7 +114,7 @@ export const GoogsProcessingList = () => {
     // Восстанавливаем фильтр по статусу
     const statuses = searchparams.get("statuses");
     if (statuses) {
-      const statusArray = statuses.split(',');
+      const statusArray = statuses.split(",");
       setSelectedStatuses(statusArray);
       setStatusFilter({
         $or: statusArray.map((status: string) => ({
@@ -226,71 +228,87 @@ export const GoogsProcessingList = () => {
   // Функция для обновления URL параметров
   const updateUrlParams = () => {
     const newSearchParams = new URLSearchParams(searchparams);
-    
+
     // Сохраняем поиск
     if (search) {
       newSearchParams.set("value", search);
     } else {
       newSearchParams.delete("value");
     }
-    
+
     // Сохраняем пункты назначения
     if (selectedDestinations.length > 0) {
-      newSearchParams.set("destinations", selectedDestinations.join(','));
+      newSearchParams.set("destinations", selectedDestinations.join(","));
     } else {
       newSearchParams.delete("destinations");
     }
-    
+
     // Сохраняем фильтр оплаты
     if (selectedPayment !== undefined) {
       newSearchParams.set("payment", String(selectedPayment));
     } else {
       newSearchParams.delete("payment");
     }
-    
+
     // Сохраняем статусы
     if (selectedStatuses.length > 0) {
-      newSearchParams.set("statuses", selectedStatuses.join(','));
+      newSearchParams.set("statuses", selectedStatuses.join(","));
     } else {
       newSearchParams.delete("statuses");
     }
-    
+
     // Сохраняем даты
     if (selectedDateRange && selectedDateRange[0] && selectedDateRange[1]) {
-      newSearchParams.set("dateStart", selectedDateRange[0].format('YYYY-MM-DD HH:mm:ss'));
-      newSearchParams.set("dateEnd", selectedDateRange[1].format('YYYY-MM-DD HH:mm:ss'));
+      newSearchParams.set(
+        "dateStart",
+        selectedDateRange[0].format("YYYY-MM-DD HH:mm:ss")
+      );
+      newSearchParams.set(
+        "dateEnd",
+        selectedDateRange[1].format("YYYY-MM-DD HH:mm:ss")
+      );
     } else {
       newSearchParams.delete("dateStart");
       newSearchParams.delete("dateEnd");
     }
-    
+
     // Сохраняем сортировку
     newSearchParams.set("sort", sortField);
     newSearchParams.set("sortDir", sortDirection);
-    
+
     // Сохраняем пагинацию
     newSearchParams.set("page", String(currentPage));
     newSearchParams.set("size", String(pageSize));
-    
+
     setSearchParams(newSearchParams);
   };
 
   // Обновляем URL при изменении любых фильтров
   useEffect(() => {
     updateUrlParams();
-  }, [selectedDestinations, selectedPayment, selectedStatuses, selectedDateRange, search, sortField, sortDirection, currentPage, pageSize]);
+  }, [
+    selectedDestinations,
+    selectedPayment,
+    selectedStatuses,
+    selectedDateRange,
+    search,
+    sortField,
+    sortDirection,
+    currentPage,
+    pageSize,
+  ]);
 
   const filterContent = (
     <Card style={{ width: 300, padding: "0px !important" }}>
       <Select
         title="Выберите пункт назначения"
         placeholder="Выберите пункт назначения"
-        options={branch?.data?.map((branch: any) => ({
-          label: branch.name,
-          value: branch.id,
-        }))}
         allowClear
         mode="multiple"
+        showSearch
+        style={{ width: "100%", marginBottom: 20 }}
+        value={selectedDestinations}
+        optionFilterProp="children" // 👈 ключевой момент!
         onChange={(value) => {
           if (!value || value.length === 0) {
             setDestinationFilter(null);
@@ -304,9 +322,14 @@ export const GoogsProcessingList = () => {
             setSelectedDestinations(value);
           }
         }}
-        style={{ width: "100%", marginBottom: 20 }}
-        value={selectedDestinations}
-      />
+      >
+        {branch?.data?.map((item: any) => (
+          <Select.Option key={item.id} value={item.id}>
+            {item.name}
+          </Select.Option>
+        ))}
+      </Select>
+
       <Select
         placeholder="Оплаченные / Не оплаченные"
         options={[
@@ -385,11 +408,11 @@ export const GoogsProcessingList = () => {
       value={selectedDateRange}
       onChange={(dates: any, dateStrings: any) => {
         setSelectedDateRange(dates);
-        
+
         if (dates && dates[0] && dates[1]) {
-          const startDate = dates[0].format('YYYY-MM-DD HH:mm:ss');
-          const endDate = dates[1].format('YYYY-MM-DD HH:mm:ss');
-          
+          const startDate = dates[0].format("YYYY-MM-DD HH:mm:ss");
+          const endDate = dates[1].format("YYYY-MM-DD HH:mm:ss");
+
           setDateFilter({
             created_at: {
               $gte: startDate,
@@ -402,7 +425,6 @@ export const GoogsProcessingList = () => {
       }}
     />
   );
-  
 
   const sortContent = (
     <Card style={{ width: 200, padding: "0px !important" }}>
