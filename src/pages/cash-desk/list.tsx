@@ -42,6 +42,9 @@ export const CashDeskList: React.FC = () => {
 
   const { tableProps: bankTableProps } = useTable({
     resource: "bank",
+    pagination: {
+      mode: "off",
+    },
   });
 
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
