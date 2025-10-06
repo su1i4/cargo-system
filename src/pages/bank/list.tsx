@@ -102,13 +102,16 @@ export const BankList = () => {
               style={{ borderRadius: 8 }}
               bodyStyle={{ padding: "16px" }}
             >
-              <p>
+              <p >
                 <img
                   style={{ width: 20, marginRight: 5, marginBottom: 5 }}
                   src="/balance_som.png"
                   alt="logo"
                 />
-                <strong>СОМ:</strong> {bank.balance_som}
+                <strong>СОМ:</strong>{" "}
+                <span style={{ fontWeight: "bold", color: "#52c41a" }}>
+                  {Number(bank.balance_som ?? 0).toLocaleString("ru-RU")}
+                </span>
               </p>
               <p>
                 <img
@@ -116,7 +119,10 @@ export const BankList = () => {
                   src="/balance_rub.png"
                   alt="logo"
                 />
-                <strong>Рубль:</strong> {bank.balance_rub}
+                <strong>Рубль:</strong>{" "}
+                <span style={{ fontWeight: "bold", color: "#52c41a" }}>
+                  {Number(bank.balance_rub ?? 0).toLocaleString("ru-RU")}
+                </span>
               </p>
               <p>
                 <img
@@ -124,7 +130,10 @@ export const BankList = () => {
                   src="/balance_usd.png"
                   alt="logo"
                 />
-                <strong>USD:</strong> {bank.balance_usd}
+                <strong>USD:</strong>{" "}
+                <span style={{ fontWeight: "bold", color: "#52c41a" }}>
+                  {Number(bank.balance_usd ?? 0).toLocaleString("ru-RU")}
+                </span>
               </p>
               <Button
                 type="primary"

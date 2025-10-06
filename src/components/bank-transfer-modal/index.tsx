@@ -17,7 +17,8 @@ export const BankTransferModal: React.FC<BankTransferModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const { mutate } = useCreate();
-  
+  const [loading, setLoading] = useState(false); // ← добавили состояние загрузки
+
   const { data: banksData } = useList({
     resource: "bank",
     pagination: { pageSize: 100 },
@@ -28,13 +29,16 @@ export const BankTransferModal: React.FC<BankTransferModalProps> = ({
   useEffect(() => {
     if (visible && fromBankId) {
       form.setFieldsValue({ from_bank_id: fromBankId });
+    } else {
+      form.resetFields(); // сбрасываем при открытии заново
     }
   }, [visible, fromBankId, form]);
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      
+      setLoading(true); // ← блокируем кнопку сразу после клика
+
       mutate(
         {
           resource: "cash-desk/transfer-between-banks",
@@ -50,13 +54,16 @@ export const BankTransferModal: React.FC<BankTransferModalProps> = ({
             onSuccess();
             onCancel();
           },
-          onError: (error) => {
+          onError: () => {
             message.error("Ошибка при создании заявки");
+          },
+          onSettled: () => {
+            setLoading(false); // ← разблокируем кнопку после завершения
           },
         }
       );
     } catch (error) {
-      // Form validation error
+      // Ошибка валидации формы — не отправляем запрос
     }
   };
 
@@ -68,6 +75,7 @@ export const BankTransferModal: React.FC<BankTransferModalProps> = ({
       onOk={handleSubmit}
       okText="Создать заявку"
       cancelText="Отмена"
+      confirmLoading={loading} // ← встроенный способ анта показать загрузку и заблокировать кнопку
     >
       <Form form={form} layout="vertical">
         <Form.Item
@@ -91,7 +99,9 @@ export const BankTransferModal: React.FC<BankTransferModalProps> = ({
         >
           <Select>
             {banks
-              .filter((bank: any) => bank.id !== form.getFieldValue("from_bank_id"))
+              .filter(
+                (bank: any) => bank.id !== form.getFieldValue("from_bank_id")
+              )
               .map((bank: any) => (
                 <Select.Option key={bank.id} value={bank.id}>
                   {bank.name}
@@ -100,18 +110,13 @@ export const BankTransferModal: React.FC<BankTransferModalProps> = ({
           </Select>
         </Form.Item>
 
-        <Form.Item
-          name="amount"
-          label="Сумма"
-          rules={[{ required: true }]}
-        >
+        <Form.Item name="amount" label="Сумма" rules={[{ required: true }]}>
           <InputNumber
             style={{ width: "100%" }}
             min={0}
-            formatter={(value) => 
+            formatter={(value) =>
               `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
             }
-            // parser={(value) => value!.replace(/\$\s?|(,*)/g, "")}
           />
         </Form.Item>
 
@@ -138,4 +143,4 @@ export const BankTransferModal: React.FC<BankTransferModalProps> = ({
       </Form>
     </Modal>
   );
-}; 
+};
