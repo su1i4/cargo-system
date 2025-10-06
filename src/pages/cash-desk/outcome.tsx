@@ -3,7 +3,6 @@ import { List, useSelect, useTable } from "@refinedev/antd";
 import {
   Space,
   Table,
-  Form,
   Input,
   Button,
   Row,
@@ -11,18 +10,20 @@ import {
   Dropdown,
   Select,
   Card,
+  Modal,
+  message,
 } from "antd";
-import { useCustom } from "@refinedev/core";
+import { useCustom, useUpdate } from "@refinedev/core";
 import { expenseTypes, MyCreateModalOutcome } from "./modal/create-modal-outcome";
 import {
   FileAddOutlined,
   SearchOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { API_URL } from "../../App";
-import { typeOperationMap } from "../bank";
 import { debounce } from "lodash";
 
 interface Filters {
@@ -33,6 +34,11 @@ interface Filters {
 }
 
 export const CashDeskOutcomeList: React.FC = () => {
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [editingComment, setEditingComment] = useState<string>("");
+  const { mutate } = useUpdate();
+
   const { tableProps: bankTableProps } = useTable({
     resource: "bank",
   });
@@ -40,7 +46,6 @@ export const CashDeskOutcomeList: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [sortField, setSortField] = useState<"id" | "counterparty.name">("id");
   
-  // Отдельные состояния для каждого типа фильтра
   const [filters, setFilters] = useState<Filters>({});
   
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,7 +55,6 @@ export const CashDeskOutcomeList: React.FC = () => {
   const buildSearchFilters = useCallback(() => {
     const searchFilters: any[] = [{ type: { $eq: "outcome" } }];
 
-    // Фильтр поиска
     if (filters.search?.trim()) {
       searchFilters.push({
         $or: [
@@ -63,21 +67,18 @@ export const CashDeskOutcomeList: React.FC = () => {
       });
     }
 
-    // Фильтр по пользователям
     if (filters.userIds && filters.userIds.length > 0) {
       searchFilters.push({
         user_id: { $in: filters.userIds },
       });
     }
 
-    // Фильтр по банкам
     if (filters.bankIds && filters.bankIds.length > 0) {
       searchFilters.push({
         bank_id: { $in: filters.bankIds },
       });
     }
 
-    // Фильтр по типу операции
     if (filters.type_operation && filters.type_operation.length > 0) {
       searchFilters.push({
         type_operation: { $in: filters.type_operation },
@@ -107,12 +108,10 @@ export const CashDeskOutcomeList: React.FC = () => {
     },
   });
 
-  // Перезагружаем данные при изменении фильтров, сортировки или пагинации
   useEffect(() => {
     refetch();
   }, [filters, sortField, sortDirection, currentPage, pageSize, refetch]);
 
-  // Сбрасываем пагинацию при изменении фильтров
   useEffect(() => {
     if (currentPage !== 1) {
       setCurrentPage(1);
@@ -121,7 +120,6 @@ export const CashDeskOutcomeList: React.FC = () => {
 
   const [open, setOpen] = useState(false);
 
-  // Debounced функция для поиска
   const debouncedSearch = useCallback(
     debounce((searchValue: string) => {
       setFilters(prev => ({
@@ -167,6 +165,32 @@ export const CashDeskOutcomeList: React.FC = () => {
     }
   };
 
+  const handleCommentUpdate = () => {
+    if (!editingRecord) return;
+
+    mutate(
+      {
+        resource: "cash-desk",
+        id: editingRecord.id,
+        values: {
+          comment: editingComment,
+        },
+      },
+      {
+        onSuccess: () => {
+          setEditModalVisible(false);
+          setEditingRecord(null);
+          setEditingComment("");
+          refetch();
+          message.success("Комментарий успешно обновлен");
+        },
+        onError: () => {
+          message.error("Ошибка при обновлении комментария");
+        },
+      }
+    );
+  };
+
   const sortContent = (
     <Card style={{ width: 200, padding: "0px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -180,7 +204,6 @@ export const CashDeskOutcomeList: React.FC = () => {
         >
           Сортировать по
         </div>
-        {/* Сортировка по дате создания */}
         <Button
           type="text"
           style={{
@@ -208,13 +231,11 @@ export const CashDeskOutcomeList: React.FC = () => {
     </Card>
   );
 
-  // Создаем функции для пагинации
   const handleTableChange = (pagination: any) => {
     setCurrentPage(pagination.current);
     setPageSize(pagination.pageSize);
   };
 
-  // Формируем пропсы для таблицы из данных useCustom
   const tableProps = {
     dataSource: data?.data?.data || [],
     loading: isLoading,
@@ -348,7 +369,25 @@ export const CashDeskOutcomeList: React.FC = () => {
           dataIndex="type_operation"
           title="Вид расхода"
         />
-        <Table.Column dataIndex="comment" title="Комментарий" />
+        
+        <Table.Column
+          dataIndex="comment"
+          title="Комментарий"
+          render={(value, record: any) => (
+            <Space>
+              <span>{value || "-"}</span>
+              <Button
+                type="link"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setEditingRecord(record);
+                  setEditingComment(value || "");
+                  setEditModalVisible(true);
+                }}
+              />
+            </Space>
+          )}
+        />
 
         <Table.Column 
           dataIndex="amount" 
@@ -366,6 +405,26 @@ export const CashDeskOutcomeList: React.FC = () => {
           }
         />
       </Table>
+
+      <Modal
+        title="Редактирование комментария"
+        open={editModalVisible}
+        onOk={handleCommentUpdate}
+        onCancel={() => {
+          setEditModalVisible(false);
+          setEditingRecord(null);
+          setEditingComment("");
+        }}
+        okText="Сохранить"
+        cancelText="Отмена"
+      >
+        <Input.TextArea
+          value={editingComment}
+          onChange={(e) => setEditingComment(e.target.value)}
+          rows={4}
+          placeholder="Введите комментарий"
+        />
+      </Modal>
     </List>
   );
 };
