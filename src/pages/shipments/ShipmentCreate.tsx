@@ -229,44 +229,65 @@ const ShipmentCreate = () => {
   );
 
   const handleSearch = (value: string) => {
-    setFilters([
-      {
-        operator: "and",
-        value: [
-          {
-            operator: "or",
-            value: [
-              {
-                field: "bag_number_numeric",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "good.sender.name",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "good.recipient.name",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "weight",
-                operator: "contains",
-                value: value.trim(),
-              },
-              {
-                field: "quantity",
-                operator: "contains",
-                value: value.trim(),
-              },
-            ],
-          },
-        ],
-      },
-    ]);
+    const trimmed = value.trim();
+    setFilters((prev) => {
+      // оставляем все старые фильтры кроме поиска
+      const withoutSearch = prev.filter(
+        (f) =>
+          !(
+            f.operator === "and" &&
+            Array.isArray(f.value) &&
+            f.value[0]?.operator === "or"
+          )
+      );
+
+      if (trimmed) {
+        withoutSearch.push({
+          operator: "and",
+          value: [
+            {
+              operator: "or",
+              value: [
+                {
+                  field: "good.sender.name",
+                  operator: "contains",
+                  value: trimmed,
+                },
+                {
+                  field: "good.recipient.name",
+                  operator: "contains",
+                  value: trimmed,
+                },
+                { field: "weight", operator: "contains", value: trimmed },
+                { field: "quantity", operator: "contains", value: trimmed },
+              ],
+            },
+          ],
+        });
+      }
+
+      return withoutSearch;
+    });
   };
+
+  const handleBagNumberSearch = (value: string) => {
+    const trimmed = value.trim();
+  
+    setFilters((prev) => {
+      const withoutBag = prev.filter((f: any) => f.field !== "bag_number_numeric");
+  
+      if (trimmed) {
+        withoutBag.push({
+          field: "bag_number_numeric",
+          operator: "eq",
+          value: trimmed,
+        });
+      }
+  
+      return withoutBag;
+    });
+  };
+  
 
   const { data: branch } = useCustom({
     url: `${API_URL}/branch`,
@@ -412,8 +433,14 @@ const ShipmentCreate = () => {
             style={{ width: "100%" }}
           />
           <Input
+            placeholder="Поиск по номеру мешка"
+            onChange={(e) => handleBagNumberSearch(e.target.value)}
+            allowClear
+            disabled={isCreating}
+          />
+          <Input
             prefix={<SearchOutlined />}
-            placeholder="Поиск по номеру мешка, отправителю, получателю, весу, количеству"
+            placeholder="Поиск отправителю, получателю, весу, количеству"
             onChange={(e) => handleSearch(e.target.value)}
             allowClear
             disabled={isCreating}
