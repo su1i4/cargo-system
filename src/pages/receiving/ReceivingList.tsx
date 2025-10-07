@@ -45,8 +45,9 @@ const ReceivingList = () => {
       ],
     },
     pagination: {
-      pageSize: 200
-    }
+      pageSize: 20,
+    },
+    syncWithLocation: false,
   });
 
   const { show } = useNavigation();
