@@ -259,35 +259,35 @@ export const GoodsShow: React.FC = () => {
   const totalProdSum =
     record?.products?.reduce((acc: number, { sum = 0 }) => acc + +sum, 0) ?? 0;
 
-  const grouped = Object.values(
-    record?.services?.reduce((acc: any, service: any) => {
-      const key = `${service.product_type.id}_${service.price}`;
-
-      if (!acc[key]) {
-        acc[key] = {
-          ...service,
-          quantity: 0,
-          sum: 0,
-          weight: 0,
-          count: 0,
-          bag_number_numeric: "",
-        };
-      }
-
-      acc[key].quantity += service.quantity;
-      acc[key].sum += parseFloat(service.sum);
-      acc[key].weight += parseFloat(service.weight);
-      acc[key].count += 1;
-
-      if (service.bag_number_numeric) {
-        acc[key].bag_number_numeric = acc[key].bag_number_numeric
-          ? acc[key].bag_number_numeric + "," + service.bag_number_numeric
-          : service.bag_number_numeric;
-      }
-
-      return acc;
-    }, {})
-  );
+    const grouped = Object.values(
+      record?.services?.reduce((acc: any, service: any) => {
+        const key = `${service.product_type.id}_${service.nomenclature?.id}_${service.price}`;
+  
+        if (!acc[key]) {
+          acc[key] = {
+            ...service,
+            quantity: 0,
+            sum: 0,
+            weight: 0,
+            count: 0,
+            bag_number_numeric: "",
+          };
+        }
+  
+        acc[key].quantity += service.quantity;
+        acc[key].sum += parseFloat(service.sum);
+        acc[key].weight += parseFloat(service.weight);
+        acc[key].count += 1;
+  
+        if (service.bag_number_numeric) {
+          acc[key].bag_number_numeric = acc[key].bag_number_numeric
+            ? acc[key].bag_number_numeric + "," + service.bag_number_numeric
+            : service.bag_number_numeric;
+        }
+  
+        return acc;
+      }, {})
+    );
 
   const som = currencyTableProps?.dataSource?.find(
     (item: any) => item.name === "Сом"
