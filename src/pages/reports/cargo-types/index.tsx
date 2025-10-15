@@ -51,7 +51,7 @@ export const CargoTypesReport = () => {
     },
     syncWithLocation: false,
     pagination: {
-      mode: "off",
+      pageSize: 10,
     },
   });
 
@@ -343,7 +343,9 @@ export const CargoTypesReport = () => {
         );
       }}
     >
-      <Table loading={false} dataSource={nomenclatures}>
+      <Table loading={false} dataSource={nomenclatures} pagination={{
+        pageSize: 10,
+      }}>
         <Table.Column
           width={10}
           title="№"
@@ -419,6 +421,7 @@ export const CargoTypesReport = () => {
           render={(value) => dayjs(value).utc().format("DD.MM.YYYY HH:mm")}
         />
         <Table.Column width={50} title="Номер рейса" dataIndex="truck_number" />
+        <Table.Column width={50} title="Водитель" dataIndex="driver" />
         <Table.Column
           width={50}
           title="Пункт погрузки"
