@@ -343,9 +343,7 @@ export const CargoTypesReport = () => {
         );
       }}
     >
-      <Table loading={false} dataSource={nomenclatures} pagination={{
-        pageSize: 10,
-      }}>
+      <Table loading={false} dataSource={nomenclatures} pagination={false}>
         <Table.Column
           width={10}
           title="№"

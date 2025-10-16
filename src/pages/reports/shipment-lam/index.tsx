@@ -107,7 +107,10 @@ export const WarehouseStockGoodsReport = () => {
     let totalBagsCount = 0;
     let totalWeight = 0;
 
-    // Убираем заголовки из exportData, они будут добавлены через headerInfo
+    let totalTaganSum = 0;
+    let totalDebtWithTagan = 0;
+    let totalDebtWithoutTagan = 0;
+
     dataSource.forEach((record: any, index: number) => {
       const taganSum =
         record.products
@@ -120,7 +123,7 @@ export const WarehouseStockGoodsReport = () => {
         0;
 
       const mainRow: any = {
-        "№": String(index + 1),
+        "№": index + 1,
         "Фио отправителя": record.sender?.name || "",
         "Фио получателя": record.recipient?.name || "",
         Город: record.destination?.name || "",
@@ -130,36 +133,33 @@ export const WarehouseStockGoodsReport = () => {
           record.services
             ?.map((item: any) => item.bag_number_numeric)
             .join(", ") || "",
-        "Вес, кг": record.weight
-          ? String(Number(record.weight).toFixed(2))
-          : "",
-        "Кол-во мешков": String(record.services?.length || 0),
-        Сумма: String(Number(record.amount || 0)
-          .toFixed(2)),
-        "Сумма за мешки": String(Number(
-          record.avgProductPrice - (showTagan ? taganSum : 0) || 0
-        )
-          .toFixed(2)),
-        Оплачено: String(Number(record.paid_sum || 0)
-          .toFixed(2)),
+        "Вес, кг": record.weight ? Number(Number(record.weight).toFixed(2)) : 0,
+        "Кол-во мешков": record.services?.length || 0,
+        Сумма: Math.round(Number(record.amount || 0)),
+        "Сумма за мешки": Math.round(
+          Number(record.avgProductPrice - (showTagan ? taganSum : 0) || 0)
+        ),
+        Оплачено: Math.round(Number(record.paid_sum || 0)),
       };
 
       if (!showTagan) {
-        mainRow["Долг"] = String(
-          (Number(record.amount || 0) - Number(record.paid_sum || 0)).toFixed(2)
+        mainRow["Долг"] = Math.round(
+          Number(record.amount || 0) - Number(record.paid_sum || 0)
         );
       }
 
       if (showTagan) {
-        mainRow["Сумма за Таганский рынок"] = String(Number(taganSum).toFixed(2));
+        const debtWithTagan =
+          Number(record.amount || 0) - Number(record.paid_sum || 0);
+        const debtWithoutTagan = debtWithTagan - Number(taganSum || 0);
 
-        mainRow["Долг с Таганским рынком"] = String(
-          (Number(record.amount || 0) - Number(record.paid_sum || 0)).toFixed(2)
-        );
-        mainRow["Долг без Таганского рынка"] = String(
-          (Number(record.amount || 0) -
-          (Number(record.paid_sum || 0) + Number(taganSum || 0))).toFixed(2)
-        );
+        mainRow["Сумма за Таганский рынок"] = Math.round(taganSum);
+        mainRow["Долг с Таганским рынком"] = Math.round(debtWithTagan);
+        mainRow["Долг без Таганского рынка"] = Math.round(debtWithoutTagan);
+
+        totalTaganSum += taganSum;
+        totalDebtWithTagan += debtWithTagan;
+        totalDebtWithoutTagan += debtWithoutTagan;
       }
 
       totalSum += Number(record.amount || 0);
@@ -177,7 +177,7 @@ export const WarehouseStockGoodsReport = () => {
 
       if (showBags && record.services && record.services.length > 0) {
         record.services.forEach((service: any) => {
-          const serviceRow = {
+          const serviceRow: any = {
             "№": "",
             "Фио отправителя": "",
             "Фио получателя": "",
@@ -186,17 +186,15 @@ export const WarehouseStockGoodsReport = () => {
             "Номер получателя": "",
             "Номера мешков": service.bag_number_numeric || "",
             "Вес, кг": service.weight
-              ? String(Number(service.weight).toFixed(2))
-              : "",
-            "Кол-во мешков": "1",
-            Сумма: String(Number(service.sum || 0)
-              .toFixed(2)),
-            "Сумма за мешки": "0",
-            Оплачено: String(Number(service.paid_sum || 0)
-              .toFixed(2)),
-            Долг: String(
-              (Number(service.sum || 0) - Number(service.paid_sum || 0)).toFixed(2)
-            )
+              ? Number(Number(service.weight).toFixed(2))
+              : 0,
+            "Кол-во мешков": 1,
+            Сумма: Math.round(Number(service.sum || 0)),
+            "Сумма за мешки": 0,
+            Оплачено: Math.round(Number(service.paid_sum || 0)),
+            Долг: Math.round(
+              Number(service.sum || 0) - Number(service.paid_sum || 0)
+            ),
           };
 
           totalSum += service.sum || 0;
@@ -207,7 +205,7 @@ export const WarehouseStockGoodsReport = () => {
       }
     });
 
-    const totalRow = {
+    const totalRow: any = {
       "№": "",
       "Фио отправителя": "",
       "Фио получателя": "",
@@ -215,64 +213,26 @@ export const WarehouseStockGoodsReport = () => {
       Досыл: "",
       "Номер получателя": "",
       "Номера мешков": "",
-      "Вес, кг": String(Number(totalWeight).toFixed(2)),
-      "Кол-во мешков": String(totalBagsCount),
-      Сумма: String(Number(totalSum).toFixed(2)),
-      "Сумма за мешки": String(Number(totalBagSum).toFixed(2)),
-      Оплачено: String(Number(totalPaid).toFixed(2)),
-      Долг: String(Number(totalDebt).toFixed(2)),
+      "Вес, кг": Number(totalWeight.toFixed(2)),
+      "Кол-во мешков": totalBagsCount,
+      Сумма: Math.round(totalSum),
+      "Сумма за мешки": Math.round(totalBagSum),
+      Оплачено: Math.round(totalPaid),
+      Долг: Math.round(totalDebt),
     };
 
-    const totalRow2 = {
-      "№": "",
-      "Фио отправителя": "",
-      "Фио получателя": "",
-      Город: "",
-      Досыл: "",
-      "Номер получателя": "",
-      "Номера мешков": "",
-      "Вес, кг": "",
-      "Кол-во мешков": "",
-      Сумма: "",
-      "Сумма за мешки": "",
-      Оплачено: "",
-      Долг: "",
-    };
+    if (showTagan) {
+      totalRow["Сумма за Таганский рынок"] = Math.round(totalTaganSum);
+      totalRow["Долг с Таганским рынком"] = Math.round(totalDebtWithTagan);
+      totalRow["Долг без Таганского рынка"] = Math.round(totalDebtWithoutTagan);
+    }
 
-    const totalRow3 = {
-      "№": "",
-      "Фио отправителя": "",
-      "Фио получателя": "",
-      Город: "",
-      Досыл: "",
-      "Номер получателя": "",
-      "Номера мешков": "",
-      "Вес, кг": "",
-      "Кол-во мешков": "",
-      Сумма: "",
-      "Сумма за мешки": "",
-      Оплачено: "",
-      Долг: "",
-      Статус: "",
-    };
-
-    const totalRow4 = {
-      "№": "",
-      "Фио отправителя": "",
-      "Фио получателя": "",
-      Город: "",
-      Досыл: "",
-      "Номер получателя": "",
-      "Номера мешков": "",
-      "Вес, кг": "",
-      "Кол-во мешков": "",
-      Сумма: "",
-      "Сумма за мешки": "",
-      Оплачено: "",
-      Долг: "",
-    };
-
-    exportData.push(totalRow, totalRow2, totalRow3, totalRow4);
+    exportData.push(
+      totalRow,
+      { "№": "", "Фио отправителя": "", "Фио получателя": "" },
+      { "№": "", "Фио отправителя": "", "Фио получателя": "" },
+      { "№": "", "Фио отправителя": "", "Фио получателя": "" }
+    );
 
     return exportData;
   };
@@ -287,24 +247,28 @@ export const WarehouseStockGoodsReport = () => {
         return;
       }
 
-      const shipmentRecordForHeader = tableShipmentProps.dataSource?.find((item: any) => {
-        return item.id === shipmentData?.id;
-      });
-      
+      const shipmentRecordForHeader = tableShipmentProps.dataSource?.find(
+        (item: any) => {
+          return item.id === shipmentData?.id;
+        }
+      );
+
       const headerTruckNumber = shipmentRecordForHeader?.truck_number || "";
       const headerDriver = driverName || "";
-      const shipmentDateForHeader = shipmentRecordForHeader?.created_at 
+      const shipmentDateForHeader = shipmentRecordForHeader?.created_at
         ? dayjs(shipmentRecordForHeader.created_at).utc().format("DD.MM.YYYY")
         : dayjs().format("DD.MM.YYYY");
 
-      // Создаем шапку с информацией в downloadXLSX
       const headerInfo = [
         {
-          [Object.keys(exportData[0] || {})[0] || 'info']: `РЕЙС: ${headerTruckNumber} | ВОДИТЕЛЬ: ${headerDriver} | ДАТА: ${shipmentDateForHeader}`,
+          [Object.keys(exportData[0] || {})[0] ||
+          "info"]: `РЕЙС: ${headerTruckNumber} | ВОДИТЕЛЬ: ${headerDriver} | ДАТА: ${shipmentDateForHeader}`,
           ...Object.fromEntries(
-            Object.keys(exportData[0] || {}).slice(1).map(key => [key, ''])
-          )
-        }
+            Object.keys(exportData[0] || {})
+              .slice(1)
+              .map((key) => [key, ""])
+          ),
+        },
       ];
 
       const dataWithHeader = [...headerInfo, ...exportData];
@@ -344,18 +308,20 @@ export const WarehouseStockGoodsReport = () => {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
 
-      const shipmentRecordForFile = tableShipmentProps.dataSource?.find((item: any) => {
-        return item.id === shipmentData?.id;
-      });
-      
+      const shipmentRecordForFile = tableShipmentProps.dataSource?.find(
+        (item: any) => {
+          return item.id === shipmentData?.id;
+        }
+      );
+
       const truckNumber = shipmentRecordForFile?.truck_number || "report";
-      const shipmentDate = shipmentRecordForFile?.created_at 
-        ? dayjs(shipmentRecordForFile.created_at).utc().format("DD.MM.YYYY.HH-mm")
+      const shipmentDate = shipmentRecordForFile?.created_at
+        ? dayjs(shipmentRecordForFile.created_at)
+            .utc()
+            .format("DD.MM.YYYY.HH-mm")
         : dayjs().format("DD.MM.YYYY.HH-mm");
 
-      const fileName = `${
-        shipmentData?.destination
-      } #${truckNumber} ${driverName} от (${shipmentDate}).xlsx`;
+      const fileName = `${shipmentData?.destination} #${truckNumber} ${driverName} от (${shipmentDate}).xlsx`;
 
       XLSX.writeFile(workbook, fileName);
 
@@ -378,15 +344,12 @@ export const WarehouseStockGoodsReport = () => {
         return;
       }
 
-      // Получаем данные об отправке для генерации имени файла и заголовков
       const shipmentRecord = tableShipmentProps.dataSource?.find(
         (item) => item.id === shipmentData?.id
       );
 
-      // ===== 1. Создаем новую рабочую книгу =====
       const workbook = XLSX.utils.book_new();
 
-      // ===== 2. Определяем заголовки в зависимости от showTagan =====
       const baseHeaders = [
         "Отправитель",
         "",
@@ -406,10 +369,9 @@ export const WarehouseStockGoodsReport = () => {
         : [];
       const mainHeaders = [...baseHeaders, ...taganHeaders];
 
-      // ===== 3. Шапка документа =====
       const headerTruckNumber = shipmentRecord?.truck_number || "";
       const headerDriver = driverName || "";
-      const shipmentDateForHeader = shipmentRecord?.created_at 
+      const shipmentDateForHeader = shipmentRecord?.created_at
         ? dayjs(shipmentRecord.created_at).utc().format("DD.MM.YYYY")
         : dayjs().format("DD.MM.YYYY");
 
@@ -421,13 +383,11 @@ export const WarehouseStockGoodsReport = () => {
           "РОССкарго",
           "",
           "",
-        ]
+        ],
       ];
 
-      // ===== 4. Подготовка данных для таблицы =====
       const tableData = [];
 
-      // Инициализация итогов
       let totalWeight = 0;
       let totalBagsCount = 0;
       let totalToPaySum = 0;
@@ -441,17 +401,14 @@ export const WarehouseStockGoodsReport = () => {
           )
         : sortedData;
 
-      // Убираем mainHeaders и подзаголовки из headerData, они будут в tableData
       dataSource.forEach((record: any) => {
         const senderName = record.sender?.name || "";
         const senderPhone = record.sender?.phoneNumber || "";
         const recipientName = record.recipient?.name || "";
         const recipientPhone = record.recipient?.phoneNumber || "";
 
-        // Группируем услуги по отправлению
         const services = record.services || [];
 
-        // Расчет Таганского рынка для этого отправления
         const taganSum =
           record.products
             ?.filter(
@@ -464,23 +421,19 @@ export const WarehouseStockGoodsReport = () => {
               0
             ) || 0;
 
-        // Общая сумма услуг для этого отправления
         const totalServicesSum = services.reduce(
           (acc: number, item: any) => acc + Number(item.sum || 0),
           0
         );
 
-        // К оплате = общая сумма отправления
         const debtAmount = record.services?.reduce(
           (acc: number, item: any) => acc + Number(item.sum || 0),
           0
         );
 
-        // Основная сумма отправления
         const mainAmount = Number(record.amount || 0);
 
         if (services.length === 0) {
-          // Если нет услуг, добавляем одну строку с основной информацией
           const weight = Number(record.weight || 0);
 
           const row = [
@@ -498,19 +451,19 @@ export const WarehouseStockGoodsReport = () => {
           ];
 
           if (showTagan) {
-            row.push(record?.avgProductPrice ? String(record.avgProductPrice) : "");
+            row.push(
+              record?.avgProductPrice ? String(record.avgProductPrice) : ""
+            );
           }
 
           tableData.push(row);
 
-          // Обновляем итоги
           totalWeight += weight;
-          totalBagsCount += 1; // Считаем как один мешок если нет услуг
+          totalBagsCount += 1;
           totalToPaySum += debtAmount;
           totalSum += mainAmount;
           totalTaganSum += taganSum;
         } else {
-          // Для каждой услуги создаем строку
           services.forEach((service: any, serviceIndex: number) => {
             const bagNumber = service.bag_number_numeric || "";
             const description = service.nomenclature?.name || "";
@@ -518,7 +471,6 @@ export const WarehouseStockGoodsReport = () => {
             const weight = Number(service.weight || 0);
             const serviceSum = Number(service.sum || 0);
 
-            // Отправитель и получатель только в первой строке группы
             const isFirstService = serviceIndex === 0;
 
             const row = [
@@ -526,29 +478,31 @@ export const WarehouseStockGoodsReport = () => {
               isFirstService ? senderPhone : "",
               isFirstService ? recipientName : "",
               isFirstService ? recipientPhone : "",
-              isFirstService ? (record.sent_back?.name || "") : "",
+              isFirstService ? record.sent_back?.name || "" : "",
               bagNumber,
               description,
               quantity > 0 ? String(quantity) : "",
               weight > 0 ? weight.toFixed(2).replace(".", ",") : "",
-              isFirstService && debtAmount > 0 ? String(debtAmount.toFixed(0)) : "", // К оплате только в первой строке
-              serviceSum > 0 ? String(serviceSum.toFixed(0)) : "", // Сумма услуги
+              isFirstService && debtAmount > 0
+                ? String(debtAmount.toFixed(0))
+                : "",
+              serviceSum > 0 ? String(serviceSum.toFixed(0)) : "",
             ];
 
             if (showTagan) {
               row.push(
-                isFirstService && record?.avgProductPrice > 0 ? String(record?.avgProductPrice.toFixed(0)) : "" // Таганский только в первой строке
+                isFirstService && record?.avgProductPrice > 0
+                  ? String(record?.avgProductPrice.toFixed(0))
+                  : ""
               );
             }
 
             tableData.push(row);
 
-            // Обновляем итоги для каждой услуги
             totalWeight += weight;
             totalBagsCount += quantity;
             totalSum += serviceSum;
 
-            // К оплате и Таганский считаем только один раз для отправления
             if (isFirstService) {
               totalToPaySum += debtAmount;
               totalTaganSum += taganSum;
@@ -557,7 +511,6 @@ export const WarehouseStockGoodsReport = () => {
         }
       });
 
-      // Добавляем итоговую строку
       const totalRow = [
         "ИТОГО:",
         "",
@@ -566,31 +519,29 @@ export const WarehouseStockGoodsReport = () => {
         "",
         "",
         "",
-        String(totalBagsCount), // Итого количество
-        totalWeight > 0 ? totalWeight.toFixed(2).replace(".", ",") : "0", // Итого вес
-        totalToPaySum > 0 ? String(totalToPaySum.toFixed(0)) : "0", // Итого к оплате
-        totalSum > 0 ? String(totalSum.toFixed(0)) : "0", // Итого сумма
+        String(totalBagsCount),
+        totalWeight > 0 ? totalWeight.toFixed(2).replace(".", ",") : "0",
+        totalToPaySum > 0 ? String(totalToPaySum.toFixed(0)) : "0",
+        totalSum > 0 ? String(totalSum.toFixed(0)) : "0",
       ];
 
       if (showTagan) {
         totalRow.push(
-          totalTaganSum > 0 ? String(totalTaganSum.toFixed(0)) : "0", // Итого 400 руб
-          total200Sum > 0 ? String(total200Sum.toFixed(0)) : "0" // Итого 200 руб
+          totalTaganSum > 0 ? String(totalTaganSum.toFixed(0)) : "0",
+          total200Sum > 0 ? String(total200Sum.toFixed(0)) : "0"
         );
       }
 
       tableData.push(totalRow);
 
-      // ===== 5. Объединяем все данные =====
       const allData = [...headerData, ...tableData];
 
-      // ===== 6. Создаем лист =====
       const worksheet = XLSX.utils.aoa_to_sheet(allData);
 
-      // ===== 7. Настройка ширины колонок =====
+      // Настройка ширины колонок
       const colWidths = [
-        { wch: 15 }, // Ф.И.О отправителя
-        { wch: 12 }, // Номер тел. отправителя
+        { wch: 15 },
+        { wch: 12 },
         { wch: 15 }, // Ф.И.О получателя
         { wch: 12 }, // Номер тел. получателя
         { wch: 10 }, // Досыл
@@ -611,7 +562,7 @@ export const WarehouseStockGoodsReport = () => {
 
       worksheet["!cols"] = colWidths;
 
-      // ===== 8. Стилизация =====
+      // Стилизация
       const createCellStyle = (options: any = {}) => ({
         font: {
           name: "Arial",
@@ -638,19 +589,18 @@ export const WarehouseStockGoodsReport = () => {
           : undefined,
       });
 
-      // Стили
       const headerInfoStyle = createCellStyle({
         fontSize: 12,
         bold: true,
         align: "left",
-        bgColor: "F5F5F5"
+        bgColor: "F5F5F5",
       });
 
       const companyStyle = createCellStyle({
         fontSize: 12,
         bold: true,
         align: "right",
-        bgColor: "F5F5F5"
+        bgColor: "F5F5F5",
       });
 
       const tableHeaderMainStyle = createCellStyle({
@@ -692,21 +642,19 @@ export const WarehouseStockGoodsReport = () => {
         bgColor: "FFE4B5",
       });
 
-      // ===== 9. Применение стилей =====
+      // Применение стилей
       const setCellStyle = (address: any, style: any) => {
         if (!worksheet[address]) worksheet[address] = { t: "s", v: "" };
         worksheet[address].s = style;
       };
 
-      // Применяем стили к строке с информацией о рейсе
       for (let col = 0; col < 3; col++) {
         const addr = XLSX.utils.encode_cell({ r: 0, c: col });
         setCellStyle(addr, headerInfoStyle);
       }
       setCellStyle(XLSX.utils.encode_cell({ r: 0, c: 3 }), companyStyle);
 
-      // Данные таблицы
-      const dataStartRow = 1; // Данные начинаются сразу после информации о рейсе
+      const dataStartRow = 1;
       const totalRowIndex = allData.length - 1;
       const totalCols = showTagan ? 13 : 11;
 
@@ -714,11 +662,9 @@ export const WarehouseStockGoodsReport = () => {
         for (let col = 0; col < totalCols; col++) {
           const addr = XLSX.utils.encode_cell({ r: row, c: col });
 
-          // Стиль для итоговой строки
           if (row === totalRowIndex) {
             setCellStyle(addr, totalRowStyle);
           } else {
-            // Левое выравнивание для ФИО, досыла и наименований
             if (col === 0 || col === 2 || col === 4 || col === 6) {
               setCellStyle(addr, tableCellLeftStyle);
             } else {
@@ -728,19 +674,14 @@ export const WarehouseStockGoodsReport = () => {
         }
       }
 
-      // ===== 11. Установка высоты строк =====
-      worksheet["!rows"] = [
-        { hpt: 25 }, // Строка с информацией о рейсе
-      ];
+      worksheet["!rows"] = [{ hpt: 25 }];
 
-      // Добавляем высоту для строк данных
       for (let i = dataStartRow; i < allData.length; i++) {
         worksheet["!rows"][i] = { hpt: i === totalRowIndex ? 18 : 15 };
       }
 
-      // ===== 12. Генерация имени файла =====
       const truckNumber = shipmentRecord?.truck_number || "report";
-      const shipmentDate = shipmentRecord?.created_at 
+      const shipmentDate = shipmentRecord?.created_at
         ? dayjs(shipmentRecord.created_at).utc().format("DD.MM.YYYY.HH-mm")
         : dayjs().format("DD.MM.YYYY.HH-mm");
 
@@ -748,7 +689,7 @@ export const WarehouseStockGoodsReport = () => {
         shipmentData?.destination || "Export"
       } #${truckNumber} ${driverName || ""} от (${shipmentDate}).xlsx`;
 
-      // ===== 13. Сохранение файла =====
+      // Сохранение файла
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
       XLSX.writeFile(workbook, fileName);
 
@@ -790,20 +731,22 @@ export const WarehouseStockGoodsReport = () => {
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
 
-      const shipmentRecordForCSV = tableShipmentProps.dataSource?.find((item: any) => {
-        return item.id === shipmentData?.id;
-      });
-      
+      const shipmentRecordForCSV = tableShipmentProps.dataSource?.find(
+        (item: any) => {
+          return item.id === shipmentData?.id;
+        }
+      );
+
       const truckNumber = shipmentRecordForCSV?.truck_number || "report";
-      const shipmentDate = shipmentRecordForCSV?.created_at 
-        ? dayjs(shipmentRecordForCSV.created_at).utc().format("DD.MM.YYYY.HH-mm")
+      const shipmentDate = shipmentRecordForCSV?.created_at
+        ? dayjs(shipmentRecordForCSV.created_at)
+            .utc()
+            .format("DD.MM.YYYY.HH-mm")
         : dayjs().format("DD.MM.YYYY.HH-mm");
 
       link.setAttribute(
         "download",
-        `${
-          shipmentData?.destination
-        } #${truckNumber} ${driverName} от (${shipmentDate}).csv`
+        `${shipmentData?.destination} #${truckNumber} ${driverName} от (${shipmentDate}).csv`
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -963,83 +906,92 @@ export const WarehouseStockGoodsReport = () => {
     return downloadXLSX();
   };
 
-  const expandedRowColumns = useMemo(() => [
-    {
-      title: "№",
-      key: "index",
-      render: (_: any, __: any, index: number) => index + 1,
-      width: 50,
-    },
-    {
-      title: "Номер мешка",
-      dataIndex: "bag_number_numeric",
-      key: "bag_number_numeric",
-      width: 120,
-    },
-    {
-      title: "Вес, кг",
-      dataIndex: "weight",
-      key: "weight",
-      render: (value: any) =>
-        value
-          ? String(value).replace(".", ",").slice(0, 5)
-          : "",
-      width: 100,
-    },
-    {
-      title: "Сумма",
-      dataIndex: "sum",
-      key: "sum",
-      width: 100,
-    },
-    {
-      title: "Описание",
-      dataIndex: "description",
-      key: "description",
-      render: (value: any) => value || "-",
-    },
-  ], []);
+  const expandedRowColumns = useMemo(
+    () => [
+      {
+        title: "№",
+        key: "index",
+        render: (_: any, __: any, index: number) => index + 1,
+        width: 50,
+      },
+      {
+        title: "Номер мешка",
+        dataIndex: "bag_number_numeric",
+        key: "bag_number_numeric",
+        width: 120,
+      },
+      {
+        title: "Вес, кг",
+        dataIndex: "weight",
+        key: "weight",
+        render: (value: any) =>
+          value ? String(value).replace(".", ",").slice(0, 5) : "",
+        width: 100,
+      },
+      {
+        title: "Сумма",
+        dataIndex: "sum",
+        key: "sum",
+        width: 100,
+      },
+      {
+        title: "Описание",
+        dataIndex: "description",
+        key: "description",
+        render: (value: any) => value || "-",
+      },
+    ],
+    []
+  );
 
-  const renderExpandedRow = useCallback((record: any) => {
-    if (!record.services || record.services.length === 0) {
+  const renderExpandedRow = useCallback(
+    (record: any) => {
+      if (!record.services || record.services.length === 0) {
+        return (
+          <div
+            key={`no-services-${record.id}`}
+            style={{ padding: "10px", color: "#666" }}
+          >
+            Нет информации о мешках
+          </div>
+        );
+      }
+
       return (
-        <div 
-          key={`no-services-${record.id}`}
-          style={{ padding: "10px", color: "#666" }}
-        >
-          Нет информации о мешках
+        <div key={`expanded-${record.id}`}>
+          <Table
+            columns={expandedRowColumns}
+            dataSource={record.services || []}
+            pagination={false}
+            rowKey={(item: any, index?: number) =>
+              `service-${record.id}-${
+                item.bag_number_numeric || item.id || index || 0
+              }`
+            }
+            size="small"
+            style={{ margin: "10px 0" }}
+          />
         </div>
       );
-    }
+    },
+    [expandedRowColumns]
+  );
 
-    return (
-      <div key={`expanded-${record.id}`}>
-        <Table
-          columns={expandedRowColumns}
-          dataSource={record.services || []}
-          pagination={false}
-          rowKey={(item: any, index?: number) =>
-            `service-${record.id}-${item.bag_number_numeric || item.id || index || 0}`
-          }
-          size="small"
-          style={{ margin: "10px 0" }}
-        />
-      </div>
-    );
-  }, [expandedRowColumns]);
-
-  const renderExpandIcon = useCallback(({ expanded, onExpand, record }: any) => (
-    <Button
-      key={`expand-btn-${record.id}`}
-      type="text"
-      size="small"
-      icon={expanded ? <MinusOutlined /> : <PlusOutlined />}
-      onClick={(e) => {
-        e.stopPropagation();
-        onExpand(record, e);
-      }}
-    />
-  ), []);
+  const renderExpandIcon = useCallback(
+    ({ expanded, onExpand, record }: any) => (
+      <Button
+        key={`expand-btn-${record.id}`}
+        type="text"
+        size="small"
+        icon={expanded ? <MinusOutlined /> : <PlusOutlined />}
+        onClick={(e) => {
+          e.stopPropagation();
+          onExpand(record, e);
+        }}
+      />
+    ),
+    []
+  );
 
   return (
     <List
@@ -1143,7 +1095,9 @@ export const WarehouseStockGoodsReport = () => {
           </Col>
         </Row>
         <Table
-          key={`main-table-${showBags ? 'with-bags' : 'no-bags'}-${selectedCity || 'all'}`}
+          key={`main-table-${showBags ? "with-bags" : "no-bags"}-${
+            selectedCity || "all"
+          }`}
           size="small"
           dataSource={filteredData}
           pagination={false}
@@ -1255,7 +1209,11 @@ export const WarehouseStockGoodsReport = () => {
               }}
             />
           )}
-          <Table.Column dataIndex="paid_sum" title="Оплачено" render={(value) => Number(value).toFixed(2)} />
+          <Table.Column
+            dataIndex="paid_sum"
+            title="Оплачено"
+            render={(value) => Number(value).toFixed(2)}
+          />
 
           <Table.Column
             dataIndex="id"
