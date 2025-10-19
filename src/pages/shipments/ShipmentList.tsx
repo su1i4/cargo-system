@@ -38,7 +38,7 @@ const ShipmentList = () => {
     sorters: {
       initial: [{ field: "created_at", order: "desc" }],
     },
-    syncWithLocation: false,
+    syncWithLocation: true,
     meta: {
       join: ["branch"],
     },
