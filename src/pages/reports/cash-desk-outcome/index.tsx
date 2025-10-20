@@ -9,6 +9,7 @@ import {
   message,
   Row,
   Col,
+  Select,
 } from "antd";
 import {
   SearchOutlined,
@@ -38,6 +39,56 @@ const typeOperationMap: Record<string, string> = {
   cash: "Наличные",
 };
 
+// Список статей расходов
+export const expenseTypes = [
+  { value: "Прямые расходы", label: "Прямые расходы" },
+  { value: "Косвенные расходы", label: "Косвенные расходы" },
+  { value: "Постоянные расходы", label: "Постоянные расходы" },
+  { value: "Переменные расходы", label: "Переменные расходы" },
+  { value: "Прочие расходы", label: "Прочие расходы" },
+  { value: "Финансовые расходы", label: "Финансовые расходы" },
+  { value: "Экономические расходы", label: "Экономические расходы" },
+  { value: "Маркетинговые расходы", label: "Маркетинговые расходы" },
+  { value: "Административные расходы", label: "Административные расходы" },
+  { value: "Материальные расходы", label: "Материальные расходы" },
+  { value: "Оплата поставщику", label: "Оплата поставщику" },
+  { value: "Оплата за ремонт", label: "Оплата за ремонт" },
+  { value: "Контрагент с баланса", label: "Контрагент с баланса" },
+  { value: "Выплата заработной платы работнику", label: "Выплата заработной платы работнику" },
+  { value: "Выдача подотчет", label: "Выдача подотчет" },
+  { value: "Фрахт", label: "Фрахт" },
+  { value: "Проходы КЗ", label: "Проходы КЗ" },
+  { value: "Проходы РФ", label: "Проходы РФ" },
+  { value: "Встречка", label: "Встречка" },
+  { value: "Грузчики", label: "Грузчики" },
+  { value: "Газель", label: "Газель" },
+  { value: "Аренда офиса", label: "Аренда офиса" },
+  { value: "Аренда Склада", label: "Аренда Склада" },
+  { value: "Бонус", label: "Бонус" },
+  { value: "Заработная оплата", label: "Заработная оплата" },
+  { value: "Мобильная связь", label: "Мобильная связь" },
+  { value: "Канц товары", label: "Канц товары" },
+  { value: "ГСМ", label: "ГСМ" },
+  { value: "Возврат депозита", label: "Возврат депозита" },
+  { value: "Мешки", label: "Мешки" },
+  { value: "Электроэнергия", label: "Электроэнергия" },
+  { value: "Оплата за мусор", label: "Оплата за мусор" },
+  { value: "Фрахт стандарт", label: "Фрахт стандарт" },
+  { value: "Фрахт за экспресс", label: "Фрахт за экспресс" },
+  { value: "Граница", label: "Граница" },
+  { value: "Документы", label: "Документы" },
+  { value: "Обратная дорога экспресс", label: "Обратная дорога экспресс" },
+  { value: "Обслуживание ТС", label: "Обслуживание ТС" },
+  { value: "Склад", label: "Склад" },
+  { value: "Аренда", label: "Аренда" },
+  { value: "Коммунальные Услуги", label: "Коммунальные Услуги" },
+  { value: "Охрана", label: "Охрана" },
+  { value: "Хоз товары", label: "Хоз товары" },
+  { value: "Зп сотрудникам", label: "Зп сотрудникам" },
+  { value: "Погрузка", label: "Погрузка" },
+  { value: "Выплата учредителю", label: "Выплата учредителю" },
+];
+
 export const CashDeskOutcomeReport = () => {
   const setTitle = useDocumentTitle();
 
@@ -51,6 +102,7 @@ export const CashDeskOutcomeReport = () => {
     { type: { $eq: "outcome" } }, // Только расходы
   ]);
   const [search, setSearch] = useState("");
+  const [selectedExpenseTypes, setSelectedExpenseTypes] = useState<string[]>([]);
 
   // Состояния для дат
   const [from, setFrom] = useState(
@@ -121,6 +173,34 @@ export const CashDeskOutcomeReport = () => {
 
   const banks = banksData?.data || [];
 
+  // Обработчик изменения фильтра статей расходов
+  const handleExpenseTypeChange = (values: string[]) => {
+    setSelectedExpenseTypes(values);
+    
+    // Собираем все фильтры заново
+    let newFilters: any[] = [];
+
+    // Фильтр по поиску
+    if (search) {
+      newFilters.push({
+        $or: [
+          { comment: { $contL: search } },
+          { "counterparty.clientCode": { $contL: search } },
+          { "counterparty.name": { $contL: search } },
+        ],
+      });
+    }
+
+    // Фильтр по статьям расходов
+    if (values.length > 0) {
+      newFilters.push({
+        type_operation: { $in: values },
+      });
+    }
+
+    setFilters(newFilters, "replace");
+  };
+
   // Функция для подготовки данных для экспорта
   const prepareExportData = () => {
     const dataSource = data?.data?.data || [];
@@ -132,6 +212,7 @@ export const CashDeskOutcomeReport = () => {
         : "",
       "Вид расхода":
         typeOperationMap[record.type_operation] || record.type_operation || "",
+      "Статья расхода": record.expense_type || "",
       Банк: banks.find((bank: any) => bank.id === record.bank_id)?.name || "",
       "Код клиента": record.counterparty
         ? `${record.counterparty.clientPrefix || ""}-${
@@ -373,6 +454,18 @@ export const CashDeskOutcomeReport = () => {
             />
           </div>
         </Col>
+        <Col>
+          <Select
+            mode="multiple"
+            placeholder="Статья расхода"
+            style={{ minWidth: 250 }}
+            value={selectedExpenseTypes}
+            onChange={handleExpenseTypeChange}
+            options={expenseTypes}
+            maxTagCount="responsive"
+            allowClear
+          />
+        </Col>
         <Col flex="auto">
           <Input
             placeholder="Поиск по комментарию или коду клиента"
@@ -381,23 +474,29 @@ export const CashDeskOutcomeReport = () => {
             onChange={(e) => {
               const value = e.target.value;
               setSearch(value);
-              if (!value) {
-                setFilters([], "replace");
-                return;
+              
+              // Собираем все фильтры заново
+              let newFilters: any[] = [];
+
+              // Фильтр по поиску
+              if (value) {
+                newFilters.push({
+                  $or: [
+                    { comment: { $contL: value } },
+                    { "counterparty.clientCode": { $contL: value } },
+                    { "counterparty.name": { $contL: value } },
+                  ],
+                });
               }
 
-              setFilters(
-                [
-                  {
-                    $or: [
-                      { comment: { $contL: value } },
-                      { "counterparty.clientCode": { $contL: value } },
-                      { "counterparty.name": { $contL: value } },
-                    ],
-                  },
-                ],
-                "replace"
-              );
+              // Фильтр по статьям расходов
+              if (selectedExpenseTypes.length > 0) {
+                newFilters.push({
+                  expense_type: { $in: selectedExpenseTypes },
+                });
+              }
+
+              setFilters(newFilters, "replace");
             }}
             style={{ width: "100%" }}
           />
@@ -435,6 +534,12 @@ export const CashDeskOutcomeReport = () => {
           title="Вид расхода"
           render={(value) => typeOperationMap[value] || value || "-"}
           width={180}
+        />
+        <Table.Column
+          dataIndex="expense_type"
+          title="Статья расхода"
+          render={(value) => value || "-"}
+          width={200}
         />
         <Table.Column
           dataIndex="bank_id"
@@ -493,14 +598,6 @@ export const CashDeskOutcomeReport = () => {
           title="Способ оплаты"
           render={(value) => value || "-"}
           width={140}
-        />
-        <Table.Column
-          dataIndex="user"
-          title="Сотрудник"
-          render={(value) =>
-            value ? `${value.firstName || ""} ${value.lastName || ""}` : "-"
-          }
-          width={150}
         />
         <Table.Column
           dataIndex="user"
