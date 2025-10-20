@@ -214,11 +214,11 @@ export const UserEdit = () => {
             </Form.Item>
           </Col>
 
-          <Col xs={24} sm={12} md={6}>
+          {/* <Col xs={24} sm={12} md={6}>
             <Form.Item label="Пароль" name="password">
               <Input.Password />
             </Form.Item>
-          </Col>
+          </Col> */}
 
           <Col xs={24} sm={12} md={6}>
             <Form.Item
