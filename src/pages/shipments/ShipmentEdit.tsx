@@ -38,7 +38,7 @@ dayjs.tz.setDefault("Asia/Bishkek");
 
 const ShipmentEdit = () => {
   const { id } = useParams();
-  const { push, list } = useNavigation();
+  const { push, goBack } = useNavigation();
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
@@ -107,7 +107,7 @@ const ShipmentEdit = () => {
       if (response?.ok) {
         message.success("Сервисы успешно отвязаны от отгрузки");
         setSelectedRowKeys([]);
-        list("shipments");
+        goBack(); // Изменено с list на goBack
       } else {
         message.error("Ошибка при отвязке сервисов");
       }
@@ -242,10 +242,11 @@ const ShipmentEdit = () => {
 
       if (updatePromises.length > 0) {
         await Promise.all(updatePromises);
-        list("shipments");
+        message.success("Изменения успешно сохранены");
+        goBack(); // Изменено с list на goBack
       } else {
         message.info("Нет изменений для сохранения");
-        list("shipments");
+        goBack(); // Изменено с list на goBack
       }
     } catch (error) {
       console.error("Error in handleFinish:", error);
@@ -259,7 +260,6 @@ const ShipmentEdit = () => {
       e.preventDefault();
 
       try {
-
         const values = await form.validateFields();
 
         form.submit();

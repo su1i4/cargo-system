@@ -372,7 +372,17 @@ SearchForm.displayName = "SearchForm";
 
 // Компонент отображения результатов
 const TrackingResults = memo<TrackingResultsProps>(
-  ({ trackingData, loading, error, searchType, onClearFilters, page, pageSize, setPage, setPageSize }) => {
+  ({
+    trackingData,
+    loading,
+    error,
+    searchType,
+    onClearFilters,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+  }) => {
     const getStatusColor = useCallback((status?: string) => {
       switch (status) {
         case "В пути":
@@ -465,9 +475,12 @@ const TrackingResults = memo<TrackingResultsProps>(
                     style={{ width: "100%" }}
                     size="small"
                   >
+                    {/* <Text strong>Фио отправителя: {group.good?.sender_name}</Text>
+                    <Text strong>Фио получателя: {group.good?.recipient_name}</Text> */}
                     <Text strong>Общее кол-во мешков: {totalBags}</Text>
                     <div>
-                      <Text strong>Общий вес:</Text> {group.good?.weight} кг
+                      <Text strong>Общий вес:</Text> {group.good?.weight}{" "}
+                      {totalWeight} кг
                     </div>
                     <div>
                       <Text strong>Общая сумма:</Text>
@@ -498,7 +511,9 @@ const TrackingResults = memo<TrackingResultsProps>(
                     </div>
                     <div>
                       <Text strong>Дата создания:</Text>{" "}
-                      {dayjs(group.good?.created_at).utc().format("DD.MM.YYYY HH:mm")}
+                      {dayjs(group.good?.created_at)
+                        .utc()
+                        .format("DD.MM.YYYY HH:mm")}
                     </div>
                   </Space>
                 </Card>
@@ -580,9 +595,9 @@ const TrackingResults = memo<TrackingResultsProps>(
                                   <span
                                     style={{ fontSize: "11px", color: "#999" }}
                                   >
-                                    {dayjs(
-                                      shipmentGroup.shipment?.created_at
-                                    ).utc().format("DD.MM.YYYY HH:mm")}
+                                    {dayjs(shipmentGroup.shipment?.created_at)
+                                      .utc()
+                                      .format("DD.MM.YYYY HH:mm")}
                                   </span>
                                 </Flex>
                               </Space>
@@ -798,9 +813,7 @@ const TrackingResults = memo<TrackingResultsProps>(
                                               {bag.status}
                                             </Tag>
                                           </div>
-                                          
                                         </div>
-                                        <p>Фио отправителя: {bag.sender_name}</p>
                                         <Row
                                           gutter={8}
                                           style={{ marginTop: 4 }}
