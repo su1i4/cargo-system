@@ -14,6 +14,7 @@ import {
   Spin,
   Select,
   Flex,
+  Pagination,
 } from "antd";
 import { SearchOutlined, InboxOutlined } from "@ant-design/icons";
 import { useState, useEffect, useMemo, useCallback, memo } from "react";
@@ -141,6 +142,10 @@ interface TrackingResultsProps {
   error: string;
   searchType: string;
   onClearFilters: () => void;
+  page: number;
+  pageSize: number;
+  setPage: (page: number) => void;
+  setPageSize: (pageSize: number) => void;
 }
 
 // Компонент формы поиска
@@ -367,7 +372,7 @@ SearchForm.displayName = "SearchForm";
 
 // Компонент отображения результатов
 const TrackingResults = memo<TrackingResultsProps>(
-  ({ trackingData, loading, error, searchType, onClearFilters }) => {
+  ({ trackingData, loading, error, searchType, onClearFilters, page, pageSize, setPage, setPageSize }) => {
     const getStatusColor = useCallback((status?: string) => {
       switch (status) {
         case "В пути":
@@ -902,7 +907,7 @@ const TrackingResults = memo<TrackingResultsProps>(
             <Row align="middle" justify="space-between">
               <Col>
                 <Title level={5} style={{ margin: 0, color: "#52c41a" }}>
-                  📦 Найдено {Object.keys(groupedData).length}{" "}
+                  📦 На этой странице {Object.keys(groupedData).length}{" "}
                   {Object.keys(groupedData).length === 1
                     ? "накладная"
                     : Object.keys(groupedData).length < 5
@@ -940,6 +945,9 @@ export const TrackingPage = () => {
   const [error, setError] = useState<string>("");
   const [searchType, setSearchType] = useState<string>("");
   const token = localStorage.getItem("cargo-system-token");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     setTitle("Отслеживание посылок");
@@ -1009,13 +1017,15 @@ export const TrackingPage = () => {
           );
         }
 
+        const pageParams = `page=${page}&limit=${pageSize}`;
+
         const mainQueryParams = queryParams.join("&");
         const finalParams = [mainQueryParams, ...filterParams]
           .filter(Boolean)
           .join("&");
 
         const response = await fetch(
-          `${API_URL}/service/find-service-to-shipment?${finalParams}`,
+          `${API_URL}/service/find-service-to-shipment?${finalParams}&${pageParams}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -1033,8 +1043,10 @@ export const TrackingPage = () => {
         }
 
         const data = await response.json();
-        setTrackingData(Array.isArray(data) ? data : [data]);
+        console.log(data.data);
 
+        setTrackingData(Array.isArray(data.data) ? data.data : [data.data]);
+        setTotal(data.total);
         let fullSearchDescription = searchMethod;
 
         if (params.destination.length > 0 || params.status.length > 0) {
@@ -1062,7 +1074,7 @@ export const TrackingPage = () => {
         setLoading(false);
       }
     },
-    [branches, token]
+    [branches, token, page, pageSize]
   );
 
   const clearFilters = useCallback(() => {
@@ -1089,7 +1101,24 @@ export const TrackingPage = () => {
         error={error}
         searchType={searchType}
         onClearFilters={clearFilters}
+        page={page}
+        pageSize={pageSize}
+        setPage={setPage}
+        setPageSize={setPageSize}
       />
+      <Row justify="end" style={{ marginTop: 16 }}>
+        <Col span={24}>
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={total}
+            onChange={(page, pageSize) => {
+              setPage(page);
+              setPageSize(pageSize);
+            }}
+          />
+        </Col>
+      </Row>
     </List>
   );
 };
