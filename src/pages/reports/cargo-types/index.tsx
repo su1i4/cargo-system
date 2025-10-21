@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { List, useTable } from "@refinedev/antd";
+import { useList } from "@refinedev/core";
 import {
   Table,
   Button,
@@ -9,9 +10,10 @@ import {
   Dropdown,
   Input,
   Menu,
-  Radio,
+  Checkbox,
   Divider,
   message,
+  Tag,
 } from "antd";
 import {
   ArrowDownOutlined,
@@ -40,9 +42,9 @@ export const CargoTypesReport = () => {
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
   const [searchValue, setSearchValue] = useState("");
   const [sortField, setSortField] = useState("created_at");
-  const [selectedKey, setSelectedKey] = useState(0);
+  const [selectedKeys, setSelectedKeys] = useState<number[]>([]);
   const [nomenclatures, setNomenclatures] = useState<GroupedNomenclature[]>([]);
-  const [selectedShipment, setSelectedShipment] = useState<any>([]);
+  const [selectedShipments, setSelectedShipments] = useState<any[]>([]);
 
   const { tableProps, setSorters, setFilters } = useTable({
     resource: "shipments",
@@ -55,33 +57,23 @@ export const CargoTypesReport = () => {
     },
   });
 
-  const { tableProps: serviceTableProps } = useTable({
+  // Загружаем сервисы для всех выбранных рейсов
+  const { data: servicesData } = useList({
     resource: "service",
-    syncWithLocation: false,
-    initialSorter: [
+    filters: selectedKeys.length > 0 ? [
       {
-        field: "id",
-        order: "desc",
+        field: "shipment_id",
+        operator: "in",
+        value: selectedKeys,
       },
-    ],
-    filters: {
-      permanent: [
-        {
-          field: "shipment_id",
-          operator: "eq",
-          value: Number(selectedKey),
-        },
-      ],
-    },
+    ] : [],
     pagination: {
       mode: "off",
     },
+    queryOptions: {
+      enabled: selectedKeys.length > 0,
+    },
   });
-
-  useEffect(() => {
-    if (selectedKey > 0) {
-    }
-  }, [selectedKey]);
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
@@ -122,12 +114,29 @@ export const CargoTypesReport = () => {
     }
   };
 
+  // Обработка выбора/снятия выбора рейса
+  const handleRowSelect = (record: any) => {
+    const recordId = record.id as number;
+    
+    if (selectedKeys.includes(recordId)) {
+      // Убираем из выбранных
+      setSelectedKeys(selectedKeys.filter(id => id !== recordId));
+      setSelectedShipments(selectedShipments.filter(s => s.id !== recordId));
+    } else {
+      // Добавляем в выбранные
+      setSelectedKeys([...selectedKeys, recordId]);
+      setSelectedShipments([...selectedShipments, record]);
+    }
+  };
+
   // Функция для скачивания CSV
   const downloadCSV = () => {
     if (nomenclatures.length === 0) {
       message.warning("Нет данных для экспорта");
       return;
     }
+
+    const truckNumbers = selectedShipments.map(s => s.truck_number).join(', ');
 
     const headers = [
       "№",
@@ -150,7 +159,7 @@ export const CargoTypesReport = () => {
       ),
     ].join("\n");
 
-    const BOM = "\uFEFF"; // Для корректного отображения кириллицы
+    const BOM = "\uFEFF";
     const blob = new Blob([BOM + csvContent], {
       type: "text/csv;charset=utf-8;",
     });
@@ -160,9 +169,7 @@ export const CargoTypesReport = () => {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `отчет-упаковочный лист номер рейса-${
-        selectedShipment?.truck_number
-      }-${dayjs().format("DD-MM-YYYY")}.csv`
+      `отчет-упаковочный лист-рейсы-${truckNumbers}-${dayjs().format("DD-MM-YYYY")}.csv`
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -180,12 +187,12 @@ export const CargoTypesReport = () => {
     }
 
     try {
-      // Динамический импорт библиотеки xlsx
       const XLSX = await import("xlsx");
 
       const workbook = XLSX.utils.book_new();
 
-      // Подготовка данных для Excel
+      const truckNumbers = selectedShipments.map(s => s.truck_number).join(', ');
+
       const worksheetData = [
         [
           "№",
@@ -205,20 +212,18 @@ export const CargoTypesReport = () => {
 
       const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
-      // Настройка ширины колонок
       const columnWidths = [
-        { wch: 50 }, // Наименование
-        { wch: 15 }, // Количество
-        { wch: 15 }, // Вес
-        { wch: 25 }, // Количество мест
+        { wch: 5 },
+        { wch: 50 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 25 },
       ];
       worksheet["!cols"] = columnWidths;
 
       XLSX.utils.book_append_sheet(workbook, worksheet, "Номенклатуры");
 
-      const fileName = `отчет-упаковочный лист номер рейса-${
-        selectedShipment?.truck_number
-      }-${dayjs().format("DD-MM-YYYY")}.xlsx`;
+      const fileName = `отчет-упаковочный лист-рейсы-${truckNumbers}-${dayjs().format("DD-MM-YYYY")}.xlsx`;
       XLSX.writeFile(workbook, fileName);
 
       message.success("XLSX файл скачан успешно");
@@ -270,10 +275,11 @@ export const CargoTypesReport = () => {
     </Menu>
   );
 
-  const services = serviceTableProps?.dataSource;
-
+  // Группировка номенклатур из всех выбранных рейсов
   useEffect(() => {
-    if (services) {
+    const services = servicesData?.data || [];
+    
+    if (services.length > 0) {
       const nomenclatureMap = new Map<string, GroupedNomenclature>();
 
       services.forEach((item: any) => {
@@ -303,8 +309,10 @@ export const CargoTypesReport = () => {
       );
 
       setNomenclatures(nomenclature);
+    } else {
+      setNomenclatures([]);
     }
-  }, [services]);
+  }, [servicesData]);
 
   return (
     <List
@@ -312,6 +320,9 @@ export const CargoTypesReport = () => {
       headerButtons={() => {
         return (
           <Space>
+            {selectedKeys.length > 0 && (
+              <Tag color="blue">Выбрано рейсов: {selectedKeys.length}</Tag>
+            )}
             <Button
               icon={<FileExcelOutlined />}
               type="primary"
@@ -322,7 +333,7 @@ export const CargoTypesReport = () => {
                 color: "#28a745",
               }}
               onClick={downloadXLSX}
-              loading={false}
+              disabled={selectedKeys.length === 0}
             >
               XLSX
             </Button>
@@ -336,6 +347,7 @@ export const CargoTypesReport = () => {
                 color: "#17a2b8",
               }}
               onClick={downloadCSV}
+              disabled={selectedKeys.length === 0}
             >
               CSV
             </Button>
@@ -389,10 +401,13 @@ export const CargoTypesReport = () => {
       <Table
         onRow={(record) => {
           return {
-            onClick: () => {
-              setSelectedKey(record.id as number);
-              setSelectedShipment(record as any);
-            },
+            onClick: () => handleRowSelect(record),
+            style: {
+              cursor: 'pointer',
+              backgroundColor: selectedKeys.includes(record.id as number) 
+                ? '#e6f7ff' 
+                : 'transparent'
+            }
           };
         }}
         {...tableProps}
@@ -402,7 +417,7 @@ export const CargoTypesReport = () => {
           title=""
           dataIndex="id"
           render={(value) => (
-            <Radio type="radio" checked={selectedKey === value} />
+            <Checkbox checked={selectedKeys.includes(value)} />
           )}
           width={10}
         />

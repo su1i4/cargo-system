@@ -25,10 +25,10 @@ interface GroupedData {
   region: string;
   totalWeight: number;
   totalCount: number;
-  sewing: number; // Пошив
-  brand: number; // Брендированные
-  imported: number; // К-Привозные
-  marking: number; // Маркировка
+  sewing: number;
+  brand: number;
+  imported: number;
+  marking: number;
   isGroupHeader: boolean;
 }
 
@@ -162,6 +162,7 @@ export const inputStyle = {
 export const CargoReceivedReport = () => {
   const [tableData, setTableData] = useState<GroupedData[]>([]);
   const [totalData, setTotalData] = useState<GroupedData[]>([]);
+  const [expressData, setExpressData] = useState<GroupedData[]>([]);
   const [isWarehouse, setIsWarehouse] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -172,7 +173,6 @@ export const CargoReceivedReport = () => {
   );
   const [to, setTo] = useState(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
 
-  // Безопасное форматирование дат
   const getFormattedDate = useCallback((dateString: string, label: string) => {
     try {
       const date = new Date(dateString);
@@ -207,7 +207,6 @@ export const CargoReceivedReport = () => {
     },
   });
 
-  // Улучшенная обработка изменения чекбокса
   const handleWarehouseChange = useCallback(async (checked: boolean) => {
     console.log("Warehouse checkbox changed:", checked);
     
@@ -216,7 +215,6 @@ export const CargoReceivedReport = () => {
       setHasError(false);
       setErrorMessage("");
       
-      // Добавляем небольшую задержку для предотвращения слишком частых запросов
       await new Promise(resolve => setTimeout(resolve, 100));
       
       setIsWarehouse(checked);
@@ -228,14 +226,12 @@ export const CargoReceivedReport = () => {
       setErrorMessage("Ошибка при изменении состояния склада");
       message.error("Произошла ошибка при изменении состояния");
       
-      // Откатываем состояние при ошибке
       setIsWarehouse(!checked);
     } finally {
       setIsProcessing(false);
     }
   }, []);
 
-  // Улучшенная обработка данных с детальным логированием
   const processData = useCallback((responseData: any) => {
     console.log("Processing data:", responseData);
     
@@ -247,6 +243,7 @@ export const CargoReceivedReport = () => {
         console.warn("No response data received");
         setTableData([]);
         setTotalData([]);
+        setExpressData([]);
         return;
       }
 
@@ -254,12 +251,12 @@ export const CargoReceivedReport = () => {
         console.warn("No routes data in response");
         setTableData([]);
         setTotalData([]);
+        setExpressData([]);
         return;
       }
 
       const grouped: GroupedData[] = [];
       
-      // Безопасная обработка routes
       const routes = Array.isArray(responseData.routes) ? responseData.routes : [];
       console.log("Routes to process:", routes.length);
 
@@ -317,7 +314,6 @@ export const CargoReceivedReport = () => {
             0
           );
 
-          // Добавляем заголовок группы
           grouped.push({
             isGroupHeader: true,
             region: from,
@@ -329,7 +325,6 @@ export const CargoReceivedReport = () => {
             marking: fromMarking,
           });
 
-          // Добавляем элементы группы
           itemsArray.forEach((item) => {
             try {
               grouped.push({
@@ -354,14 +349,20 @@ export const CargoReceivedReport = () => {
       console.log("Final grouped data:", grouped);
       setTableData(grouped);
 
-      // Безопасная обработка cities
       const cities = Array.isArray(responseData.cities) ? responseData.cities : [];
       console.log("Cities to process:", cities.length);
 
-      const totalDataArray: GroupedData[] = [];
+      // Разделяем города на обычные и экспресс
+      const regularCities = cities.filter((item: any) => 
+        !item.toCity?.toLowerCase().includes("экспресс")
+      );
+      const expressCities = cities.filter((item: any) => 
+        item.toCity?.toLowerCase().includes("экспресс")
+      );
 
-      // Добавляем данные по городам
-      cities.forEach((item: any) => {
+      // Обрабатываем обычные города
+      const totalDataArray: GroupedData[] = [];
+      regularCities.forEach((item: any) => {
         try {
           totalDataArray.push({
             isGroupHeader: false,
@@ -378,29 +379,29 @@ export const CargoReceivedReport = () => {
         }
       });
 
-      // Добавляем итоговую строку
+      // Добавляем итого для обычных городов
       try {
-        const totalCount = cities.reduce(
+        const totalCount = regularCities.reduce(
           (sum: number, item: any) => sum + (Number(item.totalCount) || 0),
           0
         );
-        const totalWeight = cities.reduce(
+        const totalWeight = regularCities.reduce(
           (sum: number, item: any) => sum + (Number(item.totalWeight) || 0),
           0
         );
-        const totalSewing = cities.reduce(
+        const totalSewing = regularCities.reduce(
           (sum: number, item: any) => sum + (Number(item.productTypes?.["Пошив"]) || 0),
           0
         );
-        const totalBrand = cities.reduce(
+        const totalBrand = regularCities.reduce(
           (sum: number, item: any) => sum + (Number(item.productTypes?.["Брендированные"]) || 0),
           0
         );
-        const totalImported = cities.reduce(
+        const totalImported = regularCities.reduce(
           (sum: number, item: any) => sum + (Number(item.productTypes?.["К-Привозные"]) || 0),
           0
         );
-        const totalMarking = cities.reduce(
+        const totalMarking = regularCities.reduce(
           (sum: number, item: any) => sum + (Number(item.productTypes?.["Маркировка"]) || 0),
           0
         );
@@ -422,6 +423,71 @@ export const CargoReceivedReport = () => {
       console.log("Final total data:", totalDataArray);
       setTotalData(totalDataArray);
 
+      // Обрабатываем экспресс города
+      const expressDataArray: GroupedData[] = [];
+      expressCities.forEach((item: any) => {
+        try {
+          expressDataArray.push({
+            isGroupHeader: false,
+            region: `Всего ${item.toCity || "Неизвестно"}`,
+            totalCount: Number(item.totalCount) || 0,
+            totalWeight: Number(item.totalWeight) || 0,
+            sewing: Number(item.productTypes?.["Пошив"]) || 0,
+            brand: Number(item.productTypes?.["Брендированные"]) || 0,
+            imported: Number(item.productTypes?.["К-Привозные"]) || 0,
+            marking: Number(item.productTypes?.["Маркировка"]) || 0,
+          });
+        } catch (cityError) {
+          console.error("Error processing express city:", item, cityError);
+        }
+      });
+
+      // Добавляем итого для экспресс городов
+      if (expressCities.length > 0) {
+        try {
+          const totalCount = expressCities.reduce(
+            (sum: number, item: any) => sum + (Number(item.totalCount) || 0),
+            0
+          );
+          const totalWeight = expressCities.reduce(
+            (sum: number, item: any) => sum + (Number(item.totalWeight) || 0),
+            0
+          );
+          const totalSewing = expressCities.reduce(
+            (sum: number, item: any) => sum + (Number(item.productTypes?.["Пошив"]) || 0),
+            0
+          );
+          const totalBrand = expressCities.reduce(
+            (sum: number, item: any) => sum + (Number(item.productTypes?.["Брендированные"]) || 0),
+            0
+          );
+          const totalImported = expressCities.reduce(
+            (sum: number, item: any) => sum + (Number(item.productTypes?.["К-Привозные"]) || 0),
+            0
+          );
+          const totalMarking = expressCities.reduce(
+            (sum: number, item: any) => sum + (Number(item.productTypes?.["Маркировка"]) || 0),
+            0
+          );
+
+          expressDataArray.push({
+            isGroupHeader: true,
+            region: "Всего итого Экспресс",
+            totalCount,
+            totalWeight,
+            sewing: totalSewing,
+            brand: totalBrand,
+            imported: totalImported,
+            marking: totalMarking,
+          });
+        } catch (totalError) {
+          console.error("Error calculating express totals:", totalError);
+        }
+      }
+
+      console.log("Final express data:", expressDataArray);
+      setExpressData(expressDataArray);
+
     } catch (error) {
       console.error("Critical error in processData:", error);
       setHasError(true);
@@ -429,10 +495,10 @@ export const CargoReceivedReport = () => {
       message.error("Критическая ошибка при обработке данных");
       setTableData([]);
       setTotalData([]);
+      setExpressData([]);
     }
   }, []);
 
-  // Улучшенный useEffect для запросов данных
   useEffect(() => {
     console.log("Effect triggered:", { isLoading, error, from, to, isWarehouse });
     
@@ -453,7 +519,6 @@ export const CargoReceivedReport = () => {
     }
   }, [isLoading, refetch, from, to, isWarehouse, error]);
 
-  // Обработка полученных данных
   useEffect(() => {
     console.log("Data effect triggered:", { hasData: !!data?.data, hasError: !!error });
     
@@ -466,7 +531,6 @@ export const CargoReceivedReport = () => {
     }
   }, [data, processData, error]);
 
-  // Показать ошибку если есть
   useEffect(() => {
     if (error) {
       console.error("API Error:", error);
@@ -522,7 +586,6 @@ export const CargoReceivedReport = () => {
         });
       });
 
-      // Add separator
       exportData.push({
         Город: "",
         Место: "",
@@ -533,7 +596,6 @@ export const CargoReceivedReport = () => {
         "К-привозные": "",
       });
 
-      // Add total data
       totalData.forEach((item) => {
         exportData.push({
           Город: item.region || "",
@@ -546,29 +608,51 @@ export const CargoReceivedReport = () => {
         });
       });
 
+      if (expressData.length > 0) {
+        exportData.push({
+          Город: "",
+          Место: "",
+          "Общий тоннаж, кг": "",
+          Пошив: "",
+          Брендированные: "",
+          Маркировка: "",
+          "К-привозные": "",
+        });
+
+        expressData.forEach((item) => {
+          exportData.push({
+            Город: item.region || "",
+            Место: String(item.totalCount || ""),
+            "Общий тоннаж, кг": String(item.totalWeight || ""),
+            Пошив: String(item.sewing || ""),
+            Брендированные: String(item.brand || ""),
+            Маркировка: String(item.marking || ""),
+            "К-привозные": String(item.imported || ""),
+          });
+        });
+      }
+
       return exportData;
     } catch (error) {
       console.error("Error preparing export data:", error);
       throw error;
     }
-  }, [tableData, totalData, formattedFrom, formattedTo]);
+  }, [tableData, totalData, expressData, formattedFrom, formattedTo]);
 
-  // Export to XLSX
   const exportToXLSX = useCallback(() => {
     try {
       const exportData = prepareExportData();
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
 
-      // Set column widths
       worksheet["!cols"] = [
-        { wch: 30 }, // Город
-        { wch: 10 }, // Место
-        { wch: 18 }, // Общий тоннаж
-        { wch: 15 }, // Пошив
-        { wch: 18 }, // Брендированные
-        { wch: 15 }, // Маркировка
-        { wch: 15 }, // К-привозные
+        { wch: 30 },
+        { wch: 10 },
+        { wch: 18 },
+        { wch: 15 },
+        { wch: 18 },
+        { wch: 15 },
+        { wch: 15 },
       ];
 
       XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет по грузам");
@@ -583,7 +667,6 @@ export const CargoReceivedReport = () => {
     }
   }, [prepareExportData, formattedFrom, formattedTo]);
 
-  // Export to CSV
   const exportToCSV = useCallback(() => {
     try {
       const exportData = prepareExportData();
@@ -638,7 +721,6 @@ export const CargoReceivedReport = () => {
 
   const isLoadingOrProcessing = isLoading || isProcessing;
 
-  // Логируем состояние для отладки
   console.log("Current state:", {
     isLoading,
     isProcessing,
@@ -647,11 +729,11 @@ export const CargoReceivedReport = () => {
     errorMessage,
     tableDataLength: tableData.length,
     totalDataLength: totalData.length,
+    expressDataLength: expressData.length,
   });
 
   return (
     <div>
-      {/* Отладочная информация - удалить в продакшене */}
       <div style={{ 
         fontSize: '10px', 
         color: '#666', 
@@ -795,7 +877,7 @@ export const CargoReceivedReport = () => {
         
         <Table
           columns={columns.map((item: any, index: number) => {
-            if (index === 0) return { ...item, title: "Всего Россия" };
+            if (index === 0) return { ...item, title: "Всего Россия Стандарт" };
             return item;
           })}
           dataSource={totalData}
@@ -815,6 +897,35 @@ export const CargoReceivedReport = () => {
           }}
           rowKey={(record, index) => `table2-${index}-${record.region}`}
         />
+
+        {expressData.length > 0 && (
+          <>
+            <Divider />
+            
+            <Table
+              columns={columns.map((item: any, index: number) => {
+                if (index === 0) return { ...item, title: "Всего Россия Экспресс" };
+                return item;
+              })}
+              dataSource={expressData}
+              loading={isLoadingOrProcessing}
+              pagination={false}
+              size="small"
+              bordered
+              rowClassName={(record) =>
+                record.isGroupHeader ? "group-header-row" : ""
+              }
+              scroll={{ x: 1200 }}
+              style={{
+                backgroundColor: "white",
+              }}
+              locale={{
+                emptyText: (error || hasError) ? 'Ошибка загрузки данных' : 'Нет данных',
+              }}
+              rowKey={(record, index) => `table3-${index}-${record.region}`}
+            />
+          </>
+        )}
 
         <style>{`
           .group-header-row {
