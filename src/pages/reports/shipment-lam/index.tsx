@@ -124,6 +124,9 @@ export const WarehouseStockGoodsReport = () => {
 
       const mainRow: any = {
         "№": index + 1,
+        "Дата приемки": dayjs(record.created_at)
+          .utc()
+          .format("DD.MM.YYYY HH:mm"),
         "Фио отправителя": record.sender?.name || "",
         "Фио получателя": record.recipient?.name || "",
         Город: record.destination?.name || "",
@@ -140,6 +143,7 @@ export const WarehouseStockGoodsReport = () => {
           Number(record.avgProductPrice - (showTagan ? taganSum : 0) || 0)
         ),
         Оплачено: Math.round(Number(record.paid_sum || 0)),
+        Комментарий: record.comments,
       };
 
       if (!showTagan) {
@@ -1120,6 +1124,11 @@ export const WarehouseStockGoodsReport = () => {
             render={(value, record, index) => index + 1}
           />
           <Table.Column
+            dataIndex="created_at"
+            title="Дата приемки"
+            render={(value) => dayjs(value).utc().format("DD.MM.YYYY HH:mm")}
+          />
+          <Table.Column
             dataIndex="sender"
             title="Фио отправителя"
             render={(value) => value?.name}
@@ -1252,6 +1261,7 @@ export const WarehouseStockGoodsReport = () => {
               }}
             />
           )}
+          <Table.Column dataIndex="comments" title="Комментарий" />
         </Table>
       </Modal>
       <Table
@@ -1284,6 +1294,7 @@ export const WarehouseStockGoodsReport = () => {
           width={50}
           render={(value) => dayjs(value).utc().format("DD.MM.YYYY HH:mm")}
         />
+
         <Table.Column width={50} title="Номер рейса" dataIndex="truck_number" />
         <Table.Column
           width={50}
